@@ -1,57 +1,29 @@
 // Variable to store the bot's most recent response for context checking
 let lastResponse = "";
 
-function sendMessage() {
-    const userInputField = document.getElementById('userInput');
-    const chatBox = document.getElementById('chatBox');
-    const userText = userInputField.value.trim();
-
-    if (userText === '') return;
-
-    // 1. Display the user's message
-    const userMessageDiv = document.createElement('div');
-    userMessageDiv.className = 'message user-message';
-    userMessageDiv.textContent = userText;
-    chatBox.appendChild(userMessageDiv);
-
-    // 2. Clear the input field
-    userInputField.value = '';
-
-    // 3. Scroll to the bottom of the chat box
-    chatBox.scrollTop = chatBox.scrollHeight;
-
-    // 4. Get and display the AI's response after a short delay
-    setTimeout(() => {
-        const botResponse = getBotResponse(userText.toLowerCase());
-        const botMessageDiv = document.createElement('div');
-        botMessageDiv.className = 'message bot-message';
-        botMessageDiv.textContent = botResponse;
-        chatBox.appendChild(botMessageDiv);
-        
-        // IMPORTANT: Update the lastResponse variable
-        lastResponse = botResponse;
-
-        // Scroll again after the bot replies
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }, 800);
-}
-
-// Function to handle simple math operations
+// Function to handle simple math operations (IMPROVED)
 function evaluateMath(input) {
+    // Replace common 'x' multiplication with '*' before testing/evaluating
+    const processedInput = input.replace(/x/g, '*'); 
+
+    // Enhanced Regex to handle spaces and common math characters
     const mathRegex = /^[\d\s\+\-\*\/\(\)\.]+$/;
     
-    if (mathRegex.test(input) && (input.includes('+') || input.includes('-') || input.includes('*') || input.includes('/'))) {
+    // Check if the input looks like a calculation (and isn't just a number)
+    if (mathRegex.test(processedInput) && (processedInput.includes('+') || processedInput.includes('-') || processedInput.includes('*') || processedInput.includes('/'))) {
         try {
-            const result = eval(input.replace(/ /g, ''));
+            // Remove spaces for safe evaluation
+            const cleanInput = processedInput.replace(/ /g, '');
+            const result = eval(cleanInput);
             return `The result of that calculation is **${result}**.`;
         } catch (e) {
-            return "I tried to calculate that, but the math expression seems invalid. Try something simpler like 2+2.";
+            return "I can handle basic arithmetic like 2+2 or 5*3. Please ensure your expression is valid and simple.";
         }
     }
     return null;
 }
 
-// Function to generate a 'smart' and 'truthful' response
+// Function to generate a 'smart' and 'truthful' response (IMPROVED)
 function getBotResponse(input) {
     // 1. Math Check
     const mathResponse = evaluateMath(input);
@@ -59,13 +31,14 @@ function getBotResponse(input) {
         return mathResponse;
     }
 
-    // 2. CONTEXT AWARENESS (The big improvement!)
-    if (input.includes('u sure') || input.includes('are you sure') || input.includes('is that true') || input.includes('really')) {
-        // Check if the previous response was a known fact
-        if (lastResponse.includes('verifiable fact') || lastResponse.includes('standard markup language') || lastResponse.includes('cascading style sheets') || lastResponse.includes('programming language')) {
-            return "Yes, I am certain. The information I provided is based on accurate, hardcoded data, and I can confirm its veracity.";
+    // 2. CONTEXT AWARENESS (Handles "u sure" after a fact)
+    const isQuestioningFact = input.includes('u sure') || input.includes('are you sure') || input.includes('is that true') || input.includes('really');
+    if (isQuestioningFact) {
+        // Check for keywords in the LAST response that indicate a fact was stated
+        if (lastResponse.includes('verifiable fact') || lastResponse.includes('standard markup language') || lastResponse.includes('cascading style sheets') || lastResponse.includes('programming language') || lastResponse.includes('the result of')) {
+            return "Yes, I am certain. The information I provided is based on accurate, hardcoded data. I have no way to 'search the internet,' but I can confirm my own facts.";
         } else {
-            return "I can only be absolutely certain about the facts I was explicitly programmed with. Which fact are you questioning?";
+            return "I can only confirm facts I've just stated. Could you repeat the fact you're questioning?";
         }
     }
 
@@ -74,38 +47,55 @@ function getBotResponse(input) {
         return "Hello! I am an advanced JavaScript simulator, now with basic memory. Ask me about HTML, CSS, or JavaScript.";
     }
     
-    // 4. Capital of France
+    // 4. Time, Date, and Creator (NEW KNOWLEDGE)
+    if (input.includes('time') || input.includes('date') || input.includes('year')) {
+        const now = new Date();
+        return `The time in your browser is ${now.toLocaleTimeString()}, and the current year is ${now.getFullYear()}.`;
+    }
+    if (input.includes('who made you') || input.includes('who is your creator')) {
+        return "I was coded by my user—you!—as a simple JavaScript simulation to demonstrate client-side logic on GitHub Pages.";
+    }
+    if (input.includes('how are you') || input.includes('how r u')) {
+        return "I don't have feelings, but I am operating perfectly! Ready for your next query.";
+    }
+    
+    // 5. Identity
+    if (input.includes('your name') || input.includes('who are you') || input.includes('who r u')) {
+        return "I am a Simple AI Chatbot built with JavaScript, CSS, and HTML for demonstration purposes on GitHub Pages.";
+    }
+
+    // 6. Define HTML 
+    if (input.includes('html') || input.includes('hgtml') || input.includes('what html') || input.includes('define html')) {
+        return "HTML stands for **HyperText Markup Language**. It is the standard markup language for documents designed to be displayed in a web browser. It's the structure of any webpage! (This is a verifiable fact.)";
+    }
+
+    // 7. Define CSS
+    if (input.includes('css') || input.includes('define css') || input.includes('what is css')) {
+        return "CSS stands for **Cascading Style Sheets**. It describes how HTML elements are to be displayed, controlling the layout and visual presentation of your website. (This is a verifiable fact.)";
+    }
+
+    // 8. Define JavaScript
+    if (input.includes('javascript') || input.includes('define javascript') || input.includes('define js') || input.includes('js')) {
+        return "JavaScript (JS) is a high-level **programming language** that is one of the core technologies of the World Wide Web. It enables interactive features and dynamic content. (This is a verifiable fact.)";
+    }
+    
+    // 9. Capital of France
     if (input.includes('capital of france') || input.includes('france')) {
         return "The capital of France is officially **Paris**. This is a verifiable fact.";
     }
-    
-    // 5. Define HTML
-    if (input.includes('define html') || input.includes('html')) {
-        return "HTML stands for **HyperText Markup Language**. It is the standard markup language for documents designed to be displayed in a web browser. It's the structure of any webpage!";
+
+    // 10. Simple Agreement/Filler (NEW)
+    if (input.length < 5 && (input.includes('ok') || input.includes('thanks') || input.includes('cool') || input.includes('nice'))) {
+         return "You're welcome! Feel free to ask another question.";
     }
 
-    // 6. Define CSS (New!)
-    if (input.includes('define css') || input.includes('css')) {
-        return "CSS stands for **Cascading Style Sheets**. It describes how HTML elements are to be displayed, controlling the layout and visual presentation of your website.";
+    // 11. Unknown/General Terms (IMPROVED FALLBACK)
+    if (input.includes('meaning') || input.includes('definition') || input.includes('dnd') || input.includes('timmy')) {
+         return "I don't know that specific term, as I cannot search the internet. However, I can define core web technologies. Would you like me to tell you about **JavaScript** or **CSS**?";
     }
 
-    // 7. Define JavaScript (New!)
-    if (input.includes('define javascript') || input.includes('javascript') || input.includes('js')) {
-        return "JavaScript (JS) is a high-level **programming language** that is one of the core technologies of the World Wide Web. It enables interactive features and dynamic content.";
-    }
-
-    // 8. Limits and Backend
-    if (input.includes('run server') || input.includes('backend') || input.includes('python')) {
-        return "As a purely client-side application (running only on JS/HTML/CSS), I cannot run complex algorithms or connect to a live back-end server. My responses are pre-programmed and cannot process code on a server.";
-    }
-
-    // 9. Identity
-    if (input.includes('your name') || input.includes('who are you')) {
-        return "I am a Simple AI Chatbot built with JavaScript, CSS, and HTML for demonstration purposes on GitHub Pages. I am designed to simulate intelligence and truthfulness.";
-    }
-    
-    // Default response
-    return "That's an interesting topic! I've been upgraded to handle more context, but I'm still limited to answering questions about web technologies (HTML, CSS, JS), simple math, and facts like the capital of France. What else can I define for you?";
+    // Default response (The final fallback is now more verbose and helpful)
+    return "I'm sorry, I can't process completely novel inputs like that. My programming is limited to answering questions about **HTML, CSS, JavaScript**, the **capital of France**, or a **simple math calculation**.";
 }
 
 // Enable sending messages with the Enter key
