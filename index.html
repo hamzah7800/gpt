@@ -3,22 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple AI Chatbot</title>
+    <title>Advanced AI Chatbot Simulator</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="chat-container">
-        <h1>Simple AI Chatbot</h1>
-        <div class="chat-box" id="chatBox">
-            <div class="message bot-message">
-                Hello! Ask me anything.
+
+    <div class="app-container">
+        
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Chat History</h2>
+                <button class="new-chat-btn" title="Start New Conversation">
+                    + New Chat
+                </button>
             </div>
-        </div>
-        <div class="input-container">
-            <input type="text" id="userInput" placeholder="Type your message...">
-            <button onclick="sendMessage()">Send</button>
-        </div>
+            <ul class="chat-list">
+                <li class="chat-item active">Advanced Simulator Chat</li>
+                <li class="chat-item">Math Facts Query</li>
+                <li class="chat-item">HTML & CSS Discussion</li>
+            </ul>
+            <div class="sidebar-footer">
+                <p>Advanced JS Simulation</p>
+            </div>
+        </aside>
+
+        <main class="chat-interface">
+            <header class="chat-header">
+                <h1>Simple AI Chatbot</h1>
+                <p>Running on Client-Side JavaScript Engine</p>
+            </header>
+
+            <div id="chatBox" class="chat-box">
+                <div class="message bot-message intro-message">
+                    Hello! I am an advanced JavaScript simulator with a vast knowledge base. Ask me anything.
+                </div>
+            </div>
+
+            <footer class="input-area">
+                <div id="dropZone" class="drop-zone">
+                    <p class="drop-text">Drag & drop files here to "upload" (simulated)</p>
+                </div>
+                <div class="input-field-container">
+                    <input type="text" id="userInput" placeholder="Type your message here..." autocomplete="off">
+                    <button onclick="sendMessage()" class="send-btn" title="Send Message">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 4L3 11L20 18L20 4Z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </footer>
+        </main>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
