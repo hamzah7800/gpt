@@ -1,29 +1,35 @@
 // =================================================================
-// 🧠 DEFINITIVE JAVASCRIPT WITH UI FUNCTIONALITY
+// 🧠 DEFINITIVE JAVASCRIPT WITH WORKING UI FUNCTIONALITY
 // =================================================================
 
 // Variable to store the bot's most recent response for context checking
 let lastResponse = "";
 
 // -----------------------------------------------------------------
-// HISTORY MANAGER (NEW FEATURE)
+// HISTORY MANAGER & SIDEBAR LOGIC
 // -----------------------------------------------------------------
 
 const HISTORY_KEY = 'chatbot_sessions';
-let currentSessionId = 'session_' + Date.now(); // Unique ID for the current chat
+// Initialize with a unique ID for the current chat, or use an existing one if available
+let currentSessionId = localStorage.getItem('currentSessionId') || 'session_' + Date.now(); 
 
 function loadHistory() {
     const historyData = localStorage.getItem(HISTORY_KEY);
-    return historyData ? JSON.parse(historyData) : {
-        [currentSessionId]: [{
+    const sessions = historyData ? JSON.parse(historyData) : {};
+    
+    // Ensure the current session is initialized if it's new
+    if (!sessions[currentSessionId]) {
+        sessions[currentSessionId] = [{
             type: 'bot',
             text: "Hello! I am an advanced JavaScript simulator with a vast knowledge base. Ask me anything."
-        }]
-    };
+        }];
+    }
+    return sessions;
 }
 
 function saveHistory(sessions) {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(sessions));
+    localStorage.setItem('currentSessionId', currentSessionId);
 }
 
 function renderChatBox(messages) {
@@ -45,10 +51,9 @@ function renderChatBox(messages) {
 }
 
 function startNewChat() {
-    // Save the current chat before starting a new one
-    saveCurrentChat();
+    saveCurrentChat(); // Save the current chat before starting a new one
     
-    // Create a new session ID and reset lastResponse
+    // Generate a new session ID and reset lastResponse
     currentSessionId = 'session_' + Date.now();
     lastResponse = "";
 
@@ -76,11 +81,13 @@ function saveCurrentChat(userText, botResponse) {
         currentSession.push({ type: 'bot', text: botResponse });
     }
 
-    // Ensure the session has content before saving a title
     if (currentSession.length > 0) {
         allSessions[currentSessionId] = currentSession;
         saveHistory(allSessions);
-        renderSidebar(allSessions);
+        // Only re-render sidebar if a new message was added (to update the title)
+        if (userText || botResponse) {
+             renderSidebar(allSessions);
+        }
     }
 }
 
@@ -88,12 +95,12 @@ function renderSidebar(sessions) {
     const chatList = document.querySelector('.chat-list');
     chatList.innerHTML = '';
     
-    // Iterate over sessions to create list items
-    Object.keys(sessions).forEach(id => {
+    const sessionKeys = Object.keys(sessions).reverse(); // Show newest chats first
+    
+    sessionKeys.forEach(id => {
         const messages = sessions[id];
+        // Use the first 30 chars of the first user message, or a default
         const firstUserMsg = messages.find(m => m.type === 'user');
-        
-        // Use the first user message as the title, or a default title
         const title = firstUserMsg ? firstUserMsg.text.substring(0, 30) + '...' : 'New Chat (Simulated)';
 
         const listItem = document.createElement('li');
@@ -104,7 +111,6 @@ function renderSidebar(sessions) {
         listItem.textContent = title;
         listItem.dataset.sessionId = id;
         
-        // Add click listener to switch chats (FIXED)
         listItem.addEventListener('click', () => switchChat(id, sessions));
         
         chatList.appendChild(listItem);
@@ -118,7 +124,7 @@ function switchChat(sessionId, sessions) {
     const messages = sessions[sessionId];
     renderChatBox(messages);
     
-    // Update active class in sidebar (FIXED)
+    // Update active class in sidebar
     document.querySelectorAll('.chat-item').forEach(item => {
         item.classList.remove('active');
         if (item.dataset.sessionId === sessionId) {
@@ -131,12 +137,12 @@ function switchChat(sessionId, sessions) {
 }
 
 // -----------------------------------------------------------------
-// DRAG & DROP LOGIC (NEW FEATURE)
+// DRAG & DROP LOGIC (FIXED)
 // -----------------------------------------------------------------
 
 function setupDragAndDrop() {
-    const dropZone = document.getElementById('dropZone');
     const inputArea = document.querySelector('.input-area');
+    const dropZone = document.getElementById('dropZone');
 
     // Prevent default browser behavior for drag events
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -148,18 +154,13 @@ function setupDragAndDrop() {
         e.stopPropagation();
     }
 
-    // Visual feedback for drag
+    // Visual feedback for drag (FIXED: Uses pointer-events to reliably manage hover)
     inputArea.addEventListener('dragenter', () => dropZone.classList.add('hover'), false);
-    inputArea.addEventListener('dragleave', (e) => {
-        // Only remove hover if cursor leaves the whole input area
-        if (e.relatedTarget && !inputArea.contains(e.relatedTarget)) {
-            dropZone.classList.remove('hover');
-        }
-    }, false);
+    inputArea.addEventListener('dragleave', () => dropZone.classList.remove('hover'), false);
     inputArea.addEventListener('drop', () => dropZone.classList.remove('hover'), false);
 
 
-    // Handle File Drop (FIXED)
+    // Handle File Drop
     inputArea.addEventListener('drop', handleDrop, false);
 
     function handleDrop(e) {
@@ -170,18 +171,18 @@ function setupDragAndDrop() {
             const fileName = files[0].name;
             const fileSize = (files[0].size / 1024 / 1024).toFixed(2); // Size in MB
             
-            // SIMULATED USER MESSAGE
             const userDropMessage = `Attempting to upload file: ${fileName}`;
             const botDropResponse = `File **${fileName}** (${fileSize} MB) received. As a client-side simulator, I cannot process the content (like a BAT file) or search for external data, but the drag-and-drop feature works! Try a simple math question instead.`;
 
-            // Display messages and update history
+            // Display messages with a small delay
             const chatBox = document.getElementById('chatBox');
-
+            
+            // Display user message immediately
             const userMessageDiv = document.createElement('div');
             userMessageDiv.className = 'message user-message';
             userMessageDiv.textContent = userDropMessage;
             chatBox.appendChild(userMessageDiv);
-            
+
             setTimeout(() => {
                 const botMessageDiv = document.createElement('div');
                 botMessageDiv.className = 'message bot-message';
@@ -199,7 +200,7 @@ function setupDragAndDrop() {
 }
 
 // -----------------------------------------------------------------
-// CORE CHAT ENGINE LOGIC (Unchanged from last fixed version)
+// CORE CHAT ENGINE LOGIC 
 // -----------------------------------------------------------------
 
 function evaluateMath(input) {
@@ -219,13 +220,10 @@ function evaluateMath(input) {
 }
 
 function getBotResponse(input) {
-    // Save the user's input immediately for history
-    saveCurrentChat(input, null); 
-
     // 1. Math Check
     const mathResponse = evaluateMath(input);
     if (mathResponse) {
-        saveCurrentChat(null, mathResponse); // Save the bot's response
+        saveCurrentChat(null, mathResponse);
         return mathResponse;
     }
 
@@ -243,8 +241,9 @@ function getBotResponse(input) {
         }
     }
 
-    // 3. AI META-KNOWLEDGE
+    // 3. AI META-KNOWLEDGE (The heavy-lifting logic is here)
     let response;
+    // ... (All the hardcoded identity, math, science, etc., checks go here) ...
     if (input.includes('what model') || input.includes('model are you') || input.includes('model is better')) {
         response = "I operate using a custom, **client-side JavaScript model** using keyword matching and hardcoded data. I am not a large language model like GPT or Claude, which require massive servers and cloud computing.";
     } else if (input.includes('who made you') || input.includes('creator') || input.includes('company name') || input.includes('who are u') || input.includes('who r u') || input.includes('us') || input.includes('where do u get your data base')) {
@@ -289,25 +288,21 @@ function getBotResponse(input) {
 }
 
 // -----------------------------------------------------------------
-// INITIALIZATION (Start the App)
+// INITIALIZATION
 // -----------------------------------------------------------------
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Load chat history and render sidebar
-    const sessions = loadHistory();
-    renderSidebar(sessions);
-    
-    // Render the active chat
-    if (sessions[currentSessionId]) {
-        renderChatBox(sessions[currentSessionId]);
-    } else {
-        // Fallback for new users
-        startNewChat();
+    // Attach click listener to the New Chat Button
+    const newChatBtn = document.querySelector('.new-chat-btn');
+    if (newChatBtn) {
+        newChatBtn.addEventListener('click', startNewChat);
     }
     
-    // Attach click listener to the New Chat Button (FIXED)
-    document.querySelector('.new-chat-btn').addEventListener('click', startNewChat);
-
+    // Load chat history and render sidebar/chat box
+    const sessions = loadHistory();
+    renderSidebar(sessions);
+    renderChatBox(sessions[currentSessionId]);
+    
     // Setup Drag and Drop
     setupDragAndDrop();
 });
