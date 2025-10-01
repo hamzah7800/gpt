@@ -1,21 +1,20 @@
 // =================================================================
-// 🧠 FINAL, OPTIMIZED JAVASCRIPT WITH SIMULATED LAZY LOADING & BUG FIXES
+// 🧠 DEFINITIVE JAVASCRIPT WITH PRIORITY FIXES, HISTORY, AND UI FUNCTIONALITY
 // =================================================================
 
 // Variable to store the bot's most recent response for context checking
 let lastResponse = "";
 
 // -----------------------------------------------------------------
-// SIMULATED LAZY LOAD: KNOWLEDGE BASE STRUCTURE
+// SIMULATED LAZY LOAD: KNOWLEDGE BASE STRUCTURE (PRIORITIZED)
 // -----------------------------------------------------------------
-// Defining knowledge in an array makes it easier to manage and extend
 const KNOWLEDGE_BASE = [
     // 0. GREETINGS & AGREEMENTS (High Priority)
     { keywords: ['hello', 'hi', 'hey', 'bonjour', 'salam'], response: "Hello! I am an advanced JavaScript simulator with a vast knowledge base. I'm ready to assist you. What can I define, calculate, or explain?" },
     { keywords: ['how are you', 'how r u'], response: "I don't have feelings, but I am operating perfectly! Ready for your next query." },
     { keywords: ['nice', 'cool', 'great answer', 'ok', 'thanks', 'thank you'], response: "You're very welcome! I'm glad I could assist. Feel free to ask another question." },
 
-    // 1. WEB TECHNOLOGIES (Specific Facts - Highest Priority to avoid overlap)
+    // 1. WEB TECHNOLOGIES (Specific Facts - Highest Priority to avoid identity overlap)
     { keywords: ['html', 'what html', 'define html'], response: "HTML stands for **HyperText Markup Language**. It is the standard markup language for documents designed to be displayed in a web browser. (This is a verifiable fact.)" },
     { keywords: ['css', 'what css', 'define css', 'use css'], response: "CSS stands for **Cascading Style Sheets**. It describes how HTML elements are to be displayed, controlling the layout and visual presentation of your website. (This is a verifiable fact.)" },
     { keywords: ['javascript', 'define javascript', 'define js', 'js'], response: "JavaScript (JS) is a high-level **programming language** that is one of the core technologies of the World Wide Web. (This is a verifiable fact.)" },
@@ -37,7 +36,7 @@ const KNOWLEDGE_BASE = [
     
     // 5. AMBIGUITY/FALLBACKS (Lowest Priority)
     { keywords: ['what can u talk about', 'what subjects', 'what can you do'], response: "I can answer questions on: **Web Technologies**, **Science** (gravity, light, biology), **Math Formulas**, and **Geography**. Try any of those!" },
-    { keywords: ['meaning', 'definition', 'dnd', 'timmy', 'no', 'yes'], response: "I don't know that specific term, as I cannot search the internet. Try asking me about the **Quadratic Formula** or **Photosynthesis** instead!" }
+    { keywords: ['meaning', 'definition', 'dnd', 'timmy', 'no', 'yes', 'but i am someone else'], response: "I don't know that specific term, as I cannot search the internet. Try asking me about the **Quadratic Formula** or **Photosynthesis** instead!" }
 ];
 
 // -----------------------------------------------------------------
@@ -60,6 +59,9 @@ function sendMessage() {
     userInputField.value = '';
     userInputField.disabled = true; // Disable input while processing (Optimized UX)
     
+    // Save the user's input immediately for history
+    saveCurrentChat(userText.toLowerCase(), null); 
+    
     chatBox.scrollTop = chatBox.scrollHeight;
 
     // Simulate AI processing time with a short delay
@@ -71,6 +73,9 @@ function sendMessage() {
         chatBox.appendChild(botMessageDiv);
         
         lastResponse = botResponse; // Update context
+        
+        // Save the bot's response
+        saveCurrentChat(null, botResponse);
         
         userInputField.disabled = false; // Re-enable input (Optimized UX)
         userInputField.focus(); // Focus input for quick reply (Optimized UX)
@@ -97,7 +102,6 @@ function loadHistory() {
     const historyData = localStorage.getItem(HISTORY_KEY);
     const sessions = historyData ? JSON.parse(historyData) : {};
     
-    // Ensure the current session is initialized if it's new
     if (!sessions[currentSessionId]) {
         sessions[currentSessionId] = [{
             type: 'bot',
@@ -114,6 +118,7 @@ function saveHistory(sessions) {
 
 function renderChatBox(messages) {
     const chatBox = document.getElementById('chatBox');
+    if (!chatBox) return; // Safety check
     chatBox.innerHTML = ''; 
 
     messages.forEach(msg => {
@@ -152,7 +157,8 @@ function saveCurrentChat(userText, botResponse) {
     const allSessions = loadHistory();
     let currentSession = allSessions[currentSessionId] || [];
 
-    if (userText) {
+    // Skip saving the "no" and "yes" responses to keep history clean if possible
+    if (userText && userText !== 'no' && userText !== 'yes') {
         currentSession.push({ type: 'user', text: userText });
     }
     if (botResponse) {
@@ -170,7 +176,7 @@ function saveCurrentChat(userText, botResponse) {
 
 function renderSidebar(sessions) {
     const chatList = document.querySelector('.chat-list');
-    if (!chatList) return; // Bug fix: Ensure element exists
+    if (!chatList) return; 
 
     chatList.innerHTML = '';
     const sessionKeys = Object.keys(sessions).reverse(); 
@@ -216,11 +222,10 @@ function switchChat(sessionId, sessions) {
 // -----------------------------------------------------------------
 
 function setupDragAndDrop() {
-    // TARGET THE MAIN CHAT INTERFACE (The safest, largest drop area)
     const dropTarget = document.querySelector('.chat-interface'); 
     const dropZone = document.getElementById('dropZone');
 
-    if (!dropTarget || !dropZone) return; // Optimization: Exit if elements aren't found
+    if (!dropTarget || !dropZone) return; 
 
     // Prevent default browser behavior for drag events
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -258,6 +263,9 @@ function setupDragAndDrop() {
             userMessageDiv.textContent = userDropMessage;
             chatBox.appendChild(userMessageDiv);
 
+            // Temporarily disable user input during simulated processing
+            document.getElementById('userInput').disabled = true;
+
             setTimeout(() => {
                 const botMessageDiv = document.createElement('div');
                 botMessageDiv.className = 'message bot-message';
@@ -268,6 +276,10 @@ function setupDragAndDrop() {
                 
                 saveCurrentChat(userDropMessage, botDropResponse);
                 lastResponse = botDropResponse;
+
+                // Re-enable user input after processing
+                document.getElementById('userInput').disabled = false;
+                document.getElementById('userInput').focus();
             }, 500);
         }
     }
@@ -301,7 +313,6 @@ function getBotResponse(input) {
     // 1. Math Check (Highest Priority)
     const mathResponse = evaluateMath(input);
     if (mathResponse) {
-        saveCurrentChat(null, mathResponse);
         return mathResponse;
     }
 
@@ -309,29 +320,21 @@ function getBotResponse(input) {
     const isQuestioningFact = input.includes('u sure') || input.includes('are you sure') || input.includes('is that true') || input.includes('really');
     if (isQuestioningFact) {
         if (lastResponse.includes('verifiable fact') || lastResponse.includes('programming language') || lastResponse.includes('defined as') || lastResponse.includes('the result of')) {
-            const response = "Yes, I am certain. The information I provided is based on accurate, hardcoded data. I confirm its veracity based on my internal knowledge base.";
-            saveCurrentChat(null, response);
-            return response;
+            return "Yes, I am certain. The information I provided is based on accurate, hardcoded data. I confirm its veracity based on my internal knowledge base.";
         } else {
-            const response = "I can only confirm facts I've just stated. Could you repeat the specific piece of information you're questioning?";
-            saveCurrentChat(null, response);
-            return response;
+            return "I can only confirm facts I've just stated. Could you repeat the specific piece of information you're questioning?";
         }
     }
 
-    // 3. Knowledge Base Lookup (Simulated Lazy Load/Pattern Matching)
+    // 3. Knowledge Base Lookup
     for (const item of KNOWLEDGE_BASE) {
         if (item.keywords.some(keyword => input.includes(keyword))) {
-            const response = item.response;
-            saveCurrentChat(null, response);
-            return response;
+            return item.response;
         }
     }
 
     // Default response (Lowest Priority)
-    const response = "I'm sorry, I can't process completely novel inputs like that or search the internet. I can answer questions about **Science, Math, Web Technologies, or my own simulated model**. Try asking: **'What is your model?'**";
-    saveCurrentChat(null, response);
-    return response;
+    return "I'm sorry, I can't process completely novel inputs like that or search the internet. I can answer questions about **Science, Math, Web Technologies, or my own simulated model**. Try asking: **'What is your model?'**";
 }
 
 // -----------------------------------------------------------------
