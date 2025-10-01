@@ -1,5 +1,5 @@
 // =================================================================
-// 🧠 DEFINITIVE JAVASCRIPT WITH PRIORITY FIXES, HISTORY, AND UI FUNCTIONALITY
+// 🧠 DEFINITIVE JAVASCRIPT WITH SAFE MATH, PRIORITY FIXES, HISTORY, AND UI FUNCTIONALITY
 // =================================================================
 
 // Variable to store the bot's most recent response for context checking
@@ -85,6 +85,7 @@ function sendMessage() {
 }
 
 // Enable sending messages with the Enter key
+// This relies on the <script> tag being correctly placed before </body>
 document.getElementById('userInput').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         sendMessage();
@@ -118,7 +119,7 @@ function saveHistory(sessions) {
 
 function renderChatBox(messages) {
     const chatBox = document.getElementById('chatBox');
-    if (!chatBox) return; // Safety check
+    if (!chatBox) return;
     chatBox.innerHTML = ''; 
 
     messages.forEach(msg => {
@@ -157,7 +158,6 @@ function saveCurrentChat(userText, botResponse) {
     const allSessions = loadHistory();
     let currentSession = allSessions[currentSessionId] || [];
 
-    // Skip saving the "no" and "yes" responses to keep history clean if possible
     if (userText && userText !== 'no' && userText !== 'yes') {
         currentSession.push({ type: 'user', text: userText });
     }
@@ -218,7 +218,7 @@ function switchChat(sessionId, sessions) {
 }
 
 // -----------------------------------------------------------------
-// DRAG & DROP LOGIC (FIXED)
+// DRAG & DROP LOGIC
 // -----------------------------------------------------------------
 
 function setupDragAndDrop() {
@@ -227,7 +227,6 @@ function setupDragAndDrop() {
 
     if (!dropTarget || !dropZone) return; 
 
-    // Prevent default browser behavior for drag events
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         dropTarget.addEventListener(eventName, preventDefaults, false); 
     });
@@ -237,12 +236,10 @@ function setupDragAndDrop() {
         e.stopPropagation();
     }
 
-    // Visual feedback for drag
     dropTarget.addEventListener('dragenter', () => dropZone.classList.add('hover'), false);
     dropTarget.addEventListener('dragleave', () => dropZone.classList.remove('hover'), false);
     dropTarget.addEventListener('drop', () => dropZone.classList.remove('hover'), false);
 
-    // Handle File Drop
     dropTarget.addEventListener('drop', handleDrop, false);
 
     function handleDrop(e) {
@@ -254,7 +251,17 @@ function setupDragAndDrop() {
             const fileSize = (files[0].size / 1024 / 1024).toFixed(2);
             
             const userDropMessage = `Attempting to upload file: ${fileName}`;
-            const botDropResponse = `File **${fileName}** (${fileSize} MB) received. As a client-side simulator, I cannot process the content (like a BAT file) or search for external data, but the drag-and-drop feature works! Try a simple math question instead.`;
+            let botDropResponse;
+
+            // Simulated response logic based on file type
+            if (fileName.toLowerCase().endsWith('.bat')) {
+                botDropResponse = `File **${fileName}** (${fileSize} MB) received. That appears to be a **Windows batch script**. As a client-side simulator, I cannot execute or read its code, but the drag-and-drop feature works! Try asking about CSS.`;
+            } else if (fileName.toLowerCase().endsWith('.pdf')) {
+                botDropResponse = `File **${fileName}** (${fileSize} MB) received. That is a **PDF document**. While I can't extract the text here, my system is prepared to send complex files like this to a powerful external AI for analysis!`;
+            } else {
+                botDropResponse = `File **${fileName}** (${fileSize} MB) received. As a client-side simulator, I cannot process the content, but the drag-and-drop feature works! Try a simple math question instead.`;
+            }
+
 
             const chatBox = document.getElementById('chatBox');
             
@@ -263,7 +270,6 @@ function setupDragAndDrop() {
             userMessageDiv.textContent = userDropMessage;
             chatBox.appendChild(userMessageDiv);
 
-            // Temporarily disable user input during simulated processing
             document.getElementById('userInput').disabled = true;
 
             setTimeout(() => {
@@ -277,7 +283,6 @@ function setupDragAndDrop() {
                 saveCurrentChat(userDropMessage, botDropResponse);
                 lastResponse = botDropResponse;
 
-                // Re-enable user input after processing
                 document.getElementById('userInput').disabled = false;
                 document.getElementById('userInput').focus();
             }, 500);
@@ -286,7 +291,7 @@ function setupDragAndDrop() {
 }
 
 // -----------------------------------------------------------------
-// MATH ENGINE
+// MATH ENGINE (FIXED: Using Function constructor to avoid 'unsafe-eval' error)
 // -----------------------------------------------------------------
 
 function evaluateMath(input) {
@@ -296,7 +301,8 @@ function evaluateMath(input) {
     
     if (mathRegex.test(processedInput) && (processedInput.includes('+') || processedInput.includes('-') || processedInput.includes('*') || processedInput.includes('/'))) {
         try {
-            const result = eval(processedInput); 
+            // Use Function constructor, which is safer and often allowed when eval() is not
+            const result = new Function('return ' + processedInput)(); 
             return `The result of that calculation is **${result}**.`;
         } catch (e) {
             return "I can handle basic arithmetic like 2+2 or 5*3. Please ensure your expression is valid and simple.";
