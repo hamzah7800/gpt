@@ -1,168 +1,90 @@
 // =================================================================
-// 🧠 MAXIMAL INTEGRATED JAVASCRIPT: LOCAL KNOWLEDGE + EXPANDED TOOLS
-// This version uses math.js (via CDN) and is 100% front-end.
+// 🧠 FINAL INTEGRATED JAVASCRIPT: LOCAL KNOWLEDGE + ASYNC SEARCH
 // =================================================================
 
 let lastResponse = "";
-const HISTORY_KEY = 'chatbot_sessions';
-let currentSessionId = localStorage.getItem('currentSessionId') || 'session_' + Date.now(); 
 
 // --- API CONFIGURATION ---
-// These are disabled as we are running locally.
-const BACKEND_URL = 'http://disabled'; 
-const MATH_BACKEND_URL = 'http://disabled'; 
+// IMPORTANT: Use your deployed URL here if you moved off localhost!
+const BACKEND_URL = 'http://localhost:3000/api/search'; 
+const MATH_BACKEND_URL = 'http://localhost:3000/api/calculate'; 
 
 // -----------------------------------------------------------------
-// 1. KNOWLEDGE BASE & JOKES
+// SIMULATED LAZY LOAD: KNOWLEDGE BASE (Same as before)
 // -----------------------------------------------------------------
 const KNOWLEDGE_BASE = [
-    { keywords: ['hello', 'hi', 'hey', 'bonjour', 'salam'], response: "Hello! I am an **advanced JavaScript simulator** with a vast knowledge base. I'm ready to assist you. What can I define, calculate, or explain?" },
+    { keywords: ['hello', 'hi', 'hey', 'bonjour', 'salam'], response: "Hello! I am an advanced JavaScript simulator with a vast knowledge base. I'm ready to assist you. What can I define, calculate, or explain?" },
     { keywords: ['how are you', 'how r u'], response: "I don't have feelings, but I am operating perfectly! Ready for your next query." },
     { keywords: ['nice', 'cool', 'great answer', 'ok', 'thanks', 'thank you'], response: "You're very welcome! I'm glad I could assist. Feel free to ask another question." },
     { keywords: ['html', 'what html', 'define html'], response: "HTML stands for **HyperText Markup Language**. It is the standard markup language for documents designed to be displayed in a web browser. (This is a verifiable fact.)" },
     { keywords: ['css', 'what css', 'define css', 'use css'], response: "CSS stands for **Cascading Style Sheets**. It describes how HTML elements are to be displayed, controlling the layout and visual presentation of your website. (This is a verifiable fact.)" },
     { keywords: ['javascript', 'define javascript', 'define js', 'js'], response: "JavaScript (JS) is a high-level **programming language** that is one of the core technologies of the World Wide Web. (This is a verifiable fact.)" },
-    { keywords: ['what model', 'model are you', 'what is your model'], response: "I operate using a custom, **client-side JavaScript model** using keyword matching and hardcoded data. I am not a large language model like GPT or Claude." },
-    { keywords: ['who made you', 'creator', 'company name'], response: "My source code was written by my user—you!—to demonstrate front-end AI simulation. My 'database' is the **hardcoded data** within my JavaScript file." },
+    { keywords: ['what model', 'model are you', 'what is your model'], response: "I operate using a custom, **client-side JavaScript model** using keyword matching and hardcoded data. I am not a large language model like GPT or Claude, which require massive servers and cloud computing." },
+    { keywords: ['who made you', 'creator', 'company name', 'who are u', 'who r u', 'us', 'where do u get your data base'], response: "My source code was written by my user—you!—to demonstrate front-end AI simulation. I do not belong to a commercial company. My 'database' is the **hardcoded data** within my JavaScript file." },
     { keywords: ['gravity', 'define gravity'], response: "Gravity is a fundamental force that attracts any objects with mass or energy. The constant is approximately $9.8 \\text{ m/s}^2$ on Earth. (Verifiable Fact)" },
-    { keywords: ['area of a circle', 'circle area formula'], response: "The formula for the area of a circle is **$A = \\pi r^2$** (Pi multiplied by the radius squared). (Defined as fact)" },
+    { keywords: ['area of a circle', 'circle area formula', 'area of a circle'], response: "The formula for the area of a circle is **$A = \\pi r^2$** (Pi multiplied by the radius squared). (Defined as fact)" },
     { keywords: ['capital of france', 'france'], response: "The capital of France is officially **Paris**. This is a verifiable fact." },
-    { keywords: ['what can u talk about', 'what subjects', 'what can you do'], response: "I can answer questions on: **Web Technologies**, **Science**, **Math Formulas**, **Geography**, or you can try one of my **built-in commands** like **`TIME`** or **`JOKE`**!" },
-    { keywords: ['meaning', 'definition', 'dnd', 'timmy', 'no', 'yes', 'but i am someone else'], response: "I'm sorry, I can't process completely novel inputs. I can only answer about **Science, Math, Web Technologies, or my own simulated model**." }
+    { keywords: ['what can u talk about', 'what subjects', 'what can you do'], response: "I can answer questions on: **Web Technologies**, **Science** (gravity, light, biology), **Math Formulas**, and **Geography**. Try any of those!" },
+    { keywords: ['meaning', 'definition', 'dnd', 'timmy', 'no', 'yes', 'but i am someone else'], response: "I'm sorry, I can't process completely novel inputs like that or search the internet. I can answer questions about **Science, Math, Web Technologies, or my own simulated model**. Try asking: **'What is your model?'**" }
 ];
 
-const JOKES = [
-    "Why don't scientists trust atoms? Because they make up everything!",
-    "What do you call a fake noodle? An impasta.",
-    "Why was the JavaScript developer sad? Because he didn't Node how to Express himself.",
-    "Did you hear about the two guys who stole a calendar? They each got six months.",
-    "I told my wife she was drawing her eyebrows too high. She looked surprised.",
-    "Why did the invisible man turn down the job offer? He couldn't see himself doing it."
-];
+// --- API CALL FUNCTIONS (Search and Math) ---
 
-// -----------------------------------------------------------------
-// 2. CORE TOOL FUNCTIONS (Fully Local)
-// -----------------------------------------------------------------
-
-// SEARCH: Always fails gracefully (no back-end/API key)
 async function searchAndVerify(query) {
-    return { 
-        type: 'search', 
-        response: "⚠️ External search is unavailable on this platform. Stick to **Math** or **Local Facts**!", 
-        found: false 
-    };
+    try {
+        const response = await fetch(BACKEND_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: query })
+        });
+        const data = await response.json();
+        
+        if (data.success && data.snippet) {
+            return { type: 'search', response: `🌐 I checked the internet for that! The top result states: **${data.snippet}** (Source: ${data.title})`, found: true };
+        } else {
+            // Success: false (e.g., no definitive result found by the search engine)
+            return { type: 'search', response: "🔍 I couldn't find a definitive answer online for that exact phrasing. Checking my local knowledge...", found: false };
+        }
+    } catch (error) {
+        console.error("Search API Call Error:", error);
+        // Error: The server is down or unreachable
+        return { 
+            type: 'search', 
+            response: "⚠️ **External search is unavailable.** The backend server at `http://localhost:3000` is unreachable. Checking my local knowledge base...", 
+            found: false 
+        };
+    }
 }
 
-// MATH: Uses the external math.js library (via CDN) for robust calculation.
 async function calculateMath(expression) {
-    // Allows digits, spaces, basic operators, and letters (for 'pi', 'sin', 'log', etc.)
-    const mathRegexTest = /^\s*[\d\s\+\-\*\/\(\)\.a-zA-Z]+$/; 
-    
+    // Allows any string containing numbers, operators, and parentheses, plus 'x' for multiplication.
+    // NOTE: This is a liberal regex intended to be filtered by the backend
+    const mathRegexTest = /^\s*[\d\s\+\-\*\/\(\)\x\.]+$/; 
     if (!mathRegexTest.test(expression.toLowerCase())) {
           return { type: 'math', response: null, isMath: false };
     }
-    
-    // Check if math.js is loaded
-    if (typeof math === 'undefined' || typeof math.evaluate !== 'function') {
-        return { type: 'math', response: "Math library failed to load. I can only handle the basics.", isMath: false };
-    }
 
     try {
-        // Use the math.js library's evaluate function
-        const result = math.evaluate(expression);
-
-        if (typeof result !== 'undefined' && result !== null) {
-            // Check for a complex type (like a matrix) which we can't display easily
-            if (typeof result === 'object' && result.constructor.name !== 'Object' && result.constructor.name !== 'Number') {
-                 return { type: 'math', response: `I calculated a complex result (${result.constructor.name}), but I can't display it neatly. Try a simple calculation.`, isMath: false };
-            }
-
-            // Convert result to string and format with high precision
-            const formattedResult = math.format(result, { precision: 14 });
-            return { type: 'math', response: `The result of that calculation is **${formattedResult}**. (Powered by Math.js)`, isMath: true };
+        const response = await fetch(MATH_BACKEND_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ expression: expression })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            return { type: 'math', response: `The result of that calculation is **${data.result}**.`, isMath: true };
         } else {
-            return { type: 'math', response: "I can handle arithmetic and functions (sin, cos, log), but that expression seems invalid.", isMath: false };
+            return { type: 'math', response: "I can handle basic arithmetic, but that expression seems invalid or too complex for my calculator.", isMath: false };
         }
     } catch (error) {
-        // math.js errors provide useful feedback
-        return { type: 'math', response: `Calculation Error: ${error.message}`, isMath: false };
+        console.error("Math API Call Error:", error);
+        return { type: 'math', response: "⚠️ **Math server is unavailable.** The backend server is unreachable. Please try again later.", isMath: false };
     }
 }
 
 // -----------------------------------------------------------------
-// 3. EMOJI/RICH TEXT ENHANCER
-// -----------------------------------------------------------------
-
-function enhanceBotOutput(text) {
-    let enhancedText = text;
-
-    // 1. Common Tech/Programming keywords
-    enhancedText = enhancedText.replace(/HTML/g, '💻 HTML');
-    enhancedText = enhancedText.replace(/CSS/g, '🎨 CSS');
-    enhancedText = enhancedText.replace(/JavaScript/g, '💡 JavaScript');
-    enhancedText = enhancedText.replace(/programming language/g, '🌐 programming language');
-
-    // 2. Math/Science keywords
-    enhancedText = enhancedText.replace(/gravity/g, '🌍 gravity');
-    enhancedText = enhancedText.replace(/\\pi/g, 'π'); // Replaces LaTeX pi with the symbol
-
-    // 3. User Experience keywords
-    enhancedText = enhancedText.replace(/You're very welcome!/g, '👍 You\'re very welcome!');
-    enhancedText = enhancedText.replace(/advanced JavaScript simulator/g, '🤖 advanced JavaScript simulator');
-    
-    return enhancedText;
-}
-
-// -----------------------------------------------------------------
-// 4. ADVANCED COMMAND HANDLER
-// -----------------------------------------------------------------
-
-function handleCommands(input) {
-    const lowerInput = input.toLowerCase().trim();
-    const date = new Date();
-    
-    // Command 1: JOKE
-    if (lowerInput === 'joke' || lowerInput.includes('tell a joke') || lowerInput.includes('funny')) {
-        const randomJoke = JOKES[Math.floor(Math.random() * JOKES.length)];
-        return `😂 Okay, here's one: **${randomJoke}**`;
-    }
-
-    // Command 2: TIME
-    if (lowerInput === 'time' || lowerInput === 'what time is it') {
-        return `⏰ The current time on your device is **${date.toLocaleTimeString()}**.`;
-    }
-
-    // Command 3: DATE
-    if (lowerInput === 'date' || lowerInput === 'what day is it') {
-        return `📅 Today's date is **${date.toLocaleDateString()}**.`;
-    }
-
-    // Command 4: CLEAR CHAT
-    if (lowerInput === 'clear' || lowerInput === 'clear chat') {
-        localStorage.removeItem(HISTORY_KEY);
-        startNewChat();
-        return "🧹 Chat history cleared and a new session has started!";
-    }
-
-    // Command 5: COMMANDS
-    if (lowerInput === 'commands' || lowerInput === 'help commands') {
-        return "✨ Available commands: **JOKE**, **TIME**, **DATE**, **CLEAR**. Try one!";
-    }
-    
-    // Command 6: WEATHER (Mocked)
-    if (lowerInput.includes('weather') || lowerInput.includes('temperature')) {
-        // Mocked response since we can't use an external API without a server
-        const day = ['sunny', 'cloudy', 'rainy', 'partly cloudy'][Math.floor(Math.random() * 4)];
-        const temp = Math.floor(Math.random() * 15 + 15); // Temp between 15C and 30C
-        return `🌤️ I can't check a live feed, but here is a simulation: Expect a **${day}** day with a temperature around **${temp}°C**.`;
-    }
-
-    return null; // No command found
-}
-
-
-// -----------------------------------------------------------------
-// 5. CORE UI LOGIC (Updated to use innerHTML and enhancer)
+// CORE UI LOGIC
 // -----------------------------------------------------------------
 
 async function sendMessage() { 
@@ -172,7 +94,6 @@ async function sendMessage() {
 
     if (userText === '') return;
 
-    // 1. Display User Message
     const userMessageDiv = document.createElement('div');
     userMessageDiv.className = 'message user-message';
     userMessageDiv.textContent = userText;
@@ -184,60 +105,56 @@ async function sendMessage() {
     userInputField.disabled = true;
     chatBox.scrollTop = chatBox.scrollHeight;
 
-    // 2. Display Thinking Message
     const thinkingDiv = document.createElement('div');
     thinkingDiv.className = 'message bot-message thinking-message';
     thinkingDiv.textContent = '...Thinking and checking sources...';
     chatBox.appendChild(thinkingDiv);
     chatBox.scrollTop = chatBox.scrollHeight;
 
+
     let finalResponse = null;
-    const lowerInput = userText.toLowerCase();
+    let localResponse = getBotResponse(userText.toLowerCase()); 
 
-    // Priority 1: Check for Built-in Commands
-    finalResponse = handleCommands(lowerInput);
-
-    // Priority 2: Check for Math
-    if (!finalResponse) {
-        const mathResult = await calculateMath(userText);
-        if (mathResult.isMath) {
-            finalResponse = mathResult.response;
-        }
+    // 1. Check for Math Calculation first
+    const mathResult = await calculateMath(userText);
+    if (mathResult.isMath) {
+        finalResponse = mathResult.response;
     }
 
-    // Priority 3: Check Local Knowledge Base
+    // 2. If not Math, check local knowledge
     if (!finalResponse) {
-        let localResponse = getBotResponse(lowerInput); 
         
-        // If the response is the general fallback...
-        const isLocalFallback = localResponse.startsWith("I'm sorry, I can't process");
+        // Check if local response is the final fallback message (i.e., no local match)
+        const isLocalFallback = localResponse.startsWith("I'm sorry, I can't process completely novel inputs");
 
         if (isLocalFallback) {
-            // Priority 4: Search Fallback (Always returns failure on GitHub Pages)
+            // 3. If no local match, attempt external search
             const searchResult = await searchAndVerify(userText);
             
-            // If the search failed, use the search failure message, otherwise use the local fallback
-            finalResponse = searchResult.response.startsWith("⚠️") ? searchResult.response : localResponse;
+            if (searchResult.found) {
+                // Search succeeded and found a snippet
+                finalResponse = searchResult.response; 
+            } else {
+                // Search failed (either no result or server down). Use the descriptive searchResult.response,
+                // which includes the server down warning, and then append the local fallback message.
+                finalResponse = `${searchResult.response} ${localResponse.replace("I'm sorry, I can't process completely novel inputs like that or search the internet.", "Please try a different query.")}`; 
+            }
+
         } else {
+            // A specific local keyword was matched
             finalResponse = localResponse;
         }
     }
     
-    // 5. Display Bot Response
     chatBox.removeChild(thinkingDiv); 
     
     const botMessageDiv = document.createElement('div');
     botMessageDiv.className = 'message bot-message';
-    
-    // Use the enhancer and render as HTML (to support bold tags and emojis)
-    const enhancedResponse = enhanceBotOutput(finalResponse);
-    botMessageDiv.innerHTML = enhancedResponse; 
-    
+    botMessageDiv.textContent = finalResponse;
     chatBox.appendChild(botMessageDiv);
 
-    // Save the plain text content (without HTML/emojis) for the "Are you sure?" check
-    lastResponse = botMessageDiv.textContent; 
-    saveCurrentChat(null, finalResponse); // Save original response for history
+    lastResponse = finalResponse;
+    saveCurrentChat(null, finalResponse); 
 
     userInputField.disabled = false;
     userInputField.focus();
@@ -271,8 +188,11 @@ function getBotResponse(input) {
 }
 
 // -----------------------------------------------------------------
-// 6. HISTORY MANAGER & SIDEBAR LOGIC (Standard Functions)
+// HISTORY MANAGER & SIDEBAR LOGIC (Updated for Deletion)
 // -----------------------------------------------------------------
+
+const HISTORY_KEY = 'chatbot_sessions';
+let currentSessionId = localStorage.getItem('currentSessionId') || 'session_' + Date.now(); 
 
 function loadHistory() {
     const historyData = localStorage.getItem(HISTORY_KEY);
@@ -300,9 +220,7 @@ function renderChatBox(messages) {
     messages.forEach(msg => {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${msg.type}-message`;
-        
-        // Enhance and render for history (only for bot messages)
-        messageDiv.innerHTML = msg.type === 'bot' ? enhanceBotOutput(msg.text) : msg.text;
+        messageDiv.textContent = msg.text;
         
         if (msg.type === 'bot' && msg.text.includes('advanced JavaScript simulator')) {
             messageDiv.classList.add('intro-message');
@@ -339,7 +257,6 @@ function saveCurrentChat(userText, botResponse) {
         currentSession.push({ type: 'user', text: userText });
     }
     if (botResponse) {
-        // Save the raw, unenhanced text for clean history storage
         currentSession.push({ type: 'bot', text: botResponse });
     }
 
@@ -373,14 +290,17 @@ function renderSidebar(sessions) {
             activeItemElement = listItem; 
         }
         
+        // Title Span (for clicking/truncation)
         const titleSpan = document.createElement('span');
         titleSpan.className = 'chat-title';
         titleSpan.textContent = titleText;
         
+        // Delete Button
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'delete-chat-btn';
         deleteBtn.textContent = '🗑️'; 
         
+        // Event Listeners
         titleSpan.addEventListener('click', () => switchChat(id, sessions));
         deleteBtn.addEventListener('click', (e) => {
             e.stopPropagation(); 
@@ -394,6 +314,7 @@ function renderSidebar(sessions) {
         chatList.appendChild(listItem);
     });
 
+    // FIX: Scroll to the active item (newest chat)
     if (activeItemElement) {
         activeItemElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
@@ -427,7 +348,7 @@ function deleteChat(sessionIdToDelete) {
     saveHistory(allSessions);
 
     if (sessionIdToDelete === currentSessionId) {
-        const sessionKeys = Object.keys(allSessions).reverse(); 
+        const sessionKeys = Object.keys(allSessions).reverse(); // Get keys in display order
         if (sessionKeys.length > 0) {
             switchChat(sessionKeys[0], allSessions); 
         } else {
@@ -439,7 +360,7 @@ function deleteChat(sessionIdToDelete) {
 }
 
 // -----------------------------------------------------------------
-// 7. DRAG & DROP LOGIC (Standard Functions)
+// DRAG & DROP LOGIC
 // -----------------------------------------------------------------
 
 function setupDragAndDrop() {
@@ -492,14 +413,14 @@ function setupDragAndDrop() {
             setTimeout(() => {
                 const botMessageDiv = document.createElement('div');
                 botMessageDiv.className = 'message bot-message';
-                botMessageDiv.innerHTML = enhanceBotOutput(botDropResponse); // Use enhancer
+                botMessageDiv.textContent = botDropResponse;
                 chatBox.appendChild(botMessageDiv);
 
                 chatBox.scrollTop = chatBox.scrollHeight;
                 
                 saveCurrentChat(userDropMessage, botDropResponse);
-                lastResponse = botMessageDiv.textContent; // Use plain text content
-                
+                lastResponse = botDropResponse;
+
                 document.getElementById('userInput').disabled = false;
                 document.getElementById('userInput').focus();
             }, 500);
@@ -508,7 +429,7 @@ function setupDragAndDrop() {
 }
 
 // -----------------------------------------------------------------
-// 8. INITIALIZATION
+// INITIALIZATION
 // -----------------------------------------------------------------
 
 function initializeChatbot() {
