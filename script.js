@@ -217,6 +217,7 @@ function renderChatBox(messages) {
         chatBox.appendChild(messageDiv);
     });
 
+    // The core of the scrolling fix, which works because the CSS is set correctly.
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
@@ -262,7 +263,6 @@ async function sendMessage() {
         } 
         
         // --- Step B: Client-Side Math Check (via math.js) ---
-        // Checks for numbers, operators, functions, or the word 'calculate'
         else if (query.match(/^(?:.*[\d+\-*/^().e])|(\s*calculate\s)/i)) { 
             botResponse = clientSideMath(query);
         }
@@ -403,6 +403,7 @@ function setupDragAndDrop() {
 function initializeChatbot() {
     const newChatBtn = document.querySelector('.new-chat-btn');
     if (newChatBtn) {
+        // Fix for potential previous syntax error by ensuring clean addEventListener call
         newChatBtn.addEventListener('click', startNewChat);
     }
     
@@ -413,4 +414,5 @@ function initializeChatbot() {
     setupDragAndDrop();
 }
 
+// IMPORTANT: This ensures the initializeChatbot function runs after all HTML is loaded
 document.addEventListener('DOMContentLoaded', initializeChatbot);
