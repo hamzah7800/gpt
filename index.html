@@ -6,6 +6,7 @@
     <title>AI Chatbot Simulator</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="data:,"> 
+    <link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
 
@@ -21,7 +22,7 @@
             
             <header>
                 <h1>AI Chatbot Simulator</h1>
-                <p>Knowledge base + External Search & Math powered by Node.js</p>
+                <p>Client-Side Knowledge Base + Math.js</p>
             </header>
             
             <div style="position: relative; flex-grow: 1; overflow: hidden;">
@@ -35,7 +36,7 @@
             </div>
             
             <div class="input-container">
-                <input type="text" id="userInput" placeholder="Ask me about Web, Science, Math, or anything (via Google)...">
+                <input type="text" id="userInput" placeholder="Ask me about Web, Science, or calculate anything (e.g., sin(45 deg))...">
                 <button onclick="sendMessage()">Send</button>
             </div>
             
@@ -43,6 +44,8 @@
 
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.1/math.min.js"></script> 
+    
     <script src="script.js"></script> 
 </body>
 </html>
