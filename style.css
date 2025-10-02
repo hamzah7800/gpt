@@ -105,7 +105,7 @@ body, html {
     display: flex;
     flex-direction: column;
     position: relative; 
-    min-height: 0; /* *** CRITICAL FLEXBOX FIX *** */
+    min-height: 0; /* CRITICAL FLEXBOX FIX */
 }
 
 .chat-interface header {
@@ -126,15 +126,24 @@ body, html {
     margin-top: 5px;
 }
 
+/* --- NEW WRAPPER (Definitive Scroll Fix) --- */
+.chat-area-wrapper {
+    position: relative;
+    flex-grow: 1; /* Takes all available space in the chat-interface column */
+    height: 100%; /* Forces the wrapper to adopt the height provided by flex-grow */
+    display: flex; /* Makes the wrapper a flex container */
+    flex-direction: column; 
+}
+
 /* --- CHAT BOX --- */
 .chat-box {
     padding: 20px;
-    overflow-y: auto; 
-    flex-grow: 1;
+    overflow-y: auto; /* This is what enables scrolling */
+    flex-grow: 1; /* Takes the remaining vertical space inside the wrapper */
     display: flex;
     flex-direction: column;
     gap: 10px;
-    height: 100%; 
+    /* height: 100% is no longer needed/used */
 }
 
 .message {
