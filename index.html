@@ -3,10 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-    <title>AI Chat</title>
-    <link rel="stylesheet" href="style.css">
+    <title>AI Chatbot Simulator (GitHub Pages)</title>
+    <link rel="stylesheet" href="style.css"> 
     <link rel="icon" href="data:,"> 
-    <link rel="manifest" href="manifest.webmanifest">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+        onload="renderMathInElement(document.body, { delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}] });"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
 
@@ -14,21 +22,19 @@
         
         <aside class="sidebar">
             <button class="new-chat-btn">➕ New Chat</button>
-            <ul class="chat-list">
-                </ul>
+            <ul class="chat-list"></ul>
         </aside>
 
         <main class="chat-interface">
             
             <header>
-                <h1>AI Chatbot Simulator</h1>
-                <p>Client-Side Knowledge Base + Math.js</p>
+                <h1>AI Chatbot Simulator (Client-Side)</h1>
+                <p>Knowledge Base + **Local Math Engine** (No external API needed)</p>
             </header>
             
-            <div class="chat-area-wrapper"> 
+            <div style="position: relative; flex-grow: 1; overflow: hidden;">
                 
-                <div class="chat-box" id="chatBox">
-                    </div>
+                <div class="chat-box" id="chatBox"></div>
 
                 <div id="dropZone">
                     <p>Drag & Drop File Here</p>
@@ -36,7 +42,7 @@
             </div>
             
             <div class="input-container">
-                <input type="text" id="userInput" placeholder="Ask me about Web, Science, or calculate anything (e.g., sin(45 deg))...">
+                <input type="text" id="userInput" placeholder="Ask about Web, Math (e.g., 2+2), or files...">
                 <button onclick="sendMessage()">Send</button>
             </div>
             
@@ -44,8 +50,6 @@
 
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.1/math.min.js"></script> 
-    
     <script src="script.js"></script> 
 </body>
 </html>
