@@ -1,67 +1,49 @@
-/* GLOBAL STYLES & RESET */
-:root {
-    --color-bg-dark: #1e1e1e;
-    --color-bg-light: #2c2c2c;
-    --color-text-light: #e0e0e0;
-    --color-accent-blue: #007bff;
-    --color-accent-green: #28a745;
-    --color-user-message: #007bff;
-    --color-bot-message: #444444;
-    --color-border: #333333;
-    --font-family-base: 'Roboto', sans-serif;
-    --sidebar-width: 250px;
-}
-
+/* General Reset and Base Styles */
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 body, html {
     height: 100%;
-    font-family: var(--font-family-base);
-    background-color: var(--color-bg-dark);
-    color: var(--color-text-light);
-    overflow: hidden; /* Prevent body scroll */
+    overflow: hidden; /* Prevents double scrollbars */
+    background-color: #f7f9fc;
 }
 
-/* APP CONTAINER */
-.app-container {
+/* --- CHATBOT LAYOUT --- */
+
+.chatbot-container {
     display: flex;
     height: 100vh;
+    max-width: 1400px;
+    margin: 0 auto;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
 }
 
-/* SIDEBAR STYLES */
+/* --- SIDEBAR (History) --- */
 .sidebar {
-    width: var(--sidebar-width);
-    background-color: var(--color-bg-light);
-    border-right: 1px solid var(--color-border);
+    width: 250px;
+    background-color: #333;
+    color: #fff;
+    padding: 15px;
     display: flex;
     flex-direction: column;
-    padding: 20px;
-}
-
-.sidebar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.sidebar h2 {
-    font-size: 1.2rem;
-    font-weight: 700;
+    border-right: 1px solid #444;
 }
 
 .new-chat-btn {
-    background-color: var(--color-accent-blue);
+    padding: 10px;
+    margin-bottom: 20px;
+    background-color: #007bff;
     color: white;
     border: none;
-    padding: 8px 12px;
     border-radius: 6px;
     cursor: pointer;
-    font-weight: 400;
+    font-size: 1em;
     transition: background-color 0.2s;
 }
 
@@ -73,153 +55,156 @@ body, html {
     list-style: none;
     flex-grow: 1;
     overflow-y: auto;
-    padding-right: 10px; /* Space for scrollbar */
 }
 
 .chat-item {
-    padding: 10px;
-    margin-bottom: 8px;
-    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 5px;
     cursor: pointer;
-    background-color: transparent;
-    transition: background-color 0.2s;
-    font-size: 0.9rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .chat-item:hover {
-    background-color: #3a3a3a;
+    background-color: #444;
 }
 
 .chat-item.active {
-    background-color: #3a3a3a;
-    border-left: 3px solid var(--color-accent-blue);
-    font-weight: 700;
+    background-color: #555;
+    font-weight: bold;
 }
 
-.sidebar-footer {
-    padding-top: 15px;
-    border-top: 1px solid var(--color-border);
-    text-align: center;
-    font-size: 0.75rem;
-    color: #888;
-}
-
-/* MAIN CHAT INTERFACE */
+/* --- MAIN CHAT INTERFACE --- */
 .chat-interface {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    max-width: calc(100% - var(--sidebar-width));
+    position: relative; /* CRITICAL: Establishes context for absolute positioning */
 }
 
-.chat-header {
-    padding: 15px 30px;
-    border-bottom: 1px solid var(--color-border);
-    background-color: var(--color-bg-light);
+.chat-interface header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+    background-color: #fff;
+    z-index: 10;
 }
 
-.chat-header h1 {
-    font-size: 1.5rem;
-    font-weight: 700;
+.chat-interface header h1 {
+    font-size: 1.5em;
+    color: #333;
 }
 
-.chat-header p {
-    font-size: 0.8rem;
-    color: #999;
+.chat-interface header p {
+    font-size: 0.8em;
+    color: #888;
 }
 
-/* CHAT BOX (Messages) */
+/* --- CHAT BOX (Messages Area) --- */
 .chat-box {
     flex-grow: 1;
-    padding: 20px 30px;
+    padding: 20px;
     overflow-y: auto;
-    background-color: var(--color-bg-dark);
+    background-color: #f7f9fc;
 }
 
-.message {
-    max-width: 70%;
-    padding: 10px 15px;
-    border-radius: 18px;
-    margin-bottom: 15px;
-    line-height: 1.5;
-}
-
-.bot-message {
-    background-color: var(--color-bot-message);
-    color: var(--color-text-light);
-    margin-right: auto;
-    border-top-left-radius: 4px; /* Flatter edge towards the center */
-}
-
-.user-message {
-    background-color: var(--color-user-message);
-    color: white;
-    margin-left: auto;
-    border-top-right-radius: 4px; /* Flatter edge towards the center */
-}
-
-.intro-message {
-    border: 1px solid var(--color-accent-green);
-}
-
-/* INPUT AREA */
-.input-area {
-    padding: 20px 30px;
-    background-color: var(--color-bg-light);
-    border-top: 1px solid var(--color-border);
-}
-
-.input-field-container {
+/* --- INPUT CONTAINER (The bar you need to see) --- */
+.input-container {
+    /* CRITICAL FIXES FOR MOBILE */
     display: flex;
-    gap: 10px;
-    background-color: #3a3a3a;
-    border-radius: 10px;
-    padding: 8px;
+    padding: 15px 20px;
+    border-top: 1px solid #ddd;
+    background-color: #fff;
+    
+    /* Ensure this is the highest layer so it's visible over the drop zone */
+    position: relative; 
+    z-index: 20; 
 }
 
 #userInput {
     flex-grow: 1;
-    padding: 10px;
-    border: none;
-    background: transparent;
-    color: var(--color-text-light);
-    font-size: 1rem;
-    outline: none;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1em;
+    margin-right: 10px;
 }
 
-.send-btn {
-    background-color: var(--color-accent-blue);
+.input-container button {
+    padding: 12px 25px;
+    background-color: #007bff;
+    color: white;
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    padding: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    font-size: 1em;
     transition: background-color 0.2s;
 }
 
-.send-btn:hover {
+.input-container button:hover {
     background-color: #0056b3;
 }
 
-/* DRAG & DROP ZONE */
-.drop-zone {
-    border: 2px dashed var(--color-border);
-    border-radius: 10px;
-    padding: 10px;
-    text-align: center;
-    margin-bottom: 10px;
-    transition: background-color 0.2s;
-    cursor: default;
+/* --- MESSAGES STYLES --- */
+
+.message {
+    padding: 10px 15px;
+    margin-bottom: 15px;
+    border-radius: 18px;
+    max-width: 75%;
+    line-height: 1.4;
 }
 
-.drop-zone.hover {
-    background-color: #3a3a3a;
-    border-color: var(--color-accent-green);
+.user-message {
+    background-color: #007bff;
+    color: white;
+    align-self: flex-end;
+    margin-left: auto;
+    border-bottom-right-radius: 4px;
 }
 
-.drop-text {
-    font-size: 0.85rem;
-    color: #999;
+.bot-message {
+    background-color: #e0e0e0;
+    color: #333;
+    align-self: flex-start;
+    margin-right: auto;
+    border-bottom-left-radius: 4px;
+}
+
+.bot-message.intro-message {
+    background-color: #cce5ff;
+    border: 1px solid #b8daff;
+}
+
+.thinking-message {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+/* --- DRAG & DROP ZONE --- */
+#dropZone {
+    /* CRITICAL FIXES: Positioned over the chat-box */
+    position: absolute; 
+    top: 60px; /* Adjust to start below the header */
+    left: 0;
+    right: 0;
+    bottom: 0; 
+    pointer-events: none; /* Must be off by default to allow clicks/typing */
+    opacity: 0; /* Hidden by default */
+    background-color: rgba(0, 123, 255, 0.7);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2em;
+    border-radius: 5px;
+    transition: opacity 0.3s;
+    z-index: 15; /* MUST be less than input-container (z-index: 20) but more than chat-box */
+}
+
+#dropZone.hover {
+    opacity: 1; /* Visible when a file is being dragged */
+    pointer-events: all; /* Catches the drop event */
 }
