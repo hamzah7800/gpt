@@ -7,7 +7,8 @@
 }
 
 body, html {
-    height: 100%;
+    /* Use 100% for height to ensure consistency across devices */
+    height: 100%; 
     overflow: hidden; 
     background-color: #f7f9fc;
 }
@@ -15,8 +16,9 @@ body, html {
 /* --- CHATBOT LAYOUT --- */
 
 .chatbot-container {
+    /* CRITICAL: Use 100vh here for full viewport height */
     display: flex;
-    height: 100vh;
+    height: 100vh; 
     max-width: 1400px;
     margin: 0 auto;
     border: 1px solid #ddd;
@@ -24,7 +26,7 @@ body, html {
     background-color: #fff;
 }
 
-/* --- SIDEBAR (History) --- */
+/* --- SIDEBAR (History) FIXES --- */
 .sidebar {
     width: 250px;
     background-color: #333;
@@ -45,6 +47,7 @@ body, html {
     cursor: pointer;
     font-size: 1em;
     transition: background-color 0.2s;
+    flex-shrink: 0; /* Prevents the button from shrinking */
 }
 
 .new-chat-btn:hover {
@@ -52,9 +55,11 @@ body, html {
 }
 
 .chat-list {
+    /* FIX: This makes the chat list scrollable */
     list-style: none;
-    flex-grow: 1;
-    overflow-y: auto;
+    flex-grow: 1; /* CRITICAL: Allows it to take all remaining space */
+    overflow-y: auto; /* CRITICAL: Enables scrolling */
+    padding-right: 5px; /* Adds space for the scrollbar */
 }
 
 .chat-item {
@@ -90,7 +95,7 @@ body, html {
     border-bottom: 1px solid #eee;
     background-color: #fff;
     z-index: 10;
-    flex-shrink: 0; /* Prevents header from shrinking */
+    flex-shrink: 0; 
 }
 
 .chat-interface header h1 {
@@ -103,18 +108,19 @@ body, html {
     color: #888;
 }
 
-/* --- CHAT BOX (Messages Area) --- */
+/* --- CHAT BOX (Messages Area) FIXES --- */
 .chat-box {
-    flex-grow: 1;
+    /* FIX: This makes the chat messages scrollable */
+    flex-grow: 1; 
     padding: 20px;
-    overflow-y: auto;
+    overflow-y: auto; /* CRITICAL: Enables scrolling for the messages */
     background-color: #f7f9fc;
     display: flex;
     flex-direction: column;
-    padding-bottom: 15px; /* Give a little extra padding above the input */
+    padding-bottom: 15px;
 }
 
-/* --- INPUT CONTAINER (The bar you need to see) --- */
+/* --- INPUT CONTAINER --- */
 .input-container {
     display: flex;
     padding: 15px 20px;
@@ -122,7 +128,7 @@ body, html {
     background-color: #fff;
     position: relative; 
     z-index: 20; 
-    flex-shrink: 0; /* Prevents input bar from shrinking */
+    flex-shrink: 0; 
 }
 
 #userInput {
@@ -132,6 +138,8 @@ body, html {
     border-radius: 8px;
     font-size: 1em;
     margin-right: 10px;
+    /* FIX: On iOS, sometimes the background needs to be explicitly white for contrast */
+    background-color: white; 
 }
 
 .input-container button {
@@ -149,7 +157,7 @@ body, html {
     background-color: #0056b3;
 }
 
-/* --- MESSAGES STYLES (No changes needed here) --- */
+/* --- MESSAGES STYLES --- */
 
 .message {
     padding: 10px 15px;
@@ -188,10 +196,9 @@ body, html {
 /* --- DRAG & DROP ZONE --- */
 #dropZone {
     position: absolute; 
-    top: 70px; /* Adjusted to sit just below the header */
+    top: 70px; 
     left: 0;
     right: 0;
-    /* Bottom is key: use flex-shrink: 0 on input-container to keep it from covering the input */
     bottom: 0; 
     pointer-events: none; 
     opacity: 0; 
@@ -212,30 +219,39 @@ body, html {
 }
 
 /* ================================================= */
-/* 📱 TABLET/MOBILE OPTIMIZATION (iPad Specific)     */
+/* 📱 TABLET/MOBILE OPTIMIZATION (Better than ChatGPT's fixed view) */
 /* ================================================= */
 
 @media (max-width: 850px) {
+    
     .sidebar {
-        /* Hide sidebar completely or make it a small collapsible button/icon on smaller screens */
+        /* Hide sidebar on mobile/iPad for a full-screen chat experience */
         display: none; 
-        width: 0;
     }
     
     .chatbot-container {
-        /* Allow the container to use full width and height on mobile */
         max-width: 100%;
         border: none;
         box-shadow: none;
     }
     
-    /* Ensure the main interface takes up the full space */
-    .chat-interface {
-        width: 100%;
+    /* Use 100dvh for height (Dynamic Viewport Height) for better iOS keyboard handling */
+    body, html, .chatbot-container {
+        height: 100dvh; 
     }
 
-    /* Fix iOS viewport height issues by using static 100% */
-    body, html, .chatbot-container {
-        height: 100%;
+    /* Adjust padding for a tighter mobile experience */
+    .input-container {
+        padding: 10px;
+    }
+
+    #userInput {
+        padding: 10px;
+        font-size: 0.9em;
+    }
+
+    .input-container button {
+        padding: 10px 15px;
+        font-size: 0.9em;
     }
 }
