@@ -1,6 +1,6 @@
 // =================================================================
 // 🧠 MAXIMAL INTEGRATED JAVASCRIPT: LOCAL KNOWLEDGE + EXPANDED TOOLS
-// This version is 100% front-end and compatible with GitHub Pages.
+// This version uses math.js (via CDN) and is 100% front-end.
 // =================================================================
 
 let lastResponse = "";
@@ -16,7 +16,7 @@ const MATH_BACKEND_URL = 'http://disabled';
 // 1. KNOWLEDGE BASE & JOKES
 // -----------------------------------------------------------------
 const KNOWLEDGE_BASE = [
-    { keywords: ['hello', 'hi', 'hey', 'bonjour', 'salam'], response: "Hello! I am an advanced JavaScript simulator with a vast knowledge base. I'm ready to assist you. What can I define, calculate, or explain?" },
+    { keywords: ['hello', 'hi', 'hey', 'bonjour', 'salam'], response: "Hello! I am an **advanced JavaScript simulator** with a vast knowledge base. I'm ready to assist you. What can I define, calculate, or explain?" },
     { keywords: ['how are you', 'how r u'], response: "I don't have feelings, but I am operating perfectly! Ready for your next query." },
     { keywords: ['nice', 'cool', 'great answer', 'ok', 'thanks', 'thank you'], response: "You're very welcome! I'm glad I could assist. Feel free to ask another question." },
     { keywords: ['html', 'what html', 'define html'], response: "HTML stands for **HyperText Markup Language**. It is the standard markup language for documents designed to be displayed in a web browser. (This is a verifiable fact.)" },
@@ -41,7 +41,7 @@ const JOKES = [
 ];
 
 // -----------------------------------------------------------------
-// 2. SIMPLIFIED API CALL FUNCTIONS (Fully Local)
+// 2. CORE TOOL FUNCTIONS (Fully Local)
 // -----------------------------------------------------------------
 
 // SEARCH: Always fails gracefully (no back-end/API key)
@@ -53,37 +53,68 @@ async function searchAndVerify(query) {
     };
 }
 
-// MATH: Enhanced local evaluation
+// MATH: Uses the external math.js library (via CDN) for robust calculation.
 async function calculateMath(expression) {
-    // Basic arithmetic characters: digits, spaces, basic operators, and parentheses
-    const mathRegexTest = /^\s*[\d\s\+\-\*\/\(\)\.]+$/;
+    // Allows digits, spaces, basic operators, and letters (for 'pi', 'sin', 'log', etc.)
+    const mathRegexTest = /^\s*[\d\s\+\-\*\/\(\)\.a-zA-Z]+$/; 
+    
     if (!mathRegexTest.test(expression.toLowerCase())) {
           return { type: 'math', response: null, isMath: false };
     }
+    
+    // Check if math.js is loaded
+    if (typeof math === 'undefined' || typeof math.evaluate !== 'function') {
+        return { type: 'math', response: "Math library failed to load. I can only handle the basics.", isMath: false };
+    }
 
     try {
-        // Use the browser's native JavaScript engine for evaluation.
-        // We use a safe technique by wrapping the expression in a Function constructor 
-        // after stripping potentially dangerous non-math characters.
-        const mathExpression = expression.replace(/[^-()\d/*+.]/g, '');
-        
-        // This is a safer alternative to the raw 'eval()' function.
-        const result = Function('"use strict";return (' + mathExpression + ')')();
+        // Use the math.js library's evaluate function
+        const result = math.evaluate(expression);
 
-        if (typeof result === 'number' && isFinite(result)) {
-            // Check for integer vs. float to present clean number
-            const formattedResult = Number.isInteger(result) ? result : result.toFixed(4);
-            return { type: 'math', response: `The result of that calculation is **${formattedResult}**.`, isMath: true };
+        if (typeof result !== 'undefined' && result !== null) {
+            // Check for a complex type (like a matrix) which we can't display easily
+            if (typeof result === 'object' && result.constructor.name !== 'Object' && result.constructor.name !== 'Number') {
+                 return { type: 'math', response: `I calculated a complex result (${result.constructor.name}), but I can't display it neatly. Try a simple calculation.`, isMath: false };
+            }
+
+            // Convert result to string and format with high precision
+            const formattedResult = math.format(result, { precision: 14 });
+            return { type: 'math', response: `The result of that calculation is **${formattedResult}**. (Powered by Math.js)`, isMath: true };
         } else {
-            return { type: 'math', response: "I can handle basic arithmetic, but that expression seems invalid or too complex.", isMath: false };
+            return { type: 'math', response: "I can handle arithmetic and functions (sin, cos, log), but that expression seems invalid.", isMath: false };
         }
     } catch (error) {
-        return { type: 'math', response: "I can't calculate that right now due to a parsing error.", isMath: false };
+        // math.js errors provide useful feedback
+        return { type: 'math', response: `Calculation Error: ${error.message}`, isMath: false };
     }
 }
 
 // -----------------------------------------------------------------
-// 3. NEW: ADVANCED COMMAND HANDLER
+// 3. EMOJI/RICH TEXT ENHANCER
+// -----------------------------------------------------------------
+
+function enhanceBotOutput(text) {
+    let enhancedText = text;
+
+    // 1. Common Tech/Programming keywords
+    enhancedText = enhancedText.replace(/HTML/g, '💻 HTML');
+    enhancedText = enhancedText.replace(/CSS/g, '🎨 CSS');
+    enhancedText = enhancedText.replace(/JavaScript/g, '💡 JavaScript');
+    enhancedText = enhancedText.replace(/programming language/g, '🌐 programming language');
+
+    // 2. Math/Science keywords
+    enhancedText = enhancedText.replace(/gravity/g, '🌍 gravity');
+    enhancedText = enhancedText.replace(/\\pi/g, 'π'); // Replaces LaTeX pi with the symbol
+
+    // 3. User Experience keywords
+    enhancedText = enhancedText.replace(/You're very welcome!/g, '👍 You\'re very welcome!');
+    enhancedText = enhancedText.replace(/advanced JavaScript simulator/g, '🤖 advanced JavaScript simulator');
+    
+    return enhancedText;
+}
+
+// -----------------------------------------------------------------
+// 4. ADVANCED COMMAND HANDLER
 // -----------------------------------------------------------------
 
 function handleCommands(input) {
@@ -131,7 +162,7 @@ function handleCommands(input) {
 
 
 // -----------------------------------------------------------------
-// 4. CORE UI LOGIC (Updated to check new command handler)
+// 5. CORE UI LOGIC (Updated to use innerHTML and enhancer)
 // -----------------------------------------------------------------
 
 async function sendMessage() { 
@@ -178,7 +209,7 @@ async function sendMessage() {
     if (!finalResponse) {
         let localResponse = getBotResponse(lowerInput); 
         
-        // If the response is the general fallback ("I'm sorry, I can't process...")
+        // If the response is the general fallback...
         const isLocalFallback = localResponse.startsWith("I'm sorry, I can't process");
 
         if (isLocalFallback) {
@@ -197,11 +228,16 @@ async function sendMessage() {
     
     const botMessageDiv = document.createElement('div');
     botMessageDiv.className = 'message bot-message';
-    botMessageDiv.textContent = finalResponse;
+    
+    // Use the enhancer and render as HTML (to support bold tags and emojis)
+    const enhancedResponse = enhanceBotOutput(finalResponse);
+    botMessageDiv.innerHTML = enhancedResponse; 
+    
     chatBox.appendChild(botMessageDiv);
 
-    lastResponse = finalResponse;
-    saveCurrentChat(null, finalResponse); 
+    // Save the plain text content (without HTML/emojis) for the "Are you sure?" check
+    lastResponse = botMessageDiv.textContent; 
+    saveCurrentChat(null, finalResponse); // Save original response for history
 
     userInputField.disabled = false;
     userInputField.focus();
@@ -235,7 +271,7 @@ function getBotResponse(input) {
 }
 
 // -----------------------------------------------------------------
-// HISTORY MANAGER & SIDEBAR LOGIC (Standard Functions)
+// 6. HISTORY MANAGER & SIDEBAR LOGIC (Standard Functions)
 // -----------------------------------------------------------------
 
 function loadHistory() {
@@ -264,7 +300,9 @@ function renderChatBox(messages) {
     messages.forEach(msg => {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${msg.type}-message`;
-        messageDiv.textContent = msg.text;
+        
+        // Enhance and render for history (only for bot messages)
+        messageDiv.innerHTML = msg.type === 'bot' ? enhanceBotOutput(msg.text) : msg.text;
         
         if (msg.type === 'bot' && msg.text.includes('advanced JavaScript simulator')) {
             messageDiv.classList.add('intro-message');
@@ -301,6 +339,7 @@ function saveCurrentChat(userText, botResponse) {
         currentSession.push({ type: 'user', text: userText });
     }
     if (botResponse) {
+        // Save the raw, unenhanced text for clean history storage
         currentSession.push({ type: 'bot', text: botResponse });
     }
 
@@ -400,7 +439,7 @@ function deleteChat(sessionIdToDelete) {
 }
 
 // -----------------------------------------------------------------
-// DRAG & DROP LOGIC (Standard Functions)
+// 7. DRAG & DROP LOGIC (Standard Functions)
 // -----------------------------------------------------------------
 
 function setupDragAndDrop() {
@@ -453,14 +492,14 @@ function setupDragAndDrop() {
             setTimeout(() => {
                 const botMessageDiv = document.createElement('div');
                 botMessageDiv.className = 'message bot-message';
-                botMessageDiv.textContent = botDropResponse;
+                botMessageDiv.innerHTML = enhanceBotOutput(botDropResponse); // Use enhancer
                 chatBox.appendChild(botMessageDiv);
 
                 chatBox.scrollTop = chatBox.scrollHeight;
                 
                 saveCurrentChat(userDropMessage, botDropResponse);
-                lastResponse = botDropResponse;
-
+                lastResponse = botMessageDiv.textContent; // Use plain text content
+                
                 document.getElementById('userInput').disabled = false;
                 document.getElementById('userInput').focus();
             }, 500);
@@ -469,7 +508,7 @@ function setupDragAndDrop() {
 }
 
 // -----------------------------------------------------------------
-// INITIALIZATION
+// 8. INITIALIZATION
 // -----------------------------------------------------------------
 
 function initializeChatbot() {
