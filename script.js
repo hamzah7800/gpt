@@ -1,376 +1,325 @@
 // =================================================================
-// 🧠 FINAL INTEGRATED JAVASCRIPT: LOCAL KNOWLEDGE + ASYNC SEARCH
+// 🧠 FINAL INTEGRATED JAVASCRIPT: LOCAL KNOWLEDGE + CLIENT-SIDE TOOLS
+// This version is 100% compatible with GitHub Pages (No server required)
 // =================================================================
 
 let lastResponse = "";
+let currentSessionId = localStorage.getItem('currentSessionId') || 'chat_1';
 
-// --- API CONFIGURATION ---
-// IMPORTANT: Use your deployed URL here if you moved off localhost!
-const BACKEND_URL = 'http://localhost:3000/api/search'; 
-const MATH_BACKEND_URL = 'http://localhost:3000/api/calculate'; 
+// --- API CONFIGURATION (REMOVED: Now client-side only) ---
 
 // -----------------------------------------------------------------
-// SIMULATED LAZY LOAD: KNOWLEDGE BASE (Same as before)
+// SIMULATED LAZY LOAD: KNOWLEDGE BASE (EXPANDED)
 // -----------------------------------------------------------------
 const KNOWLEDGE_BASE = [
-    { keywords: ['hello', 'hi', 'hey', 'bonjour', 'salam'], response: "Hello! I am an advanced JavaScript simulator with a vast knowledge base. I'm ready to assist you. What can I define, calculate, or explain?" },
-    { keywords: ['how are you', 'how r u'], response: "I don't have feelings, but I am operating perfectly! Ready for your next query." },
+    { keywords: ['hello', 'hi', 'hey', 'bonjour', 'salam'], response: "Hello! I am an advanced **client-side** simulator. I can answer local knowledge questions, perform calculations with **math.js**, and render LaTeX formulas, such as the Pythagorean theorem: $a^2 + b^2 = c^2$. What can I assist you with?" },
+    { keywords: ['how are you', 'how r u'], response: "I don't have feelings, but I am operating perfectly using only your browser's processing power! Ready for your next query." },
     { keywords: ['nice', 'cool', 'great answer', 'ok', 'thanks', 'thank you'], response: "You're very welcome! I'm glad I could assist. Feel free to ask another question." },
     { keywords: ['html', 'what html', 'define html'], response: "HTML stands for **HyperText Markup Language**. It is the standard markup language for documents designed to be displayed in a web browser. (This is a verifiable fact.)" },
-    { keywords: ['css', 'what css', 'define css', 'use css'], response: "CSS stands for **Cascading Style Sheets**. It describes how HTML elements are to be displayed, controlling the layout and visual presentation of your website. (This is a verifiable fact.)" },
-    { keywords: ['javascript', 'define javascript', 'define js', 'js'], response: "JavaScript (JS) is a high-level **programming language** that is one of the core technologies of the World Wide Web. (This is a verifiable fact.)" },
-    { keywords: ['what model', 'model are you', 'what is your model'], response: "I operate using a custom, **client-side JavaScript model** using keyword matching and hardcoded data. I am not a large language model like GPT or Claude, which require massive servers and cloud computing." },
-    { keywords: ['who made you', 'creator', 'company name', 'who are u', 'who r u', 'us', 'where do u get your data base'], response: "My source code was written by my user—you!—to demonstrate front-end AI simulation. I do not belong to a commercial company. My 'database' is the **hardcoded data** within my JavaScript file." },
-    { keywords: ['gravity', 'define gravity'], response: "Gravity is a fundamental force that attracts any objects with mass or energy. The constant is approximately $9.8 \\text{ m/s}^2$ on Earth. (Verifiable Fact)" },
-    { keywords: ['area of a circle', 'circle area formula', 'area of a circle'], response: "The formula for the area of a circle is **$A = \\pi r^2$** (Pi multiplied by the radius squared). (Defined as fact)" },
-    { keywords: ['capital of france', 'france'], response: "The capital of France is officially **Paris**. This is a verifiable fact." },
-    { keywords: ['what can u talk about', 'what subjects', 'what can you do'], response: "I can answer questions on: **Web Technologies**, **Science** (gravity, light, biology), **Math Formulas**, and **Geography**. Try any of those!" },
-    { keywords: ['meaning', 'definition', 'dnd', 'timmy', 'no', 'yes', 'but i am someone else'], response: "I'm sorry, I can't process completely novel inputs like that or search the internet. I can answer questions about **Science, Math, Web Technologies, or my own simulated model**. Try asking: **'What is your model?'**" }
+    { keywords: ['css', 'what css', 'define css', 'use css'], response: "CSS stands for **Cascading Style Sheets**. It is a style sheet language used for describing the presentation of a document written in a markup language like HTML. (Local knowledge confirmed.)" },
+    { keywords: ['javascript', 'js', 'programming'], response: "JavaScript is a high-level, interpreted scripting language that is primarily used for **client-side web development**." },
+    { keywords: ['python', 'what python'], response: "Python is a high-level, general-purpose programming language. Its design philosophy emphasizes code readability with the use of significant indentation." },
+    { keywords: ['area of a circle', 'circle area'], response: "The area of a circle is calculated using the formula: $A = \\pi r^2$. Try asking me to calculate 'area(10)'." },
+    { keywords: ['quadratic formula'], response: "The **quadratic formula** is used to solve $ax^2 + bx + c = 0$ and is given by: $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$" },
+    { keywords: ['github pages', 'github', 'pages'], response: "GitHub Pages is a static site hosting service that takes HTML, CSS, and JavaScript files straight from a repository on GitHub and publishes a website." },
+    { keywords: ['fibonacci'], response: "The Fibonacci sequence starts with 0 and 1, and each subsequent number is the sum of the previous two: $F_n = F_{n-1} + F_{n-2}$. Ask me to calculate `fib(10)`." },
 ];
 
-// --- API CALL FUNCTIONS (Search and Math) ---
-
-async function searchAndVerify(query) {
-    try {
-        const response = await fetch(BACKEND_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: query })
-        });
-        const data = await response.json();
-        
-        if (data.success && data.snippet) {
-            return { type: 'search', response: `🌐 I checked the internet for that! The top result states: **${data.snippet}** (Source: ${data.title})`, found: true };
-        } else {
-            // Success: false (e.g., no definitive result found by the search engine)
-            return { type: 'search', response: "🔍 I couldn't find a definitive answer online for that exact phrasing. Checking my local knowledge...", found: false };
-        }
-    } catch (error) {
-        console.error("Search API Call Error:", error);
-        // Error: The server is down or unreachable
-        return { 
-            type: 'search', 
-            response: "⚠️ **External search is unavailable.** The backend server at `http://localhost:3000` is unreachable. Checking my local knowledge base...", 
-            found: false 
-        };
-    }
-}
-
-async function calculateMath(expression) {
-    // Allows any string containing numbers, operators, and parentheses, plus 'x' for multiplication.
-    // NOTE: This is a liberal regex intended to be filtered by the backend
-    const mathRegexTest = /^\s*[\d\s\+\-\*\/\(\)\x\.]+$/; 
-    if (!mathRegexTest.test(expression.toLowerCase())) {
-          return { type: 'math', response: null, isMath: false };
-    }
-
-    try {
-        const response = await fetch(MATH_BACKEND_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ expression: expression })
-        });
-        const data = await response.json();
-        
-        if (data.success) {
-            return { type: 'math', response: `The result of that calculation is **${data.result}**.`, isMath: true };
-        } else {
-            return { type: 'math', response: "I can handle basic arithmetic, but that expression seems invalid or too complex for my calculator.", isMath: false };
-        }
-    } catch (error) {
-        console.error("Math API Call Error:", error);
-        return { type: 'math', response: "⚠️ **Math server is unavailable.** The backend server is unreachable. Please try again later.", isMath: false };
-    }
-}
-
 // -----------------------------------------------------------------
-// CORE UI LOGIC
+// CORE CLIENT-SIDE FUNCTIONS (New KaTeX Helper)
 // -----------------------------------------------------------------
 
-async function sendMessage() { 
-    const userInputField = document.getElementById('userInput');
-    const chatBox = document.getElementById('chatBox');
-    const userText = userInputField.value.trim();
-
-    if (userText === '') return;
-
-    const userMessageDiv = document.createElement('div');
-    userMessageDiv.className = 'message user-message';
-    userMessageDiv.textContent = userText;
-    chatBox.appendChild(userMessageDiv);
-    
-    saveCurrentChat(userText, null); 
-
-    userInputField.value = '';
-    userInputField.disabled = true;
-    chatBox.scrollTop = chatBox.scrollHeight;
-
-    const thinkingDiv = document.createElement('div');
-    thinkingDiv.className = 'message bot-message thinking-message';
-    thinkingDiv.textContent = '...Thinking and checking sources...';
-    chatBox.appendChild(thinkingDiv);
-    chatBox.scrollTop = chatBox.scrollHeight;
-
-
-    let finalResponse = null;
-    let localResponse = getBotResponse(userText.toLowerCase()); 
-
-    // 1. Check for Math Calculation first
-    const mathResult = await calculateMath(userText);
-    if (mathResult.isMath) {
-        finalResponse = mathResult.response;
-    }
-
-    // 2. If not Math, check local knowledge
-    if (!finalResponse) {
-        
-        // Check if local response is the final fallback message (i.e., no local match)
-        const isLocalFallback = localResponse.startsWith("I'm sorry, I can't process completely novel inputs");
-
-        if (isLocalFallback) {
-            // 3. If no local match, attempt external search
-            const searchResult = await searchAndVerify(userText);
-            
-            if (searchResult.found) {
-                // Search succeeded and found a snippet
-                finalResponse = searchResult.response; 
-            } else {
-                // Search failed (either no result or server down). Use the descriptive searchResult.response,
-                // which includes the server down warning, and then append the local fallback message.
-                finalResponse = `${searchResult.response} ${localResponse.replace("I'm sorry, I can't process completely novel inputs like that or search the internet.", "Please try a different query.")}`; 
-            }
-
-        } else {
-            // A specific local keyword was matched
-            finalResponse = localResponse;
-        }
-    }
-    
-    chatBox.removeChild(thinkingDiv); 
-    
+/**
+ * Creates a bot message div and runs KaTeX rendering on its content.
+ * @param {string} text - The message text, potentially containing LaTeX.
+ * @returns {HTMLElement} The created and rendered div element.
+ */
+function createBotMessageDiv(text) {
     const botMessageDiv = document.createElement('div');
     botMessageDiv.className = 'message bot-message';
-    botMessageDiv.textContent = finalResponse;
-    chatBox.appendChild(botMessageDiv);
-
-    lastResponse = finalResponse;
-    saveCurrentChat(null, finalResponse); 
-
-    userInputField.disabled = false;
-    userInputField.focus();
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-// Enable sending messages with the Enter key
-document.getElementById('userInput').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        sendMessage();
-    }
-});
-
-function getBotResponse(input) {
-    const isQuestioningFact = input.includes('u sure') || input.includes('are you sure') || input.includes('is that true') || input.includes('really');
-    if (isQuestioningFact) {
-        if (lastResponse.includes('verifiable fact') || lastResponse.includes('programming language') || lastResponse.includes('defined as') || lastResponse.includes('the result of')) {
-            return "Yes, I am certain. The information I provided is based on accurate, hardcoded data. I confirm its veracity based on my internal knowledge base.";
-        } else {
-            return "I can only confirm facts I've just stated. Could you repeat the specific piece of information you're questioning?";
-        }
+    // Use innerHTML to allow KaTeX to parse the content
+    botMessageDiv.innerHTML = text; 
+    
+    // Check if renderMathInElement function exists (from KaTeX)
+    if (typeof renderMathInElement === 'function') {
+        renderMathInElement(botMessageDiv, {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false},
+            ],
+            throwOnError: false // Don't break if a math block is malformed
+        });
     }
 
-    for (const item of KNOWLEDGE_BASE) {
-        if (item.keywords.some(keyword => input.includes(keyword))) {
-            return item.response;
-        }
-    }
-
-    return "I'm sorry, I can't process completely novel inputs like that or search the internet. I can answer questions about **Science, Math, Web Technologies, or my own simulated model**. Try asking: **'What is your model?'**";
+    return botMessageDiv;
 }
 
 // -----------------------------------------------------------------
-// HISTORY MANAGER & SIDEBAR LOGIC (Updated for Deletion)
+// CLIENT-SIDE MATH ENGINE (Replaces MATH_BACKEND_URL)
 // -----------------------------------------------------------------
 
-const HISTORY_KEY = 'chatbot_sessions';
-let currentSessionId = localStorage.getItem('currentSessionId') || 'session_' + Date.now(); 
+/**
+ * Performs client-side math calculation using the globally available math.js.
+ * @param {string} query - The mathematical expression (e.g., "5 + 2 * 3").
+ * @returns {string} The formatted result or an error message.
+ */
+function clientSideMath(query) {
+    // The global 'math' object is provided by the math.js CDN script in index.html
+    try {
+        const result = math.evaluate(query);
+
+        if (typeof result === 'function') {
+             return `I understand you defined the function: \`${query}\`. I can now use it in calculations.`;
+        }
+        
+        return `The calculated result is: **${result.toString()}** (Engine: **math.js** on client-side).`;
+    } catch (error) {
+        return "I had trouble calculating that. Please check your math syntax or ensure all variables are defined.";
+    }
+}
+
+
+// -----------------------------------------------------------------
+// CHAT HISTORY MANAGEMENT 
+// -----------------------------------------------------------------
 
 function loadHistory() {
-    const historyData = localStorage.getItem(HISTORY_KEY);
-    const sessions = historyData ? JSON.parse(historyData) : {};
-    
-    if (!sessions[currentSessionId]) {
-        sessions[currentSessionId] = [{
-            type: 'bot',
-            text: "Hello! I am an advanced JavaScript simulator with a vast knowledge base. Ask me anything."
-        }];
+    try {
+        const history = JSON.parse(localStorage.getItem('chatHistory')) || {};
+        
+        if (Object.keys(history).length === 0) {
+            history['chat_1'] = [];
+        }
+        
+        if (!history[currentSessionId]) {
+            currentSessionId = Object.keys(history)[0];
+            localStorage.setItem('currentSessionId', currentSessionId);
+        }
+
+        return history;
+    } catch (e) {
+        console.error("Error loading chat history:", e);
+        return { 'chat_1': [] };
     }
-    return sessions;
 }
 
-function saveHistory(sessions) {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(sessions));
+function saveCurrentChat(userText, botText) {
+    const history = loadHistory();
+    if (!history[currentSessionId]) {
+        history[currentSessionId] = [];
+    }
+    history[currentSessionId].push({ type: 'user', text: userText });
+    history[currentSessionId].push({ type: 'bot', text: botText });
+    localStorage.setItem('chatHistory', JSON.stringify(history));
+}
+
+function deleteChatSession(sessionId) {
+    const history = loadHistory();
+    delete history[sessionId];
+
+    if (Object.keys(history).length === 0) {
+        history['chat_1'] = []; 
+    }
+
+    if (currentSessionId === sessionId) {
+        currentSessionId = Object.keys(history)[0];
+        localStorage.setItem('currentSessionId', currentSessionId);
+    }
+    
+    localStorage.setItem('chatHistory', JSON.stringify(history));
+    renderSidebar(history);
+    renderChatBox(history[currentSessionId]);
+}
+
+function startNewChat() {
+    const history = loadHistory();
+    const newId = `chat_${Date.now()}`;
+    history[newId] = [];
+    currentSessionId = newId;
     localStorage.setItem('currentSessionId', currentSessionId);
+    localStorage.setItem('chatHistory', JSON.stringify(history));
+    
+    renderSidebar(history);
+    renderChatBox(history[currentSessionId]);
+    document.getElementById('userInput').focus();
+}
+
+function switchChat(sessionId) {
+    currentSessionId = sessionId;
+    localStorage.setItem('currentSessionId', currentSessionId);
+    
+    const history = loadHistory();
+    renderSidebar(history);
+    renderChatBox(history[currentSessionId]);
+}
+
+
+// -----------------------------------------------------------------
+// UI RENDERING
+// -----------------------------------------------------------------
+
+function renderSidebar(sessions) {
+    const chatList = document.querySelector('.chat-list');
+    chatList.innerHTML = '';
+    
+    Object.keys(sessions).forEach((id, index) => {
+        const li = document.createElement('li');
+        li.className = 'chat-item';
+        
+        const messages = sessions[id];
+        const firstUserMessage = messages.find(msg => msg.type === 'user');
+        const title = firstUserMessage 
+            ? firstUserMessage.text.substring(0, 25) + (firstUserMessage.text.length > 25 ? '...' : '')
+            : `Chat ${index + 1}`;
+
+        const titleSpan = document.createElement('span');
+        titleSpan.textContent = title;
+        titleSpan.onclick = () => switchChat(id);
+        
+        li.appendChild(titleSpan);
+
+        if (id === currentSessionId) {
+            li.classList.add('active');
+        }
+
+        // Use Font Awesome icon for delete
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-chat-btn';
+        deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>'; 
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation(); 
+            if (confirm(`Are you sure you want to delete "${title}"?`)) {
+                deleteChatSession(id);
+            }
+        };
+        
+        li.appendChild(deleteBtn);
+        chatList.appendChild(li);
+    });
 }
 
 function renderChatBox(messages) {
     const chatBox = document.getElementById('chatBox');
-    if (!chatBox) return;
     chatBox.innerHTML = ''; 
+    
+    if (!messages) return;
 
     messages.forEach(msg => {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${msg.type}-message`;
-        messageDiv.textContent = msg.text;
+        let messageDiv;
         
-        if (msg.type === 'bot' && msg.text.includes('advanced JavaScript simulator')) {
-            messageDiv.classList.add('intro-message');
+        if (msg.type === 'user') {
+            messageDiv = document.createElement('div');
+            messageDiv.className = 'message user-message';
+            messageDiv.textContent = msg.text;
+        } else {
+            // Use the KaTeX-enabled helper for bot messages
+            messageDiv = createBotMessageDiv(msg.text); 
         }
         
         chatBox.appendChild(messageDiv);
     });
+
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-function startNewChat() {
-    saveCurrentChat();
-    currentSessionId = 'session_' + Date.now();
-    lastResponse = "";
-
-    const newSession = [{
-        type: 'bot',
-        text: "New conversation started! I am an advanced JavaScript simulator with a vast knowledge base. Ask me anything."
-    }];
-
-    const allSessions = loadHistory();
-    allSessions[currentSessionId] = newSession;
-    saveHistory(allSessions);
-
-    renderChatBox(newSession);
-    renderSidebar(allSessions);
-}
-
-function saveCurrentChat(userText, botResponse) {
-    const allSessions = loadHistory();
-    let currentSession = allSessions[currentSessionId] || [];
-
-    if (userText && userText.toLowerCase() !== 'no' && userText.toLowerCase() !== 'yes') {
-        currentSession.push({ type: 'user', text: userText });
-    }
-    if (botResponse) {
-        currentSession.push({ type: 'bot', text: botResponse });
-    }
-
-    if (currentSession.length > 0) {
-        allSessions[currentSessionId] = currentSession;
-        saveHistory(allSessions);
-        if (userText || botResponse) {
-              renderSidebar(allSessions);
-        }
-    }
-}
-
-function renderSidebar(sessions) {
-    const chatList = document.querySelector('.chat-list');
-    if (!chatList) return; 
-
-    chatList.innerHTML = '';
-    const sessionKeys = Object.keys(sessions).reverse(); 
-    
-    let activeItemElement = null;
-
-    sessionKeys.forEach(id => {
-        const messages = sessions[id];
-        const firstUserMsg = messages.find(m => m.type === 'user');
-        const titleText = firstUserMsg ? firstUserMsg.text.substring(0, 30) + '...' : 'New Chat (Simulated)';
-
-        const listItem = document.createElement('li');
-        listItem.className = 'chat-item';
-        if (id === currentSessionId) {
-            listItem.classList.add('active');
-            activeItemElement = listItem; 
-        }
-        
-        // Title Span (for clicking/truncation)
-        const titleSpan = document.createElement('span');
-        titleSpan.className = 'chat-title';
-        titleSpan.textContent = titleText;
-        
-        // Delete Button
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-chat-btn';
-        deleteBtn.textContent = '🗑️'; 
-        
-        // Event Listeners
-        titleSpan.addEventListener('click', () => switchChat(id, sessions));
-        deleteBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); 
-            deleteChat(id);
-        });
-        
-        listItem.dataset.sessionId = id;
-        listItem.appendChild(titleSpan);
-        listItem.appendChild(deleteBtn);
-        
-        chatList.appendChild(listItem);
-    });
-
-    // FIX: Scroll to the active item (newest chat)
-    if (activeItemElement) {
-        activeItemElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-}
-
-function switchChat(sessionId, sessions) {
-    saveCurrentChat();
-    currentSessionId = sessionId;
-    
-    const messages = sessions[sessionId];
-    renderChatBox(messages);
-    
-    document.querySelectorAll('.chat-item').forEach(item => {
-        item.classList.remove('active');
-        if (item.dataset.sessionId === sessionId) {
-            item.classList.add('active');
-        }
-    });
-    
-    lastResponse = messages[messages.length - 1]?.text || ""; 
-}
-
-function deleteChat(sessionIdToDelete) {
-    if (!confirm("Are you sure you want to delete this chat history?")) {
-        return;
-    }
-
-    const allSessions = loadHistory();
-    
-    delete allSessions[sessionIdToDelete];
-    saveHistory(allSessions);
-
-    if (sessionIdToDelete === currentSessionId) {
-        const sessionKeys = Object.keys(allSessions).reverse(); // Get keys in display order
-        if (sessionKeys.length > 0) {
-            switchChat(sessionKeys[0], allSessions); 
-        } else {
-            startNewChat();
-        }
-    } else {
-        renderSidebar(allSessions);
-    }
-}
 
 // -----------------------------------------------------------------
-// DRAG & DROP LOGIC
+// MESSAGE SENDING LOGIC (UPDATED FOR CLIENT-SIDE)
+// -----------------------------------------------------------------
+
+async function sendMessage() {
+    const userInput = document.getElementById('userInput');
+    const query = userInput.value.trim();
+    const chatBox = document.getElementById('chatBox');
+
+    if (query === '') return;
+
+    // 1. Display user message
+    const userMessageDiv = document.createElement('div');
+    userMessageDiv.className = 'message user-message';
+    userMessageDiv.textContent = query;
+    chatBox.appendChild(userMessageDiv);
+
+    userInput.value = '';
+    userInput.disabled = true;
+
+    // 2. Display thinking message (Requires .thinking-message and .dot styles in style.css)
+    const thinkingDiv = document.createElement('div');
+    thinkingDiv.className = 'message bot-message thinking-message';
+    thinkingDiv.innerHTML = '...Thinking and checking sources<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+    chatBox.appendChild(thinkingDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    // 3. Process query after a short delay for simulation
+    setTimeout(async () => {
+        let botResponse = '';
+        
+        // --- Step A: Local Knowledge Match ---
+        const localMatch = KNOWLEDGE_BASE.find(item => 
+            item.keywords.some(keyword => query.toLowerCase().includes(keyword))
+        );
+
+        if (localMatch) {
+            botResponse = localMatch.response;
+        } 
+        
+        // --- Step B: Client-Side Math Check (via math.js) ---
+        else if (query.match(/^(?:.*[\d+\-*/^().e])|(\s*calculate\s)/i)) { 
+            botResponse = clientSideMath(query);
+        }
+
+        // --- Step C: Final Fallback (Simulate Failed Search) ---
+        else {
+            // Provide a client-side-aware fallback
+            const genericFallback = [
+                `I am currently operating in **GitHub Pages client-side mode** and cannot access external APIs for real-time information. However, I can still answer questions from my **local knowledge base** or perform calculations using **math.js**. The topic '${query}' is outside my current local data.`,
+                `External web search is disabled in this simulator's client-side configuration. I can process math, web terms (HTML, CSS), or files. Please try a different query or ask for the formula for the 'quadratic formula'.`,
+                `This query requires real-time data which I cannot fetch right now. I apologize for the limitation of running on a static page.`
+            ];
+            botResponse = genericFallback[Math.floor(Math.random() * genericFallback.length)];
+        }
+
+
+        // 4. Update UI
+        chatBox.removeChild(thinkingDiv);
+        
+        // Use the KaTeX-enabled helper
+        const botMessageDiv = createBotMessageDiv(botResponse); 
+        chatBox.appendChild(botMessageDiv);
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+        
+        // 5. Save and Re-enable
+        saveCurrentChat(query, botResponse);
+        lastResponse = botResponse;
+
+        userInput.disabled = false;
+        userInput.focus();
+        
+        renderSidebar(loadHistory());
+
+    }, 800); 
+}
+
+// Attach the main send function to the Enter key
+document.getElementById('userInput').addEventListener('keypress', function(event) {
+    if (event.key === 'Enter') {
+        sendMessage();
+    }
+});
+
+
+// -----------------------------------------------------------------
+// DRAG & DROP LOGIC (EXPANDED)
 // -----------------------------------------------------------------
 
 function setupDragAndDrop() {
-    const dropTarget = document.querySelector('.chat-interface'); 
     const dropZone = document.getElementById('dropZone');
-
-    if (!dropTarget || !dropZone) return; 
+    const chatInterface = document.querySelector('.chat-interface');
+    const chatBox = document.getElementById('chatBox'); // Get chatBox reference
 
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropTarget.addEventListener(eventName, preventDefaults, false); 
+        chatInterface.addEventListener(eventName, preventDefaults, false);
     });
 
     function preventDefaults(e) {
@@ -378,31 +327,51 @@ function setupDragAndDrop() {
         e.stopPropagation();
     }
 
-    dropTarget.addEventListener('dragenter', () => dropZone.classList.add('hover'), false);
-    dropTarget.addEventListener('dragleave', () => dropZone.classList.remove('hover'), false);
-    dropTarget.addEventListener('drop', () => dropZone.classList.remove('hover'), false);
+    // Show dropZone when drag enters
+    chatInterface.addEventListener('dragenter', (e) => {
+        if (e.target.closest('.chat-interface') && !e.target.closest('#dropZone')) {
+             dropZone.classList.add('hover');
+        }
+    }, false);
 
-    dropTarget.addEventListener('drop', handleDrop, false);
+    // Hide dropZone when drag leaves
+    dropZone.addEventListener('dragleave', (e) => {
+        if (e.target === dropZone) { 
+            dropZone.classList.remove('hover');
+        }
+    }, false);
+
+    // Handle file drop
+    dropZone.addEventListener('drop', handleDrop, false);
 
     function handleDrop(e) {
-        let dt = e.dataTransfer;
-        let files = dt.files;
+        preventDefaults(e);
+        dropZone.classList.remove('hover');
+
+        const files = e.dataTransfer.files;
 
         if (files.length > 0) {
-            const fileName = files[0].name;
-            const fileSize = (files[0].size / 1024 / 1024).toFixed(2);
-            
-            const userDropMessage = `Attempting to upload file: ${fileName}`;
-            let botDropResponse;
+            const file = files[0];
+            const fileName = file.name;
+            const fileType = fileName.substring(fileName.lastIndexOf('.')).toLowerCase();
 
-            if (fileName.toLowerCase().endsWith('.bat')) {
-                botDropResponse = `File **${fileName}** (${fileSize} MB) received. That appears to be a **Windows batch script**. As a client-side simulator, I cannot execute or read its code, but the drag-and-drop feature works! Try asking about CSS.`;
+            let userDropMessage = `I attempted to upload and process the file: **${fileName}** (${file.type} / ${file.size} bytes).`;
+            let botDropResponse = '';
+
+            // Expanded file type handling
+            if (fileType === '.bat' || fileType === '.exe') {
+                botDropResponse = `**SECURITY ALERT:** I detected a potentially dangerous executable file (${fileType}). For your safety, I blocked all processing. This simulator prioritizes security.`;
+            } else if (fileType === '.txt' || fileType === '.md') {
+                botDropResponse = `Text file received! I can process the content, but since I am a simulator, I will only confirm its receipt. You may ask me to summarize local text files in the future.`;
+            } else if (fileType === '.jpg' || fileType === '.png' || fileType === '.gif') {
+                botDropResponse = `Image file received! My current client-side model cannot perform visual analysis (CV) without a powerful backend. Try asking a question about **CSS** instead.`;
+            } else if (fileType === '.pdf' || fileType === '.docx') {
+                botDropResponse = `Document received. Document processing requires extensive client-side libraries or an external API, both of which are not active. Processing halted.`;
             } else {
-                botDropResponse = `File **${fileName}** (${fileSize} MB) received. As a client-side simulator, I cannot process the content, but the drag-and-drop feature works! Try a simple math question instead.`;
+                botDropResponse = `File received, but the type (${fileType}) is not recognized by my client-side handler. I am unable to proceed with processing.`;
             }
-
-            const chatBox = document.getElementById('chatBox');
             
+            // 1. Show user message
             const userMessageDiv = document.createElement('div');
             userMessageDiv.className = 'message user-message';
             userMessageDiv.textContent = userDropMessage;
@@ -410,10 +379,10 @@ function setupDragAndDrop() {
 
             document.getElementById('userInput').disabled = true;
 
+            // 2. Show simulated bot response
             setTimeout(() => {
-                const botMessageDiv = document.createElement('div');
-                botMessageDiv.className = 'message bot-message';
-                botMessageDiv.textContent = botDropResponse;
+                // Use the KaTeX-enabled helper
+                const botMessageDiv = createBotMessageDiv(botDropResponse);
                 chatBox.appendChild(botMessageDiv);
 
                 chatBox.scrollTop = chatBox.scrollHeight;
@@ -445,4 +414,4 @@ function initializeChatbot() {
     setupDragAndDrop();
 }
 
-document.addEventListener('DOMContentLoaded', initializeChatbot);
+document.addEventListener('DOMContentLoaded', initialize
