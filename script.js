@@ -8,6 +8,7 @@
 let lastResponse = "";
 
 // --- API CONFIGURATION ---
+// IMPORTANT: These URLs must match the port of your running server.js
 const BACKEND_URL = 'http://localhost:3000/api/search'; 
 const MATH_BACKEND_URL = 'http://localhost:3000/api/calculate'; 
 
@@ -42,7 +43,7 @@ const KNOWLEDGE_BASE = [
     
     // 5. AMBIGUITY/FALLBACKS
     { keywords: ['what can u talk about', 'what subjects', 'what can you do'], response: "I can answer questions on: **Web Technologies**, **Science** (gravity, light, biology), **Math Formulas**, and **Geography**. Try any of those!" },
-    { keywords: ['meaning', 'definition', 'dnd', 'timmy', 'no', 'yes', 'but i am someone else'], response: "I don't know that specific term, as I cannot search the internet. Try asking me about the **Quadratic Formula** or **Photosynthesis** instead!" }
+    { keywords: ['meaning', 'definition', 'dnd', 'timmy', 'no', 'yes', 'but i am someone else'], response: "I'm sorry, I can't process completely novel inputs like that or search the internet. I can answer questions about **Science, Math, Web Technologies, or my own simulated model**. Try asking: **'What is your model?'**" }
 ];
 
 // -----------------------------------------------------------------
@@ -62,6 +63,7 @@ async function searchAndVerify(query) {
         if (data.success && data.snippet) {
             return { type: 'search', response: `🌐 I checked the internet for that! The top result states: **${data.snippet}** (Source: ${data.title})`, found: true };
         } else {
+            // Note: This message covers both 'no results' and 'low consensus' from server.js
             return { type: 'search', response: "🔍 I couldn't find a definitive answer online for that exact phrasing, or the search failed. Checking my local knowledge...", found: false };
         }
     } catch (error) {
@@ -74,7 +76,7 @@ async function calculateMath(expression) {
     // Basic regex to determine if the input looks like a math problem
     const mathRegexTest = /^\s*[\d\s\+\-\*\/\(\)x\.]+$/;
     if (!mathRegexTest.test(expression.toLowerCase())) {
-         return { type: 'math', response: null, isMath: false };
+          return { type: 'math', response: null, isMath: false };
     }
 
     try {
@@ -114,7 +116,8 @@ async function sendMessage() {
     userMessageDiv.textContent = userText;
     chatBox.appendChild(userMessageDiv);
     
-    saveCurrentChat(userText.toLowerCase(), null);
+    saveCurrentChat(userText, null); // Save original user text
+
     userInputField.value = '';
     userInputField.disabled = true;
     chatBox.scrollTop = chatBox.scrollHeight;
@@ -138,7 +141,8 @@ async function sendMessage() {
     // --- 2. CHECK LOCAL KNOWLEDGE OR SEARCH ---
     if (!finalResponse) {
         
-        const isLocalFallback = localResponse.startsWith("I'm sorry, I can't process") || localResponse.includes("I don't know that specific term");
+        // This is the default failure message from getBotResponse()
+        const isLocalFallback = localResponse.startsWith("I'm sorry, I can't process");
 
         if (isLocalFallback) {
             // If local knowledge failed, search the internet
@@ -211,6 +215,7 @@ function getBotResponse(input) {
 // -----------------------------------------------------------------
 
 const HISTORY_KEY = 'chatbot_sessions';
+// Use local storage to remember the last session ID
 let currentSessionId = localStorage.getItem('currentSessionId') || 'session_' + Date.now(); 
 
 function loadHistory() {
@@ -272,7 +277,8 @@ function saveCurrentChat(userText, botResponse) {
     const allSessions = loadHistory();
     let currentSession = allSessions[currentSessionId] || [];
 
-    if (userText && userText !== 'no' && userText !== 'yes') {
+    // Check for null or simple keywords like 'no'/'yes' which shouldn't be saved as a chat item
+    if (userText && userText.toLowerCase() !== 'no' && userText.toLowerCase() !== 'yes') {
         currentSession.push({ type: 'user', text: userText });
     }
     if (botResponse) {
@@ -283,7 +289,7 @@ function saveCurrentChat(userText, botResponse) {
         allSessions[currentSessionId] = currentSession;
         saveHistory(allSessions);
         if (userText || botResponse) {
-             renderSidebar(allSessions);
+              renderSidebar(allSessions);
         }
     }
 }
@@ -293,10 +299,13 @@ function renderSidebar(sessions) {
     if (!chatList) return; 
 
     chatList.innerHTML = '';
-    const sessionKeys = Object.keys(sessions).reverse(); 
+    const sessionKeys = Object.keys(sessions).reverse(); // Show newest at the top
     
+    let activeItemElement = null;
+
     sessionKeys.forEach(id => {
         const messages = sessions[id];
+        // Find the first user message for the title
         const firstUserMsg = messages.find(m => m.type === 'user');
         const title = firstUserMsg ? firstUserMsg.text.substring(0, 30) + '...' : 'New Chat (Simulated)';
 
@@ -304,6 +313,7 @@ function renderSidebar(sessions) {
         listItem.className = 'chat-item';
         if (id === currentSessionId) {
             listItem.classList.add('active');
+            activeItemElement = listItem; // Capture the active element
         }
         listItem.textContent = title;
         listItem.dataset.sessionId = id;
@@ -312,6 +322,11 @@ function renderSidebar(sessions) {
         
         chatList.appendChild(listItem);
     });
+
+    // FIX: Ensure the active item is brought into view after all items are added
+    if (activeItemElement) {
+        activeItemElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
 }
 
 function switchChat(sessionId, sessions) {
@@ -328,7 +343,8 @@ function switchChat(sessionId, sessions) {
         }
     });
     
-    lastResponse = messages[messages.length - 1]?.text || "";
+    // Set lastResponse based on the last message in the loaded session
+    lastResponse = messages[messages.length - 1]?.text || ""; 
 }
 
 // -----------------------------------------------------------------
@@ -336,6 +352,7 @@ function switchChat(sessionId, sessions) {
 // -----------------------------------------------------------------
 
 function setupDragAndDrop() {
+    // Target the main chat interface area for drag/drop
     const dropTarget = document.querySelector('.chat-interface'); 
     const dropZone = document.getElementById('dropZone');
 
