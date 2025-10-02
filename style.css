@@ -105,6 +105,7 @@ body, html {
     display: flex;
     flex-direction: column;
     position: relative; 
+    min-height: 0; /* *** CRITICAL FLEXBOX FIX *** */
 }
 
 .chat-interface header {
@@ -128,12 +129,12 @@ body, html {
 /* --- CHAT BOX --- */
 .chat-box {
     padding: 20px;
-    overflow-y: auto; /* This is what enables scrolling */
+    overflow-y: auto; 
     flex-grow: 1;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    height: 100%; /* FIX: Ensures it takes up full vertical space */
+    height: 100%; 
 }
 
 .message {
