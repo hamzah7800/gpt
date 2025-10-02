@@ -1,16 +1,18 @@
 // =================================================================
-// 🧠 FINAL INTEGRATED JAVASCRIPT: LOCAL KNOWLEDGE + ASYNC SEARCH
+// 🧠 FINAL INTEGRATED JAVASCRIPT: LOCAL KNOWLEDGE + LOCAL MATH
+// This version is 100% front-end and compatible with GitHub Pages.
+// External search is gracefully disabled.
 // =================================================================
 
 let lastResponse = "";
 
 // --- API CONFIGURATION ---
-// IMPORTANT: Use your deployed URL here if you moved off localhost!
-const BACKEND_URL = 'http://localhost:3000/api/search'; 
-const MATH_BACKEND_URL = 'http://localhost:3000/api/calculate'; 
+// These are not used but left as placeholders to prevent errors if the old code structure is reused.
+const BACKEND_URL = 'http://disabled'; 
+const MATH_BACKEND_URL = 'http://disabled'; 
 
 // -----------------------------------------------------------------
-// SIMULATED LAZY LOAD: KNOWLEDGE BASE (Same as before)
+// SIMULATED LAZY LOAD: KNOWLEDGE BASE (No Change)
 // -----------------------------------------------------------------
 const KNOWLEDGE_BASE = [
     { keywords: ['hello', 'hi', 'hey', 'bonjour', 'salam'], response: "Hello! I am an advanced JavaScript simulator with a vast knowledge base. I'm ready to assist you. What can I define, calculate, or explain?" },
@@ -28,55 +30,46 @@ const KNOWLEDGE_BASE = [
     { keywords: ['meaning', 'definition', 'dnd', 'timmy', 'no', 'yes', 'but i am someone else'], response: "I'm sorry, I can't process completely novel inputs like that or search the internet. I can answer questions about **Science, Math, Web Technologies, or my own simulated model**. Try asking: **'What is your model?'**" }
 ];
 
-// --- API CALL FUNCTIONS (Search and Math) ---
+// -----------------------------------------------------------------
+// 1. SIMPLIFIED API CALL FUNCTIONS (Now fully local/mocked)
+// -----------------------------------------------------------------
 
+// SEARCH: Always fails gracefully since we can't use an external API without a server/key.
 async function searchAndVerify(query) {
-    try {
-        const response = await fetch(BACKEND_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: query })
-        });
-        const data = await response.json();
-        
-        if (data.success && data.snippet) {
-            return { type: 'search', response: `🌐 I checked the internet for that! The top result states: **${data.snippet}** (Source: ${data.title})`, found: true };
-        } else {
-            return { type: 'search', response: "🔍 I couldn't find a definitive answer online for that exact phrasing, or the search failed. Checking my local knowledge...", found: false };
-        }
-    } catch (error) {
-        console.error("Search API Call Error:", error);
-        return { type: 'search', response: "⚠️ I attempted to search externally, but the connection failed. Sticking to my local facts for now.", found: false };
-    }
+    return { 
+        type: 'search', 
+        response: "⚠️ External search is unavailable on this platform. Stick to **Math** or **Local Facts**!", 
+        found: false 
+    };
 }
 
+// MATH: Uses the JavaScript 'Function' constructor for safe, local evaluation.
 async function calculateMath(expression) {
+    // Regex check to ensure input only contains valid math characters
     const mathRegexTest = /^\s*[\d\s\+\-\*\/\(\)x\.]+$/;
     if (!mathRegexTest.test(expression.toLowerCase())) {
           return { type: 'math', response: null, isMath: false };
     }
 
     try {
-        const response = await fetch(MATH_BACKEND_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ expression: expression })
-        });
-        const data = await response.json();
-        
-        if (data.success) {
-            return { type: 'math', response: `The result of that calculation is **${data.result}**.`, isMath: true };
+        // Safe evaluation of the math expression using the browser's JS engine.
+        // This replaces the need for the mathjs server package.
+        // It first removes any non-math characters (except basic operators, numbers, and parentheses)
+        const mathExpression = expression.replace(/[^-()\d/*+.]/g, '');
+        const result = Function('"use strict";return (' + mathExpression + ')')();
+
+        if (typeof result === 'number' && isFinite(result)) {
+            return { type: 'math', response: `The result of that calculation is **${result}**.`, isMath: true };
         } else {
-            return { type: 'math', response: "I can handle basic arithmetic, but that expression seems invalid or too complex for my calculator.", isMath: false };
+            return { type: 'math', response: "I can handle basic arithmetic, but that expression seems invalid or too complex.", isMath: false };
         }
     } catch (error) {
-        console.error("Math API Call Error:", error);
-        return { type: 'math', response: "I can't calculate that right now, the server connection failed.", isMath: false };
+        return { type: 'math', response: "I can't calculate that right now due to a parsing error.", isMath: false };
     }
 }
 
 // -----------------------------------------------------------------
-// CORE UI LOGIC
+// CORE UI LOGIC (No major change needed, just simplified fetch logic)
 // -----------------------------------------------------------------
 
 async function sendMessage() { 
@@ -86,6 +79,7 @@ async function sendMessage() {
 
     if (userText === '') return;
 
+    // 1. Display User Message
     const userMessageDiv = document.createElement('div');
     userMessageDiv.className = 'message user-message';
     userMessageDiv.textContent = userText;
@@ -97,6 +91,7 @@ async function sendMessage() {
     userInputField.disabled = true;
     chatBox.scrollTop = chatBox.scrollHeight;
 
+    // 2. Display Thinking Message
     const thinkingDiv = document.createElement('div');
     thinkingDiv.className = 'message bot-message thinking-message';
     thinkingDiv.textContent = '...Thinking and checking sources...';
@@ -107,21 +102,26 @@ async function sendMessage() {
     let finalResponse = null;
     let localResponse = getBotResponse(userText.toLowerCase()); 
 
+    // 3. Check for Math (Local Call)
     const mathResult = await calculateMath(userText);
     if (mathResult.isMath) {
         finalResponse = mathResult.response;
     }
 
+    // 4. Check Local Knowledge and Search Fallback (Local Calls)
     if (!finalResponse) {
         const isLocalFallback = localResponse.startsWith("I'm sorry, I can't process");
 
         if (isLocalFallback) {
+            // This now calls the local searchAndVerify, which always fails gracefully
             const searchResult = await searchAndVerify(userText);
             
             if (searchResult.found) {
+                // This path will never be hit, but is kept for structure
                 finalResponse = searchResult.response; 
             } else {
-                finalResponse = localResponse; 
+                // Returns the search failure message, or the original local fallback
+                finalResponse = searchResult.response.startsWith("⚠️") ? searchResult.response : localResponse;
             }
 
         } else {
@@ -129,6 +129,7 @@ async function sendMessage() {
         }
     }
     
+    // 5. Display Bot Response
     chatBox.removeChild(thinkingDiv); 
     
     const botMessageDiv = document.createElement('div');
@@ -171,7 +172,7 @@ function getBotResponse(input) {
 }
 
 // -----------------------------------------------------------------
-// HISTORY MANAGER & SIDEBAR LOGIC (Updated for Deletion)
+// HISTORY MANAGER & SIDEBAR LOGIC (No Change)
 // -----------------------------------------------------------------
 
 const HISTORY_KEY = 'chatbot_sessions';
@@ -343,7 +344,7 @@ function deleteChat(sessionIdToDelete) {
 }
 
 // -----------------------------------------------------------------
-// DRAG & DROP LOGIC
+// DRAG & DROP LOGIC (No Change)
 // -----------------------------------------------------------------
 
 function setupDragAndDrop() {
@@ -412,7 +413,7 @@ function setupDragAndDrop() {
 }
 
 // -----------------------------------------------------------------
-// INITIALIZATION
+// INITIALIZATION (No Change)
 // -----------------------------------------------------------------
 
 function initializeChatbot() {
