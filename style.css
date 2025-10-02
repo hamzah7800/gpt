@@ -9,7 +9,7 @@
 body, html {
     /* Use 100vh for full viewport height on PC */
     height: 100vh; 
-    overflow: hidden; 
+    overflow: hidden; /* Prevents the whole browser window from scrolling */
     background-color: #f7f9fc;
 }
 
@@ -45,6 +45,7 @@ body, html {
     cursor: pointer;
     font-size: 1em;
     transition: background-color 0.2s;
+    flex-shrink: 0;
 }
 
 .new-chat-btn:hover {
@@ -52,60 +53,73 @@ body, html {
 }
 
 .chat-list {
+    /* FIX: Allows the list items to scroll */
     list-style: none;
-    padding: 0;
-    flex-grow: 1;
-    overflow-y: auto;
+    flex-grow: 1; 
+    overflow-y: auto; 
+    padding-right: 5px; 
 }
 
+/* --- DELETE BUTTON STYLES (New) --- */
 .chat-item {
-    padding: 10px 0;
+    padding: 8px 5px 8px 10px; /* Adjusted padding to fit button */
+    margin-bottom: 5px;
     cursor: pointer;
     border-radius: 4px;
-    margin-bottom: 5px;
-    display: flex;
-    justify-content: space-between;
+    font-size: 0.9em;
+    
+    /* CRITICAL for delete button placement and visibility */
+    position: relative; 
+    display: flex; 
+    justify-content: space-between; 
     align-items: center;
 }
 
-.chat-item:hover {
-    background-color: #555;
-}
-
-.chat-item.active {
-    background-color: #007bff;
-}
-
-.chat-title {
+/* Ensure the text wraps correctly */
+.chat-item span {
+    flex-grow: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    flex-grow: 1;
-    padding-right: 10px;
 }
 
 .delete-chat-btn {
     background: none;
     border: none;
-    color: #ddd;
+    color: #fff;
     cursor: pointer;
-    font-size: 0.9em;
-    padding: 5px;
-    line-height: 1;
-    transition: color 0.2s;
+    font-size: 1.1em;
+    padding: 2px 5px;
+    margin-left: 10px;
+    opacity: 0; 
+    transition: opacity 0.2s, color 0.2s;
+    line-height: 1; 
+}
+
+.chat-item:hover {
+    background-color: #444;
+}
+
+.chat-item:hover .delete-chat-btn {
+    opacity: 0.8; 
 }
 
 .delete-chat-btn:hover {
-    color: #ff4d4d;
+    color: #ff4d4d; 
+    opacity: 1;
 }
 
-/* --- MAIN INTERFACE --- */
+.chat-item.active {
+    background-color: #555;
+    font-weight: bold;
+}
+
+/* --- MAIN CHAT INTERFACE --- */
 .chat-interface {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
     position: relative; 
-    min-height: 0; /* CRITICAL FLEXBOX FIX */
 }
 
 .chat-interface header {
@@ -113,39 +127,58 @@ body, html {
     border-bottom: 1px solid #eee;
     background-color: #fff;
     z-index: 10;
+    flex-shrink: 0; 
 }
 
-.chat-interface header h1 {
-    font-size: 1.5em;
-    color: #333;
-}
-
-.chat-interface header p {
-    font-size: 0.9em;
-    color: #777;
-    margin-top: 5px;
-}
-
-/* --- NEW WRAPPER (Definitive Scroll Fix) --- */
-.chat-area-wrapper {
-    position: relative;
-    flex-grow: 1; /* Takes all available space in the chat-interface column */
-    height: 100%; /* Forces the wrapper to adopt the height provided by flex-grow */
-    display: flex; /* Makes the wrapper a flex container */
-    flex-direction: column; 
-}
-
-/* --- CHAT BOX --- */
+/* --- CHAT BOX (Messages Area) FIX --- */
 .chat-box {
+    /* FIX: This makes the chat messages scrollable */
+    flex-grow: 1; 
     padding: 20px;
-    overflow-y: auto; /* This is what enables scrolling */
-    flex-grow: 1; /* Takes the remaining vertical space inside the wrapper */
+    overflow-y: auto; 
+    background-color: #f7f9fc;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    /* height: 100% is no longer needed/used */
+    padding-bottom: 15px;
 }
 
+/* --- INPUT CONTAINER --- */
+.input-container {
+    display: flex;
+    padding: 15px 20px;
+    border-top: 1px solid #ddd;
+    background-color: #fff;
+    position: relative; 
+    z-index: 20; 
+    flex-shrink: 0; 
+}
+
+#userInput {
+    flex-grow: 1;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1em;
+    margin-right: 10px;
+    background-color: white; 
+}
+
+.input-container button {
+    padding: 12px 25px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.2s;
+}
+
+.input-container button:hover {
+    background-color: #0056b3;
+}
+
+/* --- MESSAGES STYLES --- */
 .message {
     padding: 10px 15px;
     margin-bottom: 15px;
@@ -170,51 +203,31 @@ body, html {
     border-bottom-left-radius: 4px;
 }
 
+/* --- THINKING ANIMATION (New) --- */
 .thinking-message {
-    font-style: italic;
-    opacity: 0.7;
-    background-color: #f0f0f0;
-}
-
-/* --- INPUT CONTAINER --- */
-.input-container {
     display: flex;
-    padding: 15px 20px;
-    border-top: 1px solid #eee;
-    background-color: #fff;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-    z-index: 20; 
+    align-items: center;
+    width: fit-content;
 }
 
-#userInput {
-    flex-grow: 1;
-    padding: 12px 15px;
-    border: 1px solid #ccc;
-    border-radius: 20px;
-    margin-right: 10px;
-    font-size: 1em;
-    transition: border-color 0.2s;
+.thinking-message .dot {
+    height: 8px;
+    width: 8px;
+    background-color: #555;
+    border-radius: 50%;
+    margin: 0 2px;
+    animation: loading 1.4s infinite ease-in-out both;
 }
 
-#userInput:focus {
-    outline: none;
-    border-color: #007bff;
+.thinking-message .dot:nth-child(1) { animation-delay: -0.32s; }
+.thinking-message .dot:nth-child(2) { animation-delay: -0.16s; }
+.thinking-message .dot:nth-child(3) { animation-delay: 0s; }
+
+@keyframes loading {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1.0); }
 }
 
-.input-container button {
-    padding: 10px 20px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 1em;
-    transition: background-color 0.2s;
-}
-
-.input-container button:hover {
-    background-color: #0056b3;
-}
 
 /* --- DRAG & DROP ZONE --- */
 #dropZone {
@@ -238,5 +251,30 @@ body, html {
 
 #dropZone.hover {
     opacity: 1; 
-    pointer-events: all;
+    pointer-events: all; 
+}
+
+/* ================================================= */
+/* 📱 TABLET/MOBILE OPTIMIZATION */
+/* ================================================= */
+
+@media (max-width: 850px) {
+    .sidebar {
+        display: none; 
+    }
+    
+    .chatbot-container {
+        max-width: 100%;
+        border: none;
+        box-shadow: none;
+    }
+    
+    /* Use 100dvh for height (Dynamic Viewport Height) for better iOS keyboard handling */
+    body, html, .chatbot-container {
+        height: 100dvh; 
+    }
+
+    .input-container {
+        padding: 10px;
+    }
 }
