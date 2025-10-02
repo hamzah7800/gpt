@@ -6,8 +6,6 @@
 let lastResponse = "";
 let currentSessionId = localStorage.getItem('currentSessionId') || 'chat_1';
 
-// --- API CONFIGURATION (REMOVED: Now client-side only) ---
-
 // -----------------------------------------------------------------
 // SIMULATED LAZY LOAD: KNOWLEDGE BASE (EXPANDED)
 // -----------------------------------------------------------------
@@ -264,6 +262,7 @@ async function sendMessage() {
         } 
         
         // --- Step B: Client-Side Math Check (via math.js) ---
+        // Checks for numbers, operators, functions, or the word 'calculate'
         else if (query.match(/^(?:.*[\d+\-*/^().e])|(\s*calculate\s)/i)) { 
             botResponse = clientSideMath(query);
         }
@@ -316,7 +315,7 @@ document.getElementById('userInput').addEventListener('keypress', function(event
 function setupDragAndDrop() {
     const dropZone = document.getElementById('dropZone');
     const chatInterface = document.querySelector('.chat-interface');
-    const chatBox = document.getElementById('chatBox'); // Get chatBox reference
+    const chatBox = document.getElementById('chatBox');
 
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         chatInterface.addEventListener(eventName, preventDefaults, false);
@@ -414,4 +413,4 @@ function initializeChatbot() {
     setupDragAndDrop();
 }
 
-document.addEventListener('DOMContentLoaded', initialize
+document.addEventListener('DOMContentLoaded', initializeChatbot);
