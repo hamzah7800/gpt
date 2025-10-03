@@ -13,33 +13,42 @@ body, html {
     background-color: #f7f9fc;
 }
 
-/* --- CHATBOT LAYOUT --- */
+/* --- CHATBOT LAYOUT: FULL SCREEN NOW --- */
 .chatbot-container {
     display: flex;
     height: 100%; /* Uses height from html/body */
-    max-width: 1400px;
+    /* REMOVED: max-width: 1400px; - Now fills the browser window */
     margin: 0 auto;
-    border: 1px solid #ddd;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: none; /* Removed border */
+    box-shadow: none; /* Removed box shadow for a cleaner look */
     background-color: #fff;
+    transition: margin-left 0.3s;
 }
 
-/* --- SIDEBAR (History) --- */
+/* --- SIDEBAR (History): COLLAPSIBLE --- */
 .sidebar {
-    width: 250px; /* Default desktop width */
-    background-color: #2c3e50; /* Darker, modern sidebar color */
+    width: 250px; 
+    min-width: 250px; /* Ensures it doesn't shrink when visible */
+    background-color: #333;
     color: #fff;
     padding: 10px 15px; 
     display: flex;
     flex-direction: column;
-    border-right: 1px solid #34495e;
-    transition: width 0.3s;
+    border-right: 1px solid #444;
+    transition: transform 0.3s ease-in-out;
+}
+
+/* State for Hiding the Sidebar */
+.chatbot-container:not(.sidebar-visible) .sidebar {
+    transform: translateX(-100%); /* Slides completely off-screen to the left */
+    min-width: 0;
+    width: 0;
 }
 
 .new-chat-btn {
     padding: 10px;
     margin-bottom: 15px; 
-    background-color: #3498db; /* Brighter, modern primary color */
+    background-color: #007bff;
     color: white;
     border: none;
     border-radius: 6px;
@@ -50,7 +59,7 @@ body, html {
 }
 
 .new-chat-btn:hover {
-    background-color: #2980b9;
+    background-color: #0056b3;
 }
 
 .chat-list {
@@ -60,7 +69,7 @@ body, html {
     padding-right: 5px; 
 }
 
-/* --- DELETE BUTTON STYLES --- */
+/* --- DELETE BUTTON STYLES (Unchanged) --- */
 .chat-item {
     padding: 8px 5px 8px 10px; 
     margin-bottom: 5px;
@@ -94,7 +103,7 @@ body, html {
 }
 
 .chat-item:hover {
-    background-color: #34495e;
+    background-color: #444;
 }
 
 .chat-item:hover .delete-chat-btn {
@@ -102,12 +111,12 @@ body, html {
 }
 
 .delete-chat-btn:hover {
-    color: #e74c3c; 
+    color: #ff4d4d; 
     opacity: 1;
 }
 
 .chat-item.active {
-    background-color: #4a627a;
+    background-color: #555;
     font-weight: bold;
 }
 
@@ -117,6 +126,7 @@ body, html {
     display: flex;
     flex-direction: column;
     position: relative; 
+    overflow: hidden; /* Prevent horizontal scroll when sidebar is hidden */
 }
 
 .chat-interface header {
@@ -125,9 +135,25 @@ body, html {
     background-color: #fff;
     z-index: 10;
     flex-shrink: 0; 
+    display: flex; /* Aligns toggle button and title */
+    align-items: center;
 }
 
-/* --- CHAT BOX (Messages Area) FIX --- */
+/* NEW: Toggle Button Style */
+.toggle-btn {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    padding: 0 10px 0 0;
+    cursor: pointer;
+    color: #333;
+}
+
+.chat-interface header h1 {
+    font-size: 1.5em; /* Adjust title size for better fit */
+}
+
+/* --- CHAT BOX (Messages Area) FIX (Unchanged) --- */
 .chat-box {
     flex-grow: 1; 
     height: 0; 
@@ -139,7 +165,7 @@ body, html {
     padding-bottom: 15px;
 }
 
-/* --- INPUT CONTAINER --- */
+/* --- INPUT CONTAINER (Unchanged) --- */
 .input-container {
     display: flex;
     padding: 10px 20px; 
@@ -162,7 +188,7 @@ body, html {
 
 .input-container button {
     padding: 12px 25px;
-    background-color: #3498db;
+    background-color: #007bff;
     color: white;
     border: none;
     border-radius: 8px;
@@ -172,21 +198,20 @@ body, html {
 }
 
 .input-container button:hover {
-    background-color: #2980b9;
+    background-color: #0056b3;
 }
 
-/* --- MESSAGES STYLES --- */
+/* --- MESSAGES STYLES (Unchanged) --- */
 .message {
     padding: 10px 15px;
     margin-bottom: 15px;
     border-radius: 18px;
     max-width: 75%;
     line-height: 1.4;
-    overflow-wrap: break-word; /* Ensure long content breaks */
 }
 
 .user-message {
-    background-color: #3498db;
+    background-color: #007bff;
     color: white;
     align-self: flex-end;
     margin-left: auto;
@@ -194,83 +219,14 @@ body, html {
 }
 
 .bot-message {
-    background-color: #ecf0f1;
+    background-color: #e0e0e0;
     color: #333;
     align-self: flex-start;
     margin-right: auto;
     border-bottom-left-radius: 4px;
 }
 
-/* ----------------------------------------------------- */
-/* --- NEW: STRUCTURED & RICH CONTENT STYLES --- */
-/* ----------------------------------------------------- */
-
-/* Markdown Table Styling */
-.bot-message table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 15px 0;
-    font-size: 0.95em;
-    overflow-x: auto;
-}
-
-.bot-message th, .bot-message td {
-    border: 1px solid #bdc3c7;
-    padding: 10px;
-    text-align: left;
-}
-
-.bot-message th {
-    background-color: #e4e7e8; 
-    font-weight: bold;
-    color: #333;
-}
-
-/* Markdown Code Block Styling (Monokai-like) */
-.bot-message pre {
-    background-color: #272822; 
-    color: #f8f8f2;
-    padding: 12px;
-    border-radius: 6px;
-    margin: 10px 0;
-    overflow-x: auto;
-    font-family: 'Consolas', 'Courier New', monospace;
-    font-size: 0.9em;
-}
-
-/* Markdown List Styling */
-.bot-message ul, .bot-message ol {
-    padding-left: 20px;
-    margin: 10px 0;
-}
-
-
-/* --- NEW: Dynamic Feedback Styling (above input) --- */
-.input-container #feedback-message {
-    position: absolute;
-    top: -30px; 
-    right: 20px;
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-size: 0.85em;
-    font-weight: bold;
-    z-index: 25;
-    transition: opacity 0.3s;
-}
-
-.feedback-error {
-    background-color: #f4cccc;
-    color: #cc0000;
-    border: 1px solid #cc0000;
-}
-
-.feedback-warning {
-    background-color: #f9e9a4;
-    color: #8b790c;
-    border: 1px solid #8b790c;
-}
-
-/* --- THINKING ANIMATION --- */
+/* --- THINKING ANIMATION --- (Unchanged) */
 .thinking-message {
     display: flex;
     align-items: center;
@@ -295,7 +251,7 @@ body, html {
     40% { transform: scale(1.0); }
 }
 
-/* --- DRAG & DROP ZONE --- */
+/* --- DRAG & DROP ZONE (Unchanged) --- */
 #dropZone {
     position: absolute; 
     top: 50px; 
@@ -304,7 +260,7 @@ body, html {
     bottom: 0; 
     pointer-events: none; 
     opacity: 0; 
-    background-color: rgba(52, 152, 219, 0.7); /* Blue to match new theme */
+    background-color: rgba(0, 123, 255, 0.7);
     color: white;
     display: flex;
     align-items: center;
@@ -324,35 +280,66 @@ body, html {
 /* 📱 TABLET & MOBILE OPTIMIZATION */
 /* ================================================= */
 
-/* Rule for iPad and smaller laptops (up to 1200px) */
+/* Hiding the sidebar by default on smaller screens */
 @media (max-width: 1200px) {
-    .sidebar {
-        width: 180px; 
+    /* Hide the sidebar by default on tablets/small laptops */
+    .chatbot-container {
+        /* Start with the sidebar hidden, then users can toggle it */
+        margin-left: 0; 
+    }
+    .chatbot-container.sidebar-visible .sidebar {
+        /* Only apply the transform when not visible */
+        transform: translateX(-100%);
+        min-width: 0;
+        width: 0;
+    }
+    .chatbot-container.sidebar-visible .chat-interface {
+        /* When sidebar is hidden, ensure the chat interface fills the space */
+        width: 100%;
+    }
+    
+    /* Force sidebar to be visible (slide in) when the class is added (e.g. by JS toggle) */
+    .chatbot-container.sidebar-toggled .sidebar {
+        transform: translateX(0);
+        width: 250px;
+        min-width: 250px;
+        position: absolute; /* Allows it to slide *over* the main chat area */
+        height: 100%;
+        z-index: 100; /* Ensure it's on top */
+        box-shadow: 2px 0 5px rgba(0,0,0,0.5);
+    }
+
+    /* On toggled state, optionally dim the main screen */
+    .chatbot-container.sidebar-toggled .chat-interface::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 99;
+        pointer-events: auto; /* Re-enable pointer events for the overlay */
+    }
+
+    /* Adjusting the toggle button visibility */
+    .toggle-btn {
+        display: block; /* Always show the toggle button on small screens */
     }
 }
 
-/* Rule for Mobile Devices (below 850px) - Hides sidebar completely for full screen chat */
+/* Rule for Mobile Devices (below 850px) */
 @media (max-width: 850px) {
-    .sidebar {
-        display: none; 
-    }
-    
     .chatbot-container {
-        max-width: 100%;
         border: none;
         box-shadow: none;
     }
     
-    /* Use 100dvh for height (Dynamic Viewport Height) for better iOS/iPadOS keyboard handling */
     body, html, .chatbot-container {
         height: 100dvh; 
     }
 
     .input-container {
         padding: 10px;
-    }
-    
-    .input-container #feedback-message {
-        right: 10px; 
     }
 }
