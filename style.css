@@ -13,16 +13,15 @@ body, html {
     background-color: #f7f9fc;
 }
 
-/* --- CHATBOT LAYOUT: FULL SCREEN NOW --- */
+/* --- CHATBOT LAYOUT: NOW FULL SCREEN --- */
 .chatbot-container {
     display: flex;
     height: 100%; 
-    /* Max-width removed to ensure full-screen on desktop */
+    /* REMOVED: max-width: 1400px; - This is the key change for full screen */
     margin: 0 auto;
-    border: none;
-    box-shadow: none;
+    border: none; /* Removed border */
+    box-shadow: none; /* Removed shadow for cleaner full-screen look */
     background-color: #fff;
-    /* Added transition for a smoother sidebar open/close effect */
     transition: transform 0.3s ease-in-out;
 }
 
@@ -37,14 +36,13 @@ body, html {
     flex-direction: column;
     border-right: 1px solid #34495e;
     transition: transform 0.3s ease-in-out;
-    z-index: 101; /* Ensure sidebar is above everything else when toggled */
-    position: relative; /* Needed for transform */
+    z-index: 101; 
+    position: relative; 
 }
 
-/* State for Hiding the Sidebar on Small Screens (Default on < 1200px) */
-/* The sidebar will transform/slide off-screen */
+/* State for Hiding the Sidebar */
 .chatbot-container:not(.sidebar-visible) .sidebar {
-    transform: translateX(-100%); 
+    transform: translateX(-100%); /* Slides completely off-screen */
     min-width: 0;
     width: 0;
 }
@@ -52,7 +50,7 @@ body, html {
 .new-chat-btn {
     padding: 10px;
     margin-bottom: 15px; 
-    background-color: #3498db; /* Brighter, modern primary color */
+    background-color: #3498db; 
     color: white;
     border: none;
     border-radius: 6px;
@@ -73,7 +71,7 @@ body, html {
     padding-right: 5px; 
 }
 
-/* --- CHAT HISTORY ITEMS --- */
+/* --- DELETE BUTTON STYLES --- */
 .chat-item {
     padding: 8px 5px 8px 10px; 
     margin-bottom: 5px;
@@ -139,7 +137,7 @@ body, html {
     background-color: #fff;
     z-index: 10;
     flex-shrink: 0; 
-    display: flex; 
+    display: flex; /* Added flex to align button and title */
     align-items: center;
 }
 
@@ -157,7 +155,7 @@ body, html {
     font-size: 1.5em; 
 }
 
-/* --- CHAT BOX (The element you wanted bigger) --- */
+/* --- CHAT BOX (Messages Area) FIX --- */
 .chat-box {
     flex-grow: 1; 
     height: 0; 
@@ -205,12 +203,12 @@ body, html {
     background-color: #2980b9;
 }
 
-/* --- MESSAGES STYLES: KEY CHANGE FOR BIGGER LOOK --- */
+/* --- MESSAGES STYLES: Maximized Width --- */
 .message {
     padding: 10px 15px;
     margin-bottom: 15px;
     border-radius: 18px;
-    /* CHANGED: Maximizes space usage on full screen */
+    /* Increased max-width for better use of the full-screen space */
     max-width: 90%; 
     line-height: 1.4;
     overflow-wrap: break-word; 
@@ -230,75 +228,6 @@ body, html {
     align-self: flex-start;
     margin-right: auto;
     border-bottom-left-radius: 4px;
-}
-
-/* ----------------------------------------------------- */
-/* --- STRUCTURED & RICH CONTENT STYLES --- */
-/* ----------------------------------------------------- */
-
-/* Markdown Table Styling */
-.bot-message table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 15px 0;
-    font-size: 0.95em;
-    overflow-x: auto;
-}
-
-.bot-message th, .bot-message td {
-    border: 1px solid #bdc3c7;
-    padding: 10px;
-    text-align: left;
-}
-
-.bot-message th {
-    background-color: #e4e7e8; 
-    font-weight: bold;
-    color: #333;
-}
-
-/* Markdown Code Block Styling (Monokai-like) */
-.bot-message pre {
-    background-color: #272822; 
-    color: #f8f8f2;
-    padding: 12px;
-    border-radius: 6px;
-    margin: 10px 0;
-    overflow-x: auto;
-    font-family: 'Consolas', 'Courier New', monospace;
-    font-size: 0.9em;
-}
-
-/* Markdown List Styling */
-.bot-message ul, .bot-message ol {
-    padding-left: 20px;
-    margin: 10px 0;
-}
-
-
-/* --- Dynamic Feedback Styling (above input) --- */
-.input-container #feedback-message {
-    position: absolute;
-    top: -30px; 
-    right: 20px;
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-size: 0.85em;
-    font-weight: bold;
-    z-index: 25;
-    transition: opacity 0.3s;
-}
-
-.feedback-error {
-    background-color: #f4cccc;
-    color: #cc0000;
-    border: 1px solid #cc0000;
-}
-
-.feedback-warning {
-    background-color: #fff9d9;
-    color: #9a6800;
-    border: 1px solid #9a6800;
 }
 
 /* --- THINKING ANIMATION --- */
@@ -355,9 +284,7 @@ body, html {
 /* 📱 TABLET & MOBILE OPTIMIZATION */
 /* ================================================= */
 
-/* Default state for desktop/large screens: Sidebar is visible */
-/* This is primarily for the JS toggle logic on smaller screens */
-
+/* Hide sidebar by default on smaller screens and make it overlay when opened */
 @media (max-width: 1200px) {
     /* When sidebar is visible, it uses absolute positioning to overlap the chat */
     .chatbot-container.sidebar-visible .sidebar {
@@ -388,7 +315,7 @@ body, html {
         pointer-events: auto;
     }
 
-    /* Adjusting the toggle button visibility */
+    /* The toggle button is always visible on small screens to open the sidebar */
     .toggle-btn {
         display: block; 
     }
@@ -401,16 +328,12 @@ body, html {
         box-shadow: none;
     }
     
-    /* Use 100dvh for height (Dynamic Viewport Height) for better iOS/iPadOS keyboard handling */
+    /* Use 100dvh for height (Dynamic Viewport Height) */
     body, html, .chatbot-container {
         height: 100dvh; 
     }
 
     .input-container {
         padding: 10px;
-    }
-    
-    .input-container #feedback-message {
-        right: 10px; 
     }
 }
