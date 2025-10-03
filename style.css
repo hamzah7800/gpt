@@ -9,7 +9,7 @@
 body, html {
     /* Use 100vh for full viewport height on PC */
     height: 100vh; 
-    overflow: hidden; /* Prevents the whole browser window from scrolling */
+    overflow: hidden; 
     background-color: #f7f9fc;
 }
 
@@ -29,17 +29,18 @@ body, html {
     width: 250px; /* Default desktop width */
     background-color: #333;
     color: #fff;
-    /* REDUCED VERTICAL PADDING for more height */
+    /* REDUCED PADDING for more height */
     padding: 10px 15px; 
     display: flex;
     flex-direction: column;
     border-right: 1px solid #444;
-    transition: width 0.3s; 
+    transition: width 0.3s;
 }
 
 .new-chat-btn {
     padding: 10px;
-    margin-bottom: 15px; /* Reduced margin */
+    /* REDUCED MARGIN for more height */
+    margin-bottom: 15px; 
     background-color: #007bff;
     color: white;
     border: none;
@@ -55,7 +56,6 @@ body, html {
 }
 
 .chat-list {
-    /* Allows the list items to scroll */
     list-style: none;
     flex-grow: 1; 
     overflow-y: auto; 
@@ -76,8 +76,7 @@ body, html {
     align-items: center;
 }
 
-/* Ensure the text wraps correctly */
-.chat-item span {
+.chat-item span.chat-title {
     flex-grow: 1;
     white-space: nowrap;
     overflow: hidden;
@@ -125,7 +124,7 @@ body, html {
 
 .chat-interface header {
     /* REDUCED VERTICAL PADDING to gain space for chat-box */
-    padding: 10px 20px;
+    padding: 10px 20px; 
     border-bottom: 1px solid #eee;
     background-color: #fff;
     z-index: 10;
@@ -135,7 +134,7 @@ body, html {
 /* --- CHAT BOX (Messages Area) FIX --- */
 .chat-box {
     flex-grow: 1; 
-    height: 0; /* CRITICAL FIX for scrolling */
+    height: 0; /* CRITICAL FIX for scrolling in flex column */
     padding: 20px;
     overflow-y: auto; 
     background-color: #f7f9fc;
@@ -206,7 +205,7 @@ body, html {
     border-bottom-left-radius: 4px;
 }
 
-/* --- THINKING ANIMATION --- */
+/* --- THINKING ANIMATION --- (Ensure this is present for thinking dots) */
 .thinking-message {
     display: flex;
     align-items: center;
@@ -231,11 +230,10 @@ body, html {
     40% { transform: scale(1.0); }
 }
 
-
 /* --- DRAG & DROP ZONE --- */
 #dropZone {
     position: absolute; 
-    top: 70px; 
+    top: 50px; /* Adjusted to match the new, smaller header height */
     left: 0;
     right: 0;
     bottom: 0; 
