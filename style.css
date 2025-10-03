@@ -27,21 +27,19 @@ body, html {
 /* --- SIDEBAR (History) --- */
 .sidebar {
     width: 250px; /* Default desktop width */
-    background-color: #333;
+    background-color: #2c3e50; /* Darker, modern sidebar color */
     color: #fff;
-    /* REDUCED PADDING for more height */
     padding: 10px 15px; 
     display: flex;
     flex-direction: column;
-    border-right: 1px solid #444;
+    border-right: 1px solid #34495e;
     transition: width 0.3s;
 }
 
 .new-chat-btn {
     padding: 10px;
-    /* REDUCED MARGIN for more height */
     margin-bottom: 15px; 
-    background-color: #007bff;
+    background-color: #3498db; /* Brighter, modern primary color */
     color: white;
     border: none;
     border-radius: 6px;
@@ -52,7 +50,7 @@ body, html {
 }
 
 .new-chat-btn:hover {
-    background-color: #0056b3;
+    background-color: #2980b9;
 }
 
 .chat-list {
@@ -69,7 +67,6 @@ body, html {
     cursor: pointer;
     border-radius: 4px;
     font-size: 0.9em;
-    
     position: relative; 
     display: flex; 
     justify-content: space-between; 
@@ -97,7 +94,7 @@ body, html {
 }
 
 .chat-item:hover {
-    background-color: #444;
+    background-color: #34495e;
 }
 
 .chat-item:hover .delete-chat-btn {
@@ -105,12 +102,12 @@ body, html {
 }
 
 .delete-chat-btn:hover {
-    color: #ff4d4d; 
+    color: #e74c3c; 
     opacity: 1;
 }
 
 .chat-item.active {
-    background-color: #555;
+    background-color: #4a627a;
     font-weight: bold;
 }
 
@@ -123,7 +120,6 @@ body, html {
 }
 
 .chat-interface header {
-    /* REDUCED VERTICAL PADDING to gain space for chat-box */
     padding: 10px 20px; 
     border-bottom: 1px solid #eee;
     background-color: #fff;
@@ -134,7 +130,7 @@ body, html {
 /* --- CHAT BOX (Messages Area) FIX --- */
 .chat-box {
     flex-grow: 1; 
-    height: 0; /* CRITICAL FIX for scrolling in flex column */
+    height: 0; 
     padding: 20px;
     overflow-y: auto; 
     background-color: #f7f9fc;
@@ -146,7 +142,6 @@ body, html {
 /* --- INPUT CONTAINER --- */
 .input-container {
     display: flex;
-    /* REDUCED VERTICAL PADDING to gain space for chat-box */
     padding: 10px 20px; 
     border-top: 1px solid #ddd;
     background-color: #fff;
@@ -167,7 +162,7 @@ body, html {
 
 .input-container button {
     padding: 12px 25px;
-    background-color: #007bff;
+    background-color: #3498db;
     color: white;
     border: none;
     border-radius: 8px;
@@ -177,7 +172,7 @@ body, html {
 }
 
 .input-container button:hover {
-    background-color: #0056b3;
+    background-color: #2980b9;
 }
 
 /* --- MESSAGES STYLES --- */
@@ -187,10 +182,11 @@ body, html {
     border-radius: 18px;
     max-width: 75%;
     line-height: 1.4;
+    overflow-wrap: break-word; /* Ensure long content breaks */
 }
 
 .user-message {
-    background-color: #007bff;
+    background-color: #3498db;
     color: white;
     align-self: flex-end;
     margin-left: auto;
@@ -198,14 +194,83 @@ body, html {
 }
 
 .bot-message {
-    background-color: #e0e0e0;
+    background-color: #ecf0f1;
     color: #333;
     align-self: flex-start;
     margin-right: auto;
     border-bottom-left-radius: 4px;
 }
 
-/* --- THINKING ANIMATION --- (Ensure this is present for thinking dots) */
+/* ----------------------------------------------------- */
+/* --- NEW: STRUCTURED & RICH CONTENT STYLES --- */
+/* ----------------------------------------------------- */
+
+/* Markdown Table Styling */
+.bot-message table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    font-size: 0.95em;
+    overflow-x: auto;
+}
+
+.bot-message th, .bot-message td {
+    border: 1px solid #bdc3c7;
+    padding: 10px;
+    text-align: left;
+}
+
+.bot-message th {
+    background-color: #e4e7e8; 
+    font-weight: bold;
+    color: #333;
+}
+
+/* Markdown Code Block Styling (Monokai-like) */
+.bot-message pre {
+    background-color: #272822; 
+    color: #f8f8f2;
+    padding: 12px;
+    border-radius: 6px;
+    margin: 10px 0;
+    overflow-x: auto;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+/* Markdown List Styling */
+.bot-message ul, .bot-message ol {
+    padding-left: 20px;
+    margin: 10px 0;
+}
+
+
+/* --- NEW: Dynamic Feedback Styling (above input) --- */
+.input-container #feedback-message {
+    position: absolute;
+    top: -30px; 
+    right: 20px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: bold;
+    z-index: 25;
+    transition: opacity 0.3s;
+}
+
+.feedback-error {
+    background-color: #f4cccc;
+    color: #cc0000;
+    border: 1px solid #cc0000;
+}
+
+.feedback-warning {
+    background-color: #f9e9a4;
+    color: #8b790c;
+    border: 1px solid #8b790c;
+}
+
+/* --- THINKING ANIMATION --- */
 .thinking-message {
     display: flex;
     align-items: center;
@@ -233,13 +298,13 @@ body, html {
 /* --- DRAG & DROP ZONE --- */
 #dropZone {
     position: absolute; 
-    top: 50px; /* Adjusted to match the new, smaller header height */
+    top: 50px; 
     left: 0;
     right: 0;
     bottom: 0; 
     pointer-events: none; 
     opacity: 0; 
-    background-color: rgba(0, 123, 255, 0.7);
+    background-color: rgba(52, 152, 219, 0.7); /* Blue to match new theme */
     color: white;
     display: flex;
     align-items: center;
@@ -285,5 +350,9 @@ body, html {
 
     .input-container {
         padding: 10px;
+    }
+    
+    .input-container #feedback-message {
+        right: 10px; 
     }
 }
