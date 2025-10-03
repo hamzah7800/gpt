@@ -26,13 +26,14 @@ body, html {
 
 /* --- SIDEBAR (History) --- */
 .sidebar {
-    width: 250px;
+    width: 250px; /* Default desktop width */
     background-color: #333;
     color: #fff;
     padding: 15px;
     display: flex;
     flex-direction: column;
     border-right: 1px solid #444;
+    transition: width 0.3s; /* Smooth transition for responsiveness */
 }
 
 .new-chat-btn {
@@ -131,12 +132,8 @@ body, html {
 
 /* --- CHAT BOX (Messages Area) FIX --- */
 .chat-box {
-    /* FIX: This makes the chat messages scrollable */
     flex-grow: 1; 
-    
-    /* CRITICAL FIX: Constrains the height of the flex item to allow overflow-y to work */
-    height: 0; 
-    
+    height: 0; /* CRITICAL FIX: Constrains the height of the flex item to allow overflow-y to work */
     padding: 20px;
     overflow-y: auto; 
     background-color: #f7f9fc;
@@ -258,12 +255,21 @@ body, html {
 }
 
 /* ================================================= */
-/* 📱 TABLET/MOBILE OPTIMIZATION */
+/* 📱 TABLET & MOBILE OPTIMIZATION */
 /* ================================================= */
 
+/* NEW: Rule for iPad and smaller laptops (up to 1200px) */
+/* This makes the sidebar narrower (180px) to give the main chat area more room. */
+@media (max-width: 1200px) {
+    .sidebar {
+        width: 180px; /* Reduced sidebar width for better chat space on tablets */
+    }
+}
+
+/* Rule for Mobile Devices (below 850px) - Hides sidebar completely for full screen chat */
 @media (max-width: 850px) {
     .sidebar {
-        display: none; 
+        display: none; /* Hide sidebar on small screens (portrait iPad, phones) */
     }
     
     .chatbot-container {
@@ -272,7 +278,7 @@ body, html {
         box-shadow: none;
     }
     
-    /* Use 100dvh for height (Dynamic Viewport Height) for better iOS keyboard handling */
+    /* Use 100dvh for height (Dynamic Viewport Height) for better iOS/iPadOS keyboard handling */
     body, html, .chatbot-container {
         height: 100dvh; 
     }
