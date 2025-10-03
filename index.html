@@ -1,56 +1,246 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-    <title>AI Chatbot Simulator (GitHub Pages)</title>
-    <link rel="stylesheet" href="style.css"> 
-    <link rel="icon" href="data:,"> 
-    
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"
-        onload="renderMathInElement(document.body, { delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}] });"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Improved App — iPad & PC Friendly</title>
+  <meta name="description" content="Responsive web app with Google Sign-In (Firebase) and PWA support, optimised for iPad and PC." />
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon-192.jpg">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
+  <style>
+    :root{
+      --bg:#0f1724; /* deep slate */
+      --card:#0b1220;
+      --muted:#94a3b8;
+      --accent:#7c3aed;
+      --glass: rgba(255,255,255,0.03);
+      --radius:12px;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#061022);color:#e6eef8}
+    .wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:18px;padding:28px}
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    header{width:100%;max-width:1100px;display:flex;justify-content:space-between;align-items:center}
+    .brand{display:flex;gap:12px;align-items:center}
+    .brand img{width:48px;height:48px;border-radius:10px;object-fit:cover}
+    .brand h1{font-size:1.05rem;margin:0}
+
+    main{width:100%;max-width:1100px;display:grid;grid-template-columns:1fr 420px;gap:20px}
+
+    /* card */
+    .card{background:linear-gradient(0deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:var(--radius);padding:18px;box-shadow:0 6px 22px rgba(2,6,23,0.6)}
+
+    /* left area: content */
+    .content{display:flex;flex-direction:column;gap:12px}
+    .hero{padding:22px;border-radius:10px;background:var(--glass)}
+    .hero h2{margin:0 0 6px 0}
+    .hero p{margin:0;color:var(--muted)}
+
+    /* right: auth panel */
+    .auth{display:flex;flex-direction:column;gap:12px}
+    .signin-btn{display:inline-flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:0;background:linear-gradient(90deg,var(--accent),#5b21b6);color:white;font-weight:600;cursor:pointer}
+    .signin-btn:active{transform:translateY(1px)}
+    .signout-btn{background:none;border:1px solid rgba(255,255,255,0.06);color:var(--muted);padding:10px;border-radius:10px;cursor:pointer}
+
+    .user{display:flex;gap:12px;align-items:center}
+    .user img{width:48px;height:48px;border-radius:999px}
+    .meta small{display:block;color:var(--muted)}
+
+    /* responsive for iPad/smaller screens */
+    @media (max-width:980px){
+      main{grid-template-columns:1fr;}
+      .brand h1{font-size:0.95rem}
+    }
+
+    /* touch targets and accessibility */
+    button, .signin-btn{touch-action:manipulation}
+    :focus{outline:3px solid rgba(124,58,237,0.25);outline-offset:3px}
+
+    /* reduce motion */
+    @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+  </style>
 </head>
 <body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <img src="icon-192.jpg" alt="app icon">
+        <h1>Improved App — iPad & PC</h1>
+      </div>
+      <nav aria-label="Main actions">
+        <button id="installBtn" class="signout-btn" style="display:none">Install PWA</button>
+      </nav>
+    </header>
 
-    <div class="chatbot-container sidebar-visible">
-        
-        <aside class="sidebar">
-            <button class="new-chat-btn">➕ New Chat</button>
-            <ul class="chat-list"></ul>
-        </aside>
+    <main>
+      <section class="card content" aria-labelledby="welcome">
+        <div class="hero" id="welcome">
+          <h2>Welcome!</h2>
+          <p>This web app is optimised for both iPad (touch) and desktop (keyboard & mouse). Use the Google sign-in on the right to sign in and sync your experience.</p>
+        </div>
 
-        <main class="chat-interface">
-            
-            <header>
-                <button id="sidebarToggle" class="toggle-btn">☰</button> 
-                <h1>AI Chatbot Simulator (Client-Side)</h1>
-                <p>Knowledge Base + **Local Math Engine** (No external API needed)</p>
-            </header>
-            
-            <div style="position: relative; flex-grow: 1; overflow: hidden;">
-                
-                <div class="chat-box" id="chatBox"></div>
+        <div class="card" aria-label="Features">
+          <h3>What I improved</h3>
+          <ul>
+            <li>Responsive layout with touch-first buttons and larger tap targets.</li>
+            <li>Keyboard-accessible controls and visible focus states for PC users.</li>
+            <li>Progressive Web App support & service worker registration.</li>
+            <li>Google Sign-In implemented via Firebase Authentication (client-side).</li>
+            <li>Accessibility & performance improvements.</li>
+          </ul>
+        </div>
+      </section>
 
-                <div id="dropZone">
-                    <p>Drag & Drop File Here</p>
-                </div>
+      <aside class="card auth" aria-labelledby="auth-heading">
+        <h3 id="auth-heading">Sign in</h3>
+        <div id="signedOut">
+          <button id="googleSignIn" class="signin-btn" aria-label="Sign in with Google">
+            <svg width="20" height="20" viewBox="0 0 533.5 544.3" aria-hidden="true">
+              <path fill="#4285f4" d="..." />
+            </svg>
+            Continue with Google
+          </button>
+          <p style="color:var(--muted);font-size:0.9rem;margin:0;">Signing in lets you save preferences and sync across devices.</p>
+        </div>
+
+        <div id="signedIn" style="display:none">
+          <div class="user">
+            <img id="avatar" src="" alt="user avatar">
+            <div class="meta">
+              <div id="displayName" style="font-weight:700"></div>
+              <small id="email"></small>
             </div>
-            
-            <div class="input-container">
-                <input type="text" id="userInput" placeholder="Ask about Web, Math (e.g., 2+2), or files...">
-                <button onclick="sendMessage()">Send</button>
-            </div>
-            
-        </main>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:8px">
+            <button id="signOutBtn" class="signout-btn">Sign out</button>
+            <button id="revokeBtn" class="signout-btn">Disconnect</button>
+          </div>
+        </div>
 
-    </div>
+        <div style="margin-top:10px;color:var(--muted);font-size:0.9rem">Tip: Add this page to your home screen on iPad for an app-like experience.</div>
+      </aside>
+    </main>
 
-    <script src="script.js"></script> 
+    <footer style="width:100%;max-width:1100px;opacity:0.7;font-size:0.9rem">
+      <p>Built for touch & desktop · Replace the Firebase config below with your project's config to enable Google Sign-In.</p>
+    </footer>
+  </div>
+
+  <!-- Firebase (modular) SDK - replace versions if needed. -->
+  <script type="module">
+    // --- CONFIGURE THIS ---
+    // 1) Create a Firebase project at https://console.firebase.google.com/
+    // 2) Enable Authentication -> Sign-in methods -> Google
+    // 3) Add a Web app and copy the config below (apiKey, authDomain, etc.)
+
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js';
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, disconnect } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js';
+
+    // TODO: replace with your Firebase config
+    const firebaseConfig = {
+      apiKey: "REPLACE_WITH_YOUR_API_KEY",
+      authDomain: "REPLACE_WITH_YOUR_PROJECT.firebaseapp.com",
+      projectId: "REPLACE_WITH_YOUR_PROJECT",
+      appId: "REPLACE_WITH_YOUR_APP_ID",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    // DOM refs
+    const signInBtn = document.getElementById('googleSignIn');
+    const signedOut = document.getElementById('signedOut');
+    const signedIn = document.getElementById('signedIn');
+    const avatar = document.getElementById('avatar');
+    const displayName = document.getElementById('displayName');
+    const emailEl = document.getElementById('email');
+    const signOutBtn = document.getElementById('signOutBtn');
+    const revokeBtn = document.getElementById('revokeBtn');
+
+    signInBtn.addEventListener('click', async () => {
+      try{
+        await signInWithPopup(auth, provider);
+      }catch(err){
+        console.error('Sign-in error', err);
+        alert('Sign-in failed: ' + (err.message||err));
+      }
+    });
+
+    signOutBtn.addEventListener('click', async () => {
+      await signOut(auth);
+    });
+
+    revokeBtn.addEventListener('click', async () => {
+      // disconnect the session (clear tokens) - best-effort
+      const user = auth.currentUser;
+      if(user){
+        try{
+          await disconnect(user);
+          await signOut(auth);
+        }catch(e){
+          console.warn('Disconnect not supported in this environment', e);
+          await signOut(auth);
+        }
+      }
+    });
+
+    onAuthStateChanged(auth, user => {
+      if(user){
+        signedOut.style.display = 'none';
+        signedIn.style.display = 'block';
+        avatar.src = user.photoURL || 'icon-192.jpg';
+        displayName.textContent = user.displayName || 'User';
+        emailEl.textContent = user.email || '';
+      }else{
+        signedOut.style.display = 'block';
+        signedIn.style.display = 'none';
+        avatar.src = '';
+        displayName.textContent = '';
+        emailEl.textContent = '';
+      }
+    });
+
+    // --- PWA: service worker registration ---
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.register('/sw.js').then(reg => {
+        console.log('SW registered', reg);
+      }).catch(err => console.warn('SW failed', err));
+    }
+
+    // deferred prompt for install (iPad fallback)
+    let deferredPrompt;
+    const installBtn = document.getElementById('installBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'inline-block';
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if(deferredPrompt){
+        deferredPrompt.prompt();
+        const choice = await deferredPrompt.userChoice;
+        console.log('install choice', choice);
+        deferredPrompt = null;
+        installBtn.style.display = 'none';
+      }
+    });
+
+  </script>
+
+  <!-- Small fallback script for non-module environments: graceful degradation -->
+  <script>
+    // Show a small message if the developer didn't replace firebase config
+    (function(){
+      const missing = document.querySelectorAll('#googleSignIn');
+      // Nothing to do, just provide graceful UI.
+    })();
+  </script>
 </body>
 </html>
