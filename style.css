@@ -29,16 +29,17 @@ body, html {
     width: 250px; /* Default desktop width */
     background-color: #333;
     color: #fff;
-    padding: 15px;
+    /* REDUCED VERTICAL PADDING for more height */
+    padding: 10px 15px; 
     display: flex;
     flex-direction: column;
     border-right: 1px solid #444;
-    transition: width 0.3s; /* Smooth transition for responsiveness */
+    transition: width 0.3s; 
 }
 
 .new-chat-btn {
     padding: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 15px; /* Reduced margin */
     background-color: #007bff;
     color: white;
     border: none;
@@ -123,7 +124,8 @@ body, html {
 }
 
 .chat-interface header {
-    padding: 15px 20px;
+    /* REDUCED VERTICAL PADDING to gain space for chat-box */
+    padding: 10px 20px;
     border-bottom: 1px solid #eee;
     background-color: #fff;
     z-index: 10;
@@ -133,7 +135,7 @@ body, html {
 /* --- CHAT BOX (Messages Area) FIX --- */
 .chat-box {
     flex-grow: 1; 
-    height: 0; /* CRITICAL FIX: Constrains the height of the flex item to allow overflow-y to work */
+    height: 0; /* CRITICAL FIX for scrolling */
     padding: 20px;
     overflow-y: auto; 
     background-color: #f7f9fc;
@@ -145,7 +147,8 @@ body, html {
 /* --- INPUT CONTAINER --- */
 .input-container {
     display: flex;
-    padding: 15px 20px;
+    /* REDUCED VERTICAL PADDING to gain space for chat-box */
+    padding: 10px 20px; 
     border-top: 1px solid #ddd;
     background-color: #fff;
     position: relative; 
@@ -258,18 +261,17 @@ body, html {
 /* 📱 TABLET & MOBILE OPTIMIZATION */
 /* ================================================= */
 
-/* NEW: Rule for iPad and smaller laptops (up to 1200px) */
-/* This makes the sidebar narrower (180px) to give the main chat area more room. */
+/* Rule for iPad and smaller laptops (up to 1200px) */
 @media (max-width: 1200px) {
     .sidebar {
-        width: 180px; /* Reduced sidebar width for better chat space on tablets */
+        width: 180px; 
     }
 }
 
 /* Rule for Mobile Devices (below 850px) - Hides sidebar completely for full screen chat */
 @media (max-width: 850px) {
     .sidebar {
-        display: none; /* Hide sidebar on small screens (portrait iPad, phones) */
+        display: none; 
     }
     
     .chatbot-container {
