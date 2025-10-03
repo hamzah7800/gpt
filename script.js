@@ -10,7 +10,7 @@ let currentSessionId = localStorage.getItem('currentSessionId') || 'chat_1';
 // SIMULATED LAZY LOAD: KNOWLEDGE BASE (EXPANDED)
 // -----------------------------------------------------------------
 const KNOWLEDGE_BASE = [
-    { keywords: ['hello', 'hi', 'hey', 'bonjour', 'salam'], response: "Hello! I am an advanced **client-side** simulator. I can answer local knowledge questions, perform calculations with **math.js**, and render LaTeX formulas, such as the Pythagorean theorem: $a^2 + b^2 = c^2$. What can I assist you with?" },
+    { keywords: ['hello', 'hi', 'hey', 'bonjour', 'salam'], response: "Hello! I am an advanced **client-side** simulator. I can answer local knowledge questions, perform calculations with **math.js**, and render LaTeX formulas, such as the Pythagorean theorem: $a^2 + b^2 = c^2$. I can also **expand symbolic expressions**." },
     { keywords: ['how are you', 'how r u'], response: "I don't have feelings, but I am operating perfectly using only your browser's processing power! Ready for your next query." },
     { keywords: ['nice', 'cool', 'great answer', 'ok', 'thanks', 'thank you'], response: "You're very welcome! I'm glad I could assist. Feel free to ask another question." },
     { keywords: ['html', 'what html', 'define html'], response: "HTML stands for **HyperText Markup Language**. It is the standard markup language for documents designed to be displayed in a web browser. (This is a verifiable fact.)" },
@@ -53,16 +53,39 @@ function createBotMessageDiv(text) {
 }
 
 // -----------------------------------------------------------------
-// CLIENT-SIDE MATH ENGINE (Replaces MATH_BACKEND_URL)
+// CLIENT-SIDE MATH ENGINE (Updated for Symbolic Math)
 // -----------------------------------------------------------------
 
 /**
- * Performs client-side math calculation using the globally available math.js.
- * @param {string} query - The mathematical expression (e.g., "5 + 2 * 3").
+ * Performs client-side numerical or symbolic math calculation using the globally available math.js.
+ * @param {string} query - The expression (e.g., "5 + 2 * 3" or "expand 2(2d + 7)").
  * @returns {string} The formatted result or an error message.
  */
 function clientSideMath(query) {
-    // The global 'math' object is provided by the math.js CDN script in index.html
+    const lowerQuery = query.toLowerCase().trim();
+
+    // 1. Symbolic Math Check (Expansion)
+    if (lowerQuery.startsWith('expand')) {
+        // Attempt to extract the expression after "expand"
+        // This regex tries to capture everything after 'expand '
+        const expression = lowerQuery.replace(/^expand\s*/, '').trim(); 
+        
+        if (expression) {
+            try {
+                // Use math.parse and math.expand for symbolic manipulation
+                const node = math.parse(expression);
+                const expanded = math.expand(node);
+                
+                // Use .toTex() for beautiful KaTeX rendering
+                return `**Symbolic Expansion Result:** $${expanded.toTex()}$ (Engine: **math.js** symbolic).`;
+            } catch (error) {
+                // If expansion fails (e.g., invalid syntax or unsupported operation)
+                return "I had trouble expanding that expression. Please ensure the syntax is correct (e.g., use '*' for multiplication if needed, like 'expand 2*(2d + 7)').";
+            }
+        }
+    }
+
+    // 2. Numerical/Evaluation Math Fallback (Original Logic)
     try {
         const result = math.evaluate(query);
 
@@ -263,7 +286,8 @@ async function sendMessage() {
         } 
         
         // --- Step B: Client-Side Math Check (via math.js) ---
-        else if (query.match(/^(?:.*[\d+\-*/^().e])|(\s*calculate\s)/i)) { 
+        // Checks for numbers, operators, symbolic commands, or the word 'calculate'
+        else if (query.match(/^(?:.*[\d+\-*/^().e])|(\s*calculate\s)|(expand)/i)) { 
             botResponse = clientSideMath(query);
         }
 
@@ -271,8 +295,8 @@ async function sendMessage() {
         else {
             // Provide a client-side-aware fallback
             const genericFallback = [
-                `I am currently operating in **GitHub Pages client-side mode** and cannot access external APIs for real-time information. However, I can still answer questions from my **local knowledge base** or perform calculations using **math.js**. The topic '${query}' is outside my current local data.`,
-                `External web search is disabled in this simulator's client-side configuration. I can process math, web terms (HTML, CSS), or files. Please try a different query or ask for the formula for the 'quadratic formula'.`,
+                `I am currently operating in **GitHub Pages client-side mode** and cannot access external APIs for real-time information. However, I can still answer questions from my **local knowledge base**, perform calculations, or **expand symbolic math expressions** using **math.js**. The topic '${query}' is outside my current local data.`,
+                `External web search is disabled in this simulator's client-side configuration. I can process math, web terms (HTML, CSS), or files. Please try a different query or ask to 'expand 2*(2d + 7)'.`,
                 `This query requires real-time data which I cannot fetch right now. I apologize for the limitation of running on a static page.`
             ];
             botResponse = genericFallback[Math.floor(Math.random() * genericFallback.length)];
