@@ -1,11 +1,11 @@
 {
     "name": "AI Chatbot Simulator",
     "short_name": "AI Simulator",
-    "description": "A client-side JavaScript chatbot powered by local knowledge and Math.js.",
+    "description": "A client-side JavaScript chatbot powered by local knowledge, Math.js, and Markdown.",
     "start_url": "./index.html",
     "display": "standalone",
     "background_color": "#ffffff",
-    "theme_color": "#007bff",
+    "theme_color": "#3498db",
     "icons": [
         {
             "src": "icon-192.jpg",
