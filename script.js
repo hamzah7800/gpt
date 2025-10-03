@@ -10,7 +10,7 @@ let currentSessionId = localStorage.getItem('currentSessionId') || 'session_' + 
 const mathScope = {};
 
 // -----------------------------------------------------------------
-// SIMULATED LAZY LOAD: KNOWLEDGE BASE
+// SIMULATED LAZY LOAD: KNOWLEDGE BASE (Unchanged)
 // -----------------------------------------------------------------
 const KNOWLEDGE_BASE = [
     { keywords: ['hello', 'hi', 'hey', 'bonjour', 'salam'], response: "Hello! I am an advanced **client-side** simulator running entirely in your browser. I can answer local knowledge questions and perform **basic math**." },
@@ -25,7 +25,7 @@ const KNOWLEDGE_BASE = [
 ];
 
 // -----------------------------------------------------------------
-// CLIENT-SIDE MATH ENGINE (Updated to include variable scope)
+// CLIENT-SIDE MATH ENGINE (Updated for variable scope)
 // -----------------------------------------------------------------
 
 /**
@@ -77,13 +77,11 @@ function clientSideMath(query) {
     }
 }
 
+
 // -----------------------------------------------------------------
-// CORE UI LOGIC
+// CORE UI LOGIC (Updated to use innerHTML for KaTeX and Markdown)
 // -----------------------------------------------------------------
 
-/**
- * Handles sending a message, processing it, and updating the UI.
- */
 async function sendMessage() { 
     const userInputField = document.getElementById('userInput');
     const chatBox = document.getElementById('chatBox');
@@ -119,7 +117,7 @@ async function sendMessage() {
         finalResponse = getBotResponse(userText.toLowerCase()); 
     }
 
-    // 3. General Fallback (Replaced textContent with innerHTML to allow Markdown)
+    // 3. General Fallback
     if (finalResponse === "I'm sorry, I can't process completely novel inputs like that or search the internet. I can answer questions about **Science, Math, Web Technologies, or my own simulated model**. Try asking: **'What is your model?'**") {
         finalResponse = `I am running entirely **client-side** and cannot fetch new information for '${userText}'. Please try a question about **Web Technologies** or a simple **math calculation** instead.`;
     }
@@ -131,7 +129,7 @@ async function sendMessage() {
         const botMessageDiv = document.createElement('div');
         botMessageDiv.className = 'message bot-message';
         // Use innerHTML to render bold/KaTeX content
-        botMessageDiv.innerHTML = finalResponse;
+        botMessageDiv.innerHTML = finalResponse; 
         chatBox.appendChild(botMessageDiv);
 
         lastResponse = finalResponse;
@@ -150,7 +148,7 @@ async function sendMessage() {
     }, 800);
 }
 
-// Enable sending messages with the Enter key
+// Enable sending messages with the Enter key (Unchanged)
 document.getElementById('userInput').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         sendMessage();
@@ -217,7 +215,6 @@ function renderChatBox(messages) {
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// This function is now correctly defined with the 'function' keyword
 function startNewChat() {
     saveCurrentChat();
     currentSessionId = 'session_' + Date.now();
@@ -346,7 +343,7 @@ function deleteChat(sessionIdToDelete) {
 }
 
 // -----------------------------------------------------------------
-// DRAG & DROP LOGIC
+// DRAG & DROP LOGIC (Unchanged)
 // -----------------------------------------------------------------
 
 function setupDragAndDrop() {
@@ -365,6 +362,7 @@ function setupDragAndDrop() {
     }
 
     dropTarget.addEventListener('dragenter', (e) => {
+        // Ensure we only show the drop zone when dragging over the main chat area
         if (e.target.closest('.chat-interface') && !e.target.closest('.input-container')) {
             dropZone.classList.add('hover');
         }
@@ -403,7 +401,7 @@ function setupDragAndDrop() {
             setTimeout(() => {
                 const botMessageDiv = document.createElement('div');
                 botMessageDiv.className = 'message bot-message';
-                botMessageDiv.innerHTML = botDropResponse;
+                botMessageDiv.innerHTML = botDropResponse; // Use innerHTML
                 chatBox.appendChild(botMessageDiv);
 
                 chatBox.scrollTop = chatBox.scrollHeight;
@@ -436,10 +434,8 @@ function toggleSidebar() {
     // Logic for small screens (below 1200px) where the sidebar overlaps the chat
     if (window.innerWidth <= 1200 && container.classList.contains('sidebar-visible')) {
         // Simple trick: Add a temporary click handler to the chat area to close the sidebar 
-        // when clicking outside of it.
         const chatInterface = document.querySelector('.chat-interface');
         const clickAwayHandler = (e) => {
-            // Check if the click was outside the sidebar itself
             if (!e.target.closest('.sidebar')) {
                 toggleSidebar();
                 chatInterface.removeEventListener('click', clickAwayHandler);
@@ -462,15 +458,14 @@ function initializeChatbot() {
     const toggleBtn = document.getElementById('sidebarToggle');
     
     if (newChatBtn) {
-        // FIX: startNewChat is now guaranteed to be in scope
         newChatBtn.addEventListener('click', startNewChat);
     }
     
-    if (toggleBtn) {
+    if (toggleBtn) { // NEW: Listener for the toggle button
         toggleBtn.addEventListener('click', toggleSidebar);
     }
     
-    // Initial state: Hide sidebar on small devices by default for a full chat view
+    // Initial state: If on small screen, start with sidebar hidden
     if (window.innerWidth <= 1200) {
         document.querySelector('.chatbot-container').classList.remove('sidebar-visible');
     }
