@@ -13,6 +13,7 @@
         onload="renderMathInElement(document.body, { delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}] });"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/markdown-it/13.0.1/markdown-it.min.js"></script>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -29,7 +30,7 @@
             
             <header>
                 <h1>AI Chatbot Simulator (Client-Side)</h1>
-                <p>Knowledge Base + **Local Math Engine** (No external API needed)</p>
+                <p>Knowledge Base + **Local Math Engine** + **Markdown** (No external API needed)</p>
             </header>
             
             <div style="position: relative; flex-grow: 1; overflow: hidden;">
@@ -42,8 +43,9 @@
             </div>
             
             <div class="input-container">
-                <input type="text" id="userInput" placeholder="Ask about Web, Math (e.g., 2+2), or files...">
+                <input type="text" id="userInput" placeholder="Ask about Web, Math (e.g., 2+2, x=5, plot sin(x)), or files...">
                 <button onclick="sendMessage()">Send</button>
+                <div id="feedback-message"></div>
             </div>
             
         </main>
