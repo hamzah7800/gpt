@@ -32,6 +32,7 @@
         .tool-card-math { background-color: #e0f7fa; border: 1px solid #00bcd4; color: #006064; }
         .tool-card-rag { background-color: #e8f5e9; border: 1px solid #4caf50; color: #1b5e20; }
         .tool-card-vision { background-color: #fce4ec; border: 1px solid #e91e63; color: #880e4f; }
+        .tool-card-generation { background-color: #e3f2fd; border: 1px solid #2196f3; color: #0d47a1; } /* NEW COLOR */
         .tool-card-fallback { background-color: #ffebee; border: 1px solid #f44336; color: #b71c1c; }
 
         .response-content { margin-top: 0.5rem; } /* Separator for tool card content */
@@ -95,9 +96,8 @@
         let lastResponseType = 'none'; 
         let currentSessionId = 'session_' + Date.now();
         const HISTORY_ROOT_KEY = 'CLIENT_AI_CHAT_HISTORY';
-        let chatContext = []; // Array to store last few user messages for RAG context
+        let chatContext = []; 
 
-        // Math scope removed as requested. Math.js will run without persistent variables.
         const mathScope = {}; 
         
         let isVoiceRecording = false;
@@ -191,14 +191,23 @@
             
             // 2. Tool Execution Logic
             
-            // Try Math Tool first
+            // Try Math Tool first (Highest confidence for math)
             const mathResult = clientSideMath(query);
             if (mathResult) {
                 finalResponse = mathResult;
                 lastResponseType = 'math';
             }
             
-            // Try Keyword/RAG Tool 
+            // 💡 NEW: Try Simulated Text Generation Tool (High confidence for complex queries)
+            if (!finalResponse) {
+                const essayResult = clientSideEssayGenerator(query);
+                if (essayResult) {
+                    finalResponse = essayResult;
+                    lastResponseType = 'generation_mock';
+                }
+            }
+
+            // Try Keyword/RAG Tool (Medium confidence for facts)
             if (!finalResponse) {
                 finalResponse = getKeywordResponse(query.toLowerCase(), chatContext); 
                 if (finalResponse) {
@@ -215,7 +224,7 @@
                  lastResponseType = 'vision_mock';
             }
 
-            // Fallback
+            // Fallback (Lowest confidence)
             if (!finalResponse) {
                 finalResponse = getFallbackResponse(query);
                 lastResponseType = 'fallback';
@@ -258,6 +267,11 @@
                     title = 'VISION TOOL (Simulated Analysis)';
                     cssClass = 'tool-card-vision';
                     break;
+                case 'generation':
+                    icon = '✍️';
+                    title = 'GENERATION TOOL (Simulated Essay)';
+                    cssClass = 'tool-card-generation';
+                    break;
                 default:
                     icon = '❓';
                     title = 'GENERAL FALLBACK';
@@ -275,16 +289,15 @@
         function getFallbackResponse(query) {
             const lowQuery = query.toLowerCase();
             if (lowQuery.includes('hello') || lowQuery.includes('hi')) {
-                return formatToolResponse("Hello there! I'm the **Client-Side JS Simulator**. I use **Math.js** for calculations and a **Knowledge Base** for facts. Ask me anything!", 'fallback');
+                return formatToolResponse("Hello there! I'm the **Client-Side JS Simulator**. I use **Math.js** and a **Simulated Generation Tool** to answer complex queries. Ask me to 'write an essay'!", 'fallback');
             }
             if (lowQuery.includes('how are you') || lowQuery.includes('what are you')) {
-                return formatToolResponse("I am a simple JavaScript program. I use Math.js, a keyword list, and my internal logic to respond. I do not have a full LLM.", 'fallback');
+                return formatToolResponse("I am a simple JavaScript program. I now feature a **Simulated Generation Tool** for essay-like responses, in addition to Math.js and RAG.", 'fallback');
             }
-            return formatToolResponse(`I'm sorry, I couldn't find a direct keyword match or a mathematical expression for **"${query}"** in my current knowledge base. Try a simple math problem (e.g., '10 * 5') or a technical term like 'WebGPU'.`, 'fallback');
+            return formatToolResponse(`I'm sorry, I couldn't find a direct keyword match, a mathematical expression, or a suitable template for **"${query}"**. Try asking me to write an essay on 'The History of JavaScript'.`, 'fallback');
         }
 
         function processBotResponse(text) {
-             // Function is now just responsible for KaTeX rendering and speaking
              const messageDiv = chatBox.lastElementChild;
              if (messageDiv && messageDiv.classList.contains('bot-message')) {
                 const contentDiv = messageDiv.querySelector('.response-content') || messageDiv; 
@@ -304,7 +317,7 @@
 
 
 // ---------------------------
-// 3. TOOL IMPLEMENTATIONS (Math, RAG/Keyword, Vision Mock)
+// 3. TOOL IMPLEMENTATIONS (Math, RAG/Keyword, Vision Mock, GENERATION MOCK)
 // ---------------------------
 
         function clientSideMath(input) {
@@ -314,34 +327,68 @@
                  return null;
             }
             
-            // Simplify input for math.js: remove 'calculate', 'what is', replace x with *
             let processedInput = input.trim().replace(/calculate|what is|solve|the result of/i, '')
                                              .replace(/x/g, '*');
             
             math.config({ implicit: 'auto' });
             try {
-                // IMPORTANT: mathScope is passed but empty, enforcing no variable persistence.
                 const result = math.evaluate(processedInput, mathScope);
                 
                 if (typeof result === 'number' || result.constructor.name === 'BigNumber' || result.constructor.name === 'Complex' || result.isMatrix) {
                     let output = result.toString();
                     if (result.constructor.name === 'BigNumber') output = result.toPrecision(15); 
                     
-                    // Format output with KaTeX
                     let finalInput = processedInput.replace(/\*/g, '\\times').replace(/ /g, ''); 
                     
                     return formatToolResponse(`I used **Math.js** to solve the expression. The result is: $$${finalInput} = ${output}$$`, 'math');
                 }
-                // Handle variable assignment (without saving to scope, since it's removed)
                 if (input.includes('=')) {
                      return formatToolResponse(`Variable assignment executed in Math.js (e.g. \`a = 5\`), but **variables are NOT saved** in my memory scope. Try using it in the same query: \`a=5; a*2\`.`, 'math');
                 }
 
                 return formatToolResponse(`I used **Math.js**, but the result was a complex object I cannot display.`, 'math');
             } catch (e) {
-                // If the math parser fails, it's probably not a calculation
                 return null; 
             }
+        }
+        
+        function clientSideEssayGenerator(input) {
+            const lowQuery = input.toLowerCase();
+            const generationKeywords = ['write an essay on', 'explain in detail', 'describe the importance of', 'compare and contrast', 'generate an article about'];
+
+            // 1. Check if the query is a generation request
+            if (!generationKeywords.some(keyword => lowQuery.includes(keyword))) {
+                return null;
+            }
+
+            // 2. Extract the subject (very simple extraction)
+            let subject = lowQuery.replace(/^(write an essay on|explain in detail|describe the importance of|compare and contrast|generate an article about)\s*/, '').trim();
+            subject = subject.replace(/^(the|a)\s*/, '');
+            subject = subject.charAt(0).toUpperCase() + subject.slice(1);
+            if (!subject || subject.length < 5) {
+                subject = 'The History of Client-Side Tools'; 
+            }
+            
+            const template = `
+                ### **Essay Draft: ${subject}** (Simulated Generation)
+                
+                **1. Introduction**
+                The concept of **${subject}** represents a fundamental shift in modern computing paradigms. At its core, this idea challenges traditional limitations by emphasizing (Subject-specific detail) a distributed and highly performant architecture. This essay will explore the theoretical foundation, key components, and future implications of **${subject}**.
+                
+                **2. Theoretical Framework**
+                The theoretical success of **${subject}** is rooted in the principle of tool delegation. By leveraging specialized, isolated functions (like a Math tool, or a RAG tool), the overall system achieves robustness and modularity. This contrasts sharply with monolithic systems that lack clear division of labor, leading to bottlenecks and efficiency challenges.
+                
+                **3. Practical Application & Impact**
+                In practice, the application of **${subject}** has led to significant advances in user experience and accessibility. For example, systems built on this philosophy demonstrate lower latency and reduced reliance on remote server infrastructure. The primary impact is seen in complex processing tasks, where parallel execution is essential for speed and accuracy.
+                
+                **4. Conclusion**
+                In summary, the role of **${subject}** in the technological landscape cannot be overstated. By focusing on specialized, client-side capabilities, the model for interaction is being redefined. Further research into contextual integration and cross-tool communication will unlock even greater potential in this exciting area.
+                
+                ---
+                *Note: This response was generated using the **Simulated Text Generation Tool** and is based on a fixed template and keyword injection.*
+            `;
+
+            return formatToolResponse(template, 'generation');
         }
 
         function jaccardSimilarity(str1, str2) {
@@ -379,7 +426,6 @@
             let bestMatch = null;
             let maxConfidence = 0.35; // Threshold for a match
 
-            // Combine current input with context for better RAG matching
             const fullQuery = [...context, input].join(' ').toLowerCase();
 
             for (const item of KNOWLEDGE_BASE) {
@@ -572,7 +618,7 @@
                 currentSessionId = 'session_' + Date.now();
                 sessions[currentSessionId] = [{
                     type: 'bot',
-                    text: formatToolResponse("Hello! I am a **Pure JavaScript Simulator**. I use **Math.js** for calculations and a **Knowledge Base** for facts. Ask me anything!", 'fallback')
+                    text: formatToolResponse("Hello! I am a **Pure JavaScript Simulator**. I now feature a **Simulated Generation Tool** for essay-like responses, in addition to Math.js and RAG. Ask me to 'write an essay'!", 'fallback')
                 }];
                 localStorage.setItem(key, JSON.stringify(sessions));
             }
@@ -608,15 +654,14 @@
         }
 
         function startNewChat() {
-            // Math scope removal enforced:
             Object.keys(mathScope).forEach(k => delete mathScope[k]);
-            chatContext = []; // Clear RAG context
+            chatContext = []; 
             
             currentSessionId = 'session_' + Date.now();
             lastResponse = '';
             lastResponseType = 'none'; 
             
-            const newSession = [{ type: 'bot', text: formatToolResponse("New conversation started! Context and temporary memory have been cleared.", 'fallback') }];
+            const newSession = [{ type: 'bot', text: formatToolResponse("New conversation started! Context and temporary memory have been cleared. Try the new **Simulated Generation Tool**!", 'fallback') }];
             const allSessions = loadHistory();
             allSessions[currentSessionId] = newSession;
             saveHistory(allSessions);
