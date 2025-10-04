@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client-Side Simulator (Kakashi Tools Edition)</title>
+    <title>Client-Side Simulator (Genjutsu Tools Edition)</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
@@ -19,7 +19,18 @@
 
     <style>
         /* General Styling */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            /* Subtle Genjutsu Effect: 
+               A very slight, slow hue shift to make the colors feel 'off' or 'altered' */
+            filter: hue-rotate(0deg); 
+            animation: genjutsu-shift 120s infinite alternate; 
+        }
+
+        @keyframes genjutsu-shift {
+            from { filter: hue-rotate(0deg); }
+            to { filter: hue-rotate(5deg); }
+        }
         
         /* Thinking/Animation Styles */
         .thinking-message { background-color: #fff8e1; color: #ff9800; border: 1px solid #ffcc80; animation: pulse 1.5s infinite; }
@@ -32,19 +43,24 @@
         @keyframes voice-pulse { from { opacity: 1; } to { opacity: 0.7; } }
         
         /* Tool Card Styles */
-        .tool-card { padding: 0.75rem; margin-bottom: 1rem; border-radius: 0.5rem; }
+        .tool-card { padding: 0.75rem; margin-bottom: 1rem; border-radius: 0.5rem; opacity: 0; transform: translateY(10px); animation: chakra-flow 0.5s forwards; }
         .tool-card-math { background-color: #e0f7fa; border: 1px solid #00bcd4; color: #006064; }
         .tool-card-rag { background-color: #e8f5e9; border: 1px solid #4caf50; color: #1b5e20; }
         .tool-card-fallback { background-color: #ffebee; border: 1px solid #f44336; color: #b71c1c; }
         .tool-card-vision { background-color: #fce4ec; border: 1px solid #e91e63; color: #880e4f; }
+
+        /* Chakra Flow Animation for Tool Cards */
+        @keyframes chakra-flow {
+            to { opacity: 1; transform: translateY(0); }
+        }
         
         /* Kakashi Theme Styles */
-        .sharingan-blue { color: #1e3a8a; } /* Deep Blue for the theme */
-        .sharingan-red { color: #dc2626; } /* Red for the "eye" */
-        .sharingan-bg { background-color: #f3f4f6; } /* Light grey background */
+        .sharingan-blue { color: #1e3a8a; } 
+        .sharingan-red { color: #dc2626; } 
+        .sharingan-bg { background-color: #f3f4f6; } 
         
         #kakashiContainer {
-            perspective: 1000px; /* For 3D rotation */
+            perspective: 1000px; 
             transition: opacity 1s ease-in-out, transform 1s ease-in-out;
         }
 
@@ -64,7 +80,7 @@
             right: 20px;
             width: 150px;
             height: 150px;
-            background-color: #4b5563; /* Dark gray for mask */
+            background-color: #4b5563; 
             border-radius: 50%;
             transform: rotateY(0deg);
             transition: transform 1.5s ease;
@@ -73,7 +89,7 @@
         }
 
         .kakashi-eye-uncovered .kakashi-eye-cover {
-            transform: rotateY(90deg); /* Flips the cover away */
+            transform: rotateY(90deg); 
         }
 
         .sharingan-icon {
@@ -82,10 +98,9 @@
             top: 35px;
             right: 35px;
             display: none;
-            color: #dc2626; /* Sharingan Red */
+            color: #dc2626; 
             transition: opacity 0.5s;
             z-index: 5;
-            /* Simple Sharingan Look (Manga Style) */
             text-shadow: 0 0 5px #fef2f2; 
         }
 
@@ -127,6 +142,7 @@
         
         <div class="sidebar bg-gray-800 text-white w-64 flex flex-col border-r border-gray-700">
             <h2 class="px-5 pt-5 text-lg font-semibold border-b border-gray-700 pb-3 mb-4">Chat History (Scrolls)</h2>
+            <div id="mathScopeStatus" class="px-5 text-sm text-yellow-400 mb-4">Math Scope: **0** variables loaded</div>
             <button class="new-chat-btn mx-5 mb-4 p-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition" onclick="startNewChat()">+ New Mission</button>
             <ul class="chat-list list-none p-0 m-0 flex-grow overflow-y-auto">
                 </ul>
@@ -139,7 +155,7 @@
             <div class="chat-header bg-gray-50 p-4 border-b border-gray-200 flex items-center">
                 <button id="sidebarToggle" onclick="toggleSidebar()" class="text-xl text-red-600 mr-4 hidden">&#9776;</button>
                 <img src="icon-192.jpg" alt="AI Icon" class="header-icon w-8 h-8 rounded-full object-cover mr-4 border-2 border-red-500">
-                <h3 class="text-lg font-semibold text-gray-800">The Sixth Hokage's Toolkit (Pure Tools Edition)</h3>
+                <h3 class="text-lg font-semibold text-gray-800">The Sixth Hokage's Toolkit (Genjutsu Edition)</h3>
             </div>
 
             <div id="chatBox" class="flex-grow p-5 overflow-y-auto bg-gray-50 flex flex-col">
@@ -160,8 +176,8 @@
         let lastResponseType = 'none'; 
         let currentSessionId = 'session_' + Date.now();
         const HISTORY_ROOT_KEY = 'CLIENT_AI_CHAT_HISTORY';
-        const MATH_SCOPE_KEY = 'CLIENT_AI_MATH_SCOPE'; // New key for math scope
-        let mathScope = {}; // Loaded on startup
+        const MATH_SCOPE_KEY = 'CLIENT_AI_MATH_SCOPE'; 
+        let mathScope = {}; 
         
         let isVoiceRecording = false;
         let recognition = null; 
@@ -173,6 +189,7 @@
         const voiceBtn = document.getElementById('voiceBtn');
         const sendBtn = document.getElementById('sendBtn');
         const kakashiEye = document.getElementById('kakashiEye');
+        const mathScopeStatus = document.getElementById('mathScopeStatus');
         
         // Multi-turn context: Store the last 3 turns (user queries)
         let chatContext = []; 
@@ -211,7 +228,8 @@
         }
         
         function initializeChatbotUI() {
-            loadMathScope(); // Load math scope on init
+            loadMathScope(); 
+            updateMathScopeStatus(); // Display the loaded status
             if (sendBtn) sendBtn.addEventListener('click', () => sendMessage());
             if (userInput) userInput.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') sendMessage();
@@ -231,13 +249,18 @@
         }
 
         function saveMathScope() {
-            // Filter out non-persisting properties like functions, or simply save the clean scope
             localStorage.setItem(MATH_SCOPE_KEY, JSON.stringify(mathScope));
+            updateMathScopeStatus(); // Update display on save
+        }
+        
+        function updateMathScopeStatus() {
+            const count = Object.keys(mathScope).length;
+            mathScopeStatus.innerHTML = `Math Scope: **${count}** variables loaded`;
         }
 
 
 // ---------------------------
-// 2. CORE CHATBOT LOGIC (Pure JS Tool Dispatch)
+// 2. CORE CHATBOT LOGIC (Tool Dispatch)
 // ---------------------------
 
         const KNOWLEDGE_BASE = [
@@ -268,7 +291,7 @@
             // Update Context BEFORE generating a response
             if (userText) {
                 chatContext.push(userText);
-                if (chatContext.length > 3) chatContext.shift(); // Keep only the last 3 user messages
+                if (chatContext.length > 3) chatContext.shift(); 
             }
             
             const thinkingDiv = appendBotThinking('Processing query with the Sixth Hokage\'s tools...');
@@ -311,7 +334,6 @@
             thinkingDiv.remove();
 
             if (finalResponse && typeof finalResponse === 'string') {
-                // appendBotMessage now handles the formatting based on the formatted string
                 appendBotMessage(finalResponse, true); 
             }
             
@@ -371,12 +393,13 @@
         }
 
         function processBotResponse(text) {
-             // Function is now just responsible for KaTeX rendering and speaking
              const messageDiv = chatBox.lastElementChild;
              if (messageDiv && messageDiv.classList.contains('bot-message')) {
+                // Ensure KaTeX only renders in the .response-content area, not the tool card header
+                const contentDiv = messageDiv.querySelector('.response-content') || messageDiv; 
                 if (window.renderMathInElement) {
                     try {
-                        window.renderMathInElement(messageDiv, {
+                        window.renderMathInElement(contentDiv, {
                             delimiters: [
                                 { left: '$$', right: '$$', display: true },
                                 { left: '$', right: '$', display: false }
@@ -394,13 +417,11 @@
 // ---------------------------
 
         function clientSideMath(input) {
-            // Check for explicit math commands or high probability math symbols
             const mathPattern = /^\s*(\d|\(|\-|\+)/; 
-            if (!mathPattern.test(input) && !input.includes('calculate') && !input.includes('solve')) {
+            if (!mathPattern.test(input) && !input.includes('calculate') && !input.includes('solve') && !input.includes('=')) {
                  return null;
             }
             
-            // Simplify input for math.js: remove 'calculate', 'what is', replace x with *
             let processedInput = input.trim().replace(/calculate|what is|solve|the result of/i, '')
                                              .replace(/x/g, '*');
             
@@ -415,7 +436,6 @@
                     let output = result.toString();
                     if (result.constructor.name === 'BigNumber') output = result.toPrecision(15); 
                     
-                    // Format output with KaTeX
                     let finalInput = processedInput.replace(/\*/g, '\\times').replace(/ /g, ''); 
                     
                     return formatToolResponse(`I used **Math.js** to solve the expression. The result is: $$${finalInput} = ${output}$$`, 'math');
@@ -427,39 +447,63 @@
 
                 return formatToolResponse(`I used **Math.js**, but the result was a complex object I cannot display.`, 'math');
             } catch (e) {
-                // If the math parser fails, it's probably not a calculation
                 return null; 
             }
         }
 
-        function simpleFuzzyMatch(query, keyword) {
-            // Simple check: how many words in the keyword phrase are present in the query?
-            const queryWords = query.split(/\s+/).filter(w => w.length > 2);
-            const keywordWords = keyword.split(/\s+/).filter(w => w.length > 2);
-            let matches = 0;
+        /**
+         * Calculates Jaccard Similarity between two strings (Intersection / Union).
+         * Uses 2-gram (character pairs) for robustness against simple misspellings.
+         * @param {string} str1 
+         * @param {string} str2 
+         * @returns {number} Similarity score between 0 and 1.
+         */
+        function jaccardSimilarity(str1, str2) {
+            str1 = str1.toLowerCase().replace(/\s/g, '');
+            str2 = str2.toLowerCase().replace(/\s/g, '');
             
-            for (const kWord of keywordWords) {
-                if (queryWords.some(qWord => kWord.includes(qWord) || qWord.includes(kWord))) {
-                    matches++;
+            if (str1.length < 2 || str2.length < 2) {
+                // Fallback for very short strings, check simple word overlap
+                return str1.includes(str2) || str2.includes(str1) ? 1.0 : 0.0;
+            }
+
+            const getNGrams = (s, n = 2) => {
+                const ngrams = new Set();
+                for (let i = 0; i <= s.length - n; i++) {
+                    ngrams.add(s.substring(i, i + n));
+                }
+                return ngrams;
+            };
+
+            const set1 = getNGrams(str1);
+            const set2 = getNGrams(str2);
+
+            let intersection = 0;
+            for (const gram of set1) {
+                if (set2.has(gram)) {
+                    intersection++;
                 }
             }
 
-            // Calculate confidence: total matched words divided by total keyword words
-            if (keywordWords.length === 0) return 0;
-            return matches / keywordWords.length;
+            const union = set1.size + set2.size - intersection;
+            return union === 0 ? 0 : intersection / union;
         }
 
         function getKeywordResponse(input, context) {
             let bestMatch = null;
-            let maxConfidence = 0.5; // Threshold for a match
-            
+            let maxConfidence = 0.35; // Lowered threshold because Jaccard is more strict
+
             // 1. Combine current query and recent context for better matching
             const fullQuery = [...context, input].join(' ').toLowerCase();
 
             // 2. Perform Fuzzy Search on Knowledge Base
             for (const item of KNOWLEDGE_BASE) {
                 for (const keyword of item.keywords) {
-                    const confidence = simpleFuzzyMatch(fullQuery, keyword);
+                    const confidence = jaccardSimilarity(fullQuery, keyword);
+                    
+                    // Simple debugging log (can be removed later)
+                    // console.log(`Query: "${fullQuery}" vs Keyword: "${keyword}" -> Confidence: ${confidence.toFixed(2)}`);
+
                     if (confidence > maxConfidence) {
                         maxConfidence = confidence;
                         bestMatch = item;
@@ -471,12 +515,10 @@
                 return formatToolResponse(`[RAG TOOL SEARCH RESULT - Confidence: ${Math.round(maxConfidence * 100)}%] ${bestMatch.response}`, 'rag');
             }
             
-            // If no match found, proceed to fallback
             return null;
         }
         
         function setupDragAndDrop() {
-            // ... (Drag and drop logic remains the same, using the Vision Tool Mock)
             const dropTarget = document.querySelector('.chat-interface');
             const dropZone = document.getElementById('dropZone');
             
@@ -516,7 +558,6 @@
                 const fileType = file.type || 'application/octet-stream'; 
                 
                 if (fileType.startsWith('image/')) {
-                    // MOCKING the Image Analysis
                     const mockCaption = `A simulated caption for '${fileName}' generated locally. It looks like a ${Math.random() > 0.5 ? 'computer' : 'landscape'}.`;
                     sendMessage(mockCaption);
 
@@ -532,7 +573,6 @@
 // ---------------------------
 
         function toggleVoiceInput() {
-             // ... (Voice input logic remains the same)
              if (isVoiceRecording) {
                 recognition.stop();
                 isVoiceRecording = false;
@@ -590,7 +630,6 @@
         }
         
         function speakResponse(text) {
-            // Strips markdown and HTML for cleaner speech
             const speechText = text.replace(/<[^>]*>?/gm, '') 
                                  .replace(/\*\*|#|```|\\(times|cdot)/g, ''); 
             
@@ -622,7 +661,7 @@
 
         function appendBotMessage(text, saveToHistory = true) {
             const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'message bot-message bg-gray-200 text-gray-800 self-start rounded-xl p-1 mb-4 max-w-xl rounded-bl-none shadow-md'; // Reduced padding for the tool card
+            botMessageDiv.className = 'message bot-message bg-gray-200 text-gray-800 self-start rounded-xl p-1 mb-4 max-w-xl rounded-bl-none shadow-md'; 
             botMessageDiv.innerHTML = text;
             chatBox.appendChild(botMessageDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
@@ -634,8 +673,9 @@
             }
         }
 
+        function userStorageKey() { return HISTORY_ROOT_KEY; }
+
         function loadHistory() {
-            // ... (History logic remains the same)
             const key = userStorageKey();
             const historyData = localStorage.getItem(key);
             const sessions = historyData ? JSON.parse(historyData) : {};
@@ -643,33 +683,12 @@
                 currentSessionId = 'session_' + Date.now();
                 sessions[currentSessionId] = [{
                     type: 'bot',
-                    text: formatToolResponse("Hello! I am a **Pure JavaScript Simulator**. I use **Math.js** for calculations and a **Knowledge Base** for facts. Ask me anything!", 'fallback')
+                    text: formatToolResponse("Hello! Welcome to the Genjutsu-Enhanced Simulator. The environment may feel slightly altered, but my tools are functioning optimally. Ask me anything!", 'fallback')
                 }];
                 localStorage.setItem(key, JSON.stringify(sessions));
             }
             return sessions;
         }
-
-        function startNewChat() {
-            // Clear both JS scope and persisted scope
-            mathScope = {}; 
-            saveMathScope(); 
-            chatContext = []; // Clear context
-            
-            currentSessionId = 'session_' + Date.now();
-            lastResponse = '';
-            lastResponseType = 'none'; 
-            
-            const newSession = [{ type: 'bot', text: formatToolResponse("New conversation started! **Math variables and context have been cleared.** Ask me anything.", 'fallback') }];
-            const allSessions = loadHistory();
-            allSessions[currentSessionId] = newSession;
-            saveHistory(allSessions);
-            renderChatBox(newSession);
-            renderSidebar(allSessions);
-        }
-        
-        // ... (Remaining History and UI functions are the same as before)
-        function userStorageKey() { return HISTORY_ROOT_KEY; }
 
         function saveHistory(sessions) {
             const key = userStorageKey();
@@ -691,10 +710,27 @@
                 }
                 chatBox.appendChild(messageDiv);
                 if (msg.type === 'bot' && window.renderMathInElement) {
-                    try { window.renderMathInElement(messageDiv); } catch (e) { console.warn('KaTeX render error for history:', e); }
+                    try { processBotResponse(msg.text); } catch (e) { console.warn('KaTeX render error for history:', e); }
                 }
             });
             chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function startNewChat() {
+            mathScope = {}; 
+            saveMathScope(); 
+            chatContext = []; 
+            
+            currentSessionId = 'session_' + Date.now();
+            lastResponse = '';
+            lastResponseType = 'none'; 
+            
+            const newSession = [{ type: 'bot', text: formatToolResponse("New conversation started! **Math variables and context have been cleared.** The Genjutsu remains active. Ask me anything.", 'fallback') }];
+            const allSessions = loadHistory();
+            allSessions[currentSessionId] = newSession;
+            saveHistory(allSessions);
+            renderChatBox(newSession);
+            renderSidebar(allSessions);
         }
 
         function saveCurrentChat(userText, botResponse) {
@@ -753,7 +789,7 @@
             });
             lastResponse = messages[messages.length - 1]?.text || '';
             lastResponseType = 'none'; 
-            chatContext = messages.filter(m => m.type === 'user').slice(-3).map(m => m.text); // Reload context
+            chatContext = messages.filter(m => m.type === 'user').slice(-3).map(m => m.text); 
         }
 
         function deleteChat(sessionIdToDelete) {
