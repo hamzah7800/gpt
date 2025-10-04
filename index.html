@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client-Side AI Simulator (FULL FEATURE)</title>
+    <title>Client-Side AI Simulator (GPT-2 Medium)</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
     <script type="module">
@@ -111,7 +111,7 @@
             <div class="chat-header">
                 <button id="sidebarToggle" onclick="toggleSidebar()">&#9776;</button>
                 <img src="icon-192.jpg" alt="AI Icon" class="header-icon">
-                <h3>Client-Side JS Simulator (FULL)</h3>
+                <h3>Client-Side JS Simulator (GPT-2 Medium)</h3>
             </div>
 
             <div id="chatBox">
@@ -150,7 +150,7 @@
             const errorMessage = document.getElementById("error-message");
 
             if (username === "ryzen" && password === "4060") {
-                alert("Login successful! The advanced AI model will now download (~300MB) and initialize. This first step may take a minute or two depending on your connection/CPU.");
+                alert("Login successful! The larger AI model will now download (~1.5GB) and initialize. This first step will take many minutes depending on your connection/CPU.");
                 document.getElementById("loginContainer").style.display = "none";
                 document.getElementById("gameSection").style.display = "flex";
 
@@ -164,16 +164,18 @@
 
         async function initializeLLM() {
             try {
-                const thinkingDiv = appendBotThinking('Initializing AI Model (Downloading & Compiling)... This may take 30-120 seconds on first run.');
+                const thinkingDiv = appendBotThinking('Initializing AI Model (Downloading ~1.5GB & Compiling)... This will take multiple minutes. Please wait.');
                 
                 if (typeof window.transformersPipeline === 'undefined') {
                     throw new Error("transformersPipeline is undefined. Check console for module loading errors.");
                 }
                 
-                pipeline = await window.transformersPipeline('text-generation', 'Xenova/distilgpt2');
+                // --- MODEL UPGRADE APPLIED HERE ---
+                // We are now using the much larger (and slower) GPT-2 Medium model.
+                pipeline = await window.transformersPipeline('text-generation', 'Xenova/gpt2-medium'); 
                 
                 thinkingDiv.remove();
-                appendBotMessage("🚀 AI Model Loaded! You can now ask general knowledge questions (e.g., 'What is the capital of Peru?') or continue with math/web questions.", false);
+                appendBotMessage("🚀 **GPT-2 Medium Model Loaded!** This model is significantly better at general knowledge and context but will be much slower. Ask away!", false);
                 userInput.focus();
 
             } catch (error) {
@@ -195,19 +197,20 @@
             { keywords: ['javascript', 'js'], response: "JavaScript is the programming language that enables interactive web content on the client-side." },
             { keywords: ['area of a circle', 'circle area formula'], response: "The area of a circle is calculated using the formula: $A = \\pi r^2$." },
             
-            // --- FIX FOR FACTUAL ACCURACY ---
+            // --- GUARANTEED FACTUAL ACCURACY ---
             { keywords: ['what is the capital of peru', 'capital of peru', 'peru capital', 'capital of perú'], 
               response: "The capital and largest city of Peru is **Lima**. (Local knowledge confirmed for speed and accuracy.)" 
             },
             
-            { keywords: ['what model', 'model are you'], response: "I use a custom JavaScript architecture for utilities (math, file analysis) and the **DistilGPT2 model** from the **Transformers.js** library for generative intelligence, all running on your browser's CPU." },
+            { keywords: ['what model', 'model are you'], response: "I use a custom JavaScript architecture for utilities (math, file analysis) and the **GPT-2 Medium model** from the **Transformers.js** library for generative intelligence, all running on your browser's CPU." },
         ];
 
         function getKeywordResponse(input) {
-            // Check for questioning facts
+            // Check for questioning facts (e.g., "are u sure", "is that true")
             const isQuestioningFact = input.includes('u sure') || input.includes('are you sure') || input.includes('is that true') || input.includes('really');
             if (isQuestioningFact) {
                 if (lastResponse.includes('client-side simulator') || lastResponse.includes('local knowledge') || lastResponse.includes('Math Result')) {
+                    // This is the guaranteed reliable response when questioning a hard-coded or calculated fact.
                     return "Yes, I am certain. The information I provided is based on accurate, hardcoded data or direct calculation.";
                 }
             }
@@ -239,7 +242,7 @@
             const prompt = context + `\nUser: ${userText}\nAssistant:`;
 
             const output = await pipeline(prompt, {
-                max_new_tokens: 60, // Limit generation for faster response
+                max_new_tokens: 60, // Keep generation length short for better performance
                 do_sample: true,
                 temperature: 0.9,
             });
@@ -247,7 +250,7 @@
             let botText = output[0].generated_text.substring(prompt.length).trim();
             botText = botText.split('\n')[0]; 
 
-            return `**LLM Result:** ${botText} (Generated by the client-side model.)`;
+            return `**LLM Result (GPT-2 Medium):** ${botText} (Generated by the client-side model.)`;
         }
 
         function clientSideMath(input) {
@@ -311,7 +314,7 @@
             userInput.value = '';
             userInput.disabled = true;
 
-            const thinkingDiv = appendBotThinking('Processing request...');
+            const thinkingDiv = appendBotThinking('Processing request... (The GPT-2 Medium model is slow, please be patient.)');
             chatBox.scrollTop = chatBox.scrollHeight;
 
             let finalResponse = clientSideMath(userText); 
