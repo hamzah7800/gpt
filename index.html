@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client-Side AI Simulator (Ultimate Hybrid)</title>
+    <title>Client-Side AI Simulator (Tailwind Edition)</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
     <script type="module">
@@ -24,99 +24,104 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.js"></script>
 
+    <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
-        /* (*** STYLES: unchanged from previous version, with one addition for the voice button ***) */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f7f9; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        #loginContainer { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; }
-        #loginContainer h1 { color: #1e88e5; margin-bottom: 30px; }
-        #loginContainer input[type="text"], #loginContainer input[type="password"] { width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        #loginContainer button { width: 100%; padding: 12px; background-color: #1e88e5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; transition: background-color 0.3s; }
-        #loginContainer button:hover { background-color: #1565c0; }
-        #error-message { color: #e53935; margin-top: 15px; font-weight: bold; }
-        #gameSection { display: none; background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); width: 90vw; max-width: 1000px; height: 90vh; max-height: 800px; overflow: hidden; transition: all 0.3s ease; display: flex; }
-        .sidebar { width: 250px; background-color: #2c3e50; color: #ecf0f1; padding: 20px 0; border-right: 1px solid #34495e; display: flex; flex-direction: column; }
-        .sidebar h2 { padding: 0 20px; font-size: 1.2em; border-bottom: 1px solid #34495e; padding-bottom: 10px; margin-bottom: 15px; }
-        .new-chat-btn { margin: 0 20px 20px 20px; padding: 10px; background-color: #1e88e5; color: white; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.3s; }
-        .new-chat-btn:hover { background-color: #1565c0; }
-        .chat-list { list-style: none; padding: 0; margin: 0; flex-grow: 1; overflow-y: auto; }
-        .chat-item { padding: 12px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background-color 0.2s; }
-        .chat-item:hover, .chat-item.active { background-color: #34495e; }
-        .chat-title { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .delete-chat-btn { background: none; border: none; color: #e74c3c; cursor: pointer; margin-left: 10px; font-size: 14px; transition: color 0.2s; }
-        .delete-chat-btn:hover { color: #c0392b; }
-        .chat-interface { flex-grow: 1; display: flex; flex-direction: column; position: relative; }
-        .chat-header { background: #f4f7f9; padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: flex-start; align-items: center; }
-        .header-icon { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 2px solid #1e88e5; }
-        #sidebarToggle { background: none; border: none; font-size: 20px; cursor: pointer; color: #1e88e5; margin-right: 15px; display: none; }
-        #chatBox { flex-grow: 1; padding: 20px; overflow-y: auto; background-color: #f9f9f9; }
-        .message { padding: 10px 15px; margin-bottom: 15px; border-radius: 18px; max-width: 80%; line-height: 1.5; }
-        .user-message { background-color: #e3f2fd; color: #1e88e5; align-self: flex-end; margin-left: auto; border-bottom-right-radius: 4px; }
-        .bot-message { background-color: #f0f0f0; color: #333; margin-right: auto; border-bottom-left-radius: 4px; }
-        .thinking-message { background-color: #fff8e1; color: #ff9800; border: 1px solid #ffcc80; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
+        /*
+        *****************************************************
+        * Tailwind is now handling most styling!            *
+        * We only keep custom animations and specific overrides.
+        *****************************************************
+        */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        }
+
+        /* Custom animation for thinking message */
+        .thinking-message { 
+            background-color: #fff8e1; 
+            color: #ff9800; 
+            border: 1px solid #ffcc80; 
+            animation: pulse 1.5s infinite; 
+        }
+        @keyframes pulse { 
+            0% { opacity: 0.8; } 
+            50% { opacity: 1; } 
+            100% { opacity: 0.8; } 
+        }
+        
+        /* Custom dot animation */
         .dot { opacity: 0; animation: dot-fade 1s infinite; }
         .dot:nth-child(2) { animation-delay: 0.2s; }
         .dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes dot-fade { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
-        .input-container { padding: 15px 20px; border-top: 1px solid #eee; display: flex; background: #fff; }
-        #userInput { flex-grow: 1; padding: 12px; border: 1px solid #ddd; border-radius: 20px; margin-right: 10px; font-size: 16px; }
-        .input-btn { background-color: #1e88e5; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: background-color 0.3s; margin-left: 5px;}
-        .input-btn:hover { background-color: #1565c0; }
-        .voice-recording { background-color: #e53935; animation: voice-pulse 1s infinite alternate; }
-        @keyframes voice-pulse { from { opacity: 1; } to { opacity: 0.7; } }
-        #dropZone { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(30, 136, 229, 0.8); color: white; display: none; justify-content: center; align-items: center; font-size: 1.5em; z-index: 10; pointer-events: none; }
-        #dropZone.hover { display: flex; }
+
+        /* Voice Recording Pulse */
+        .voice-recording { 
+            background-color: #ef4444; /* Tailwind red-500 */
+            animation: voice-pulse 1s infinite alternate; 
+        }
+        @keyframes voice-pulse { 
+            from { opacity: 1; } 
+            to { opacity: 0.7; } 
+        }
+        
+        /* Sidebar Visibility for Mobile (Requires non-Tailwind transition due to complex state) */
         @media (max-width: 1200px) {
-            .sidebar { position: absolute; z-index: 20; height: 100%; transform: translateX(-100%); transition: transform 0.3s ease; }
-            #gameSection.sidebar-visible .sidebar { transform: translateX(0); }
-            #sidebarToggle { display: block; }
+            .sidebar { 
+                position: absolute; 
+                z-index: 20; 
+                height: 100%; 
+                transform: translateX(-100%); 
+                transition: transform 0.3s ease; 
+            }
+            #gameSection.sidebar-visible .sidebar { 
+                transform: translateX(0); 
+            }
+            #sidebarToggle { display: block !important; }
             .chat-interface { overflow: hidden; }
         }
-        @media (max-width: 600px) {
-            #gameSection { width: 100vw; height: 100vh; border-radius: 0; }
-            #loginContainer { margin: 20px; padding: 20px; }
-        }
-        @media (min-width: 768px) and (max-width: 1180px) {
-            body { padding: 10px; }
-            #gameSection { width: 98vw; height: 98vh; max-width: none; }
-            .sidebar { width: 200px; }
-        }
+
     </style>
 </head>
-<body>
+<body class="bg-gray-100 flex justify-center items-center min-h-screen p-4">
 
-    <div id="loginContainer">
-        <h1>Welcome to the Client-Side AI</h1>
-        <p>Login to access the simulator.</p>
-        <input type="text" id="username" placeholder="Username (ryzen)">
-        <input type="password" id="password" placeholder="4060)">
-        <button onclick="validateLogin()">Login</button>
-        <div id="error-message"></div>
+    <div id="loginContainer" class="bg-white p-10 rounded-xl shadow-2xl w-full max-w-sm text-center">
+        <h1 class="text-3xl text-blue-600 font-bold mb-6">Welcome to the Client-Side AI</h1>
+        <p class="text-gray-600 mb-4">Login to access the simulator.</p>
+        <input type="text" id="username" placeholder="Username (ryzen)" class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+        <input type="password" id="password" placeholder="4060)" class="w-full p-3 mb-6 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+        <button onclick="validateLogin()" class="w-full p-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition duration-200">Login</button>
+        <div id="error-message" class="text-red-600 font-bold mt-4"></div>
     </div>
 
-    <div id="gameSection" class="chatbot-container">
-        <div class="sidebar">
-            <h2>Chat History</h2>
-            <button class="new-chat-btn" onclick="startNewChat()">+ New Chat</button>
-            <ul class="chat-list">
+    <div id="gameSection" class="hidden bg-white rounded-xl shadow-2xl w-full max-w-7xl h-[95vh] max-h-[800px] overflow-hidden flex transition-all duration-300">
+        
+        <div class="sidebar bg-gray-800 text-white w-64 flex flex-col border-r border-gray-700">
+            <h2 class="px-5 pt-5 text-lg font-semibold border-b border-gray-700 pb-3 mb-4">Chat History</h2>
+            <button class="new-chat-btn mx-5 mb-4 p-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition" onclick="startNewChat()">+ New Chat</button>
+            <ul class="chat-list list-none p-0 m-0 flex-grow overflow-y-auto">
                 </ul>
         </div>
 
-        <div class="chat-interface">
-            <div id="dropZone">Drop files here to simulate analysis (Client-side only)</div>
-            <div class="chat-header">
-                <button id="sidebarToggle" onclick="toggleSidebar()">&#9776;</button>
-                <img src="icon-192.jpg" alt="AI Icon" class="header-icon">
-                <h3>Client-Side JS Simulator (Ultimate Hybrid AI)</h3>
+        <div class="chat-interface flex-grow flex flex-col relative">
+            
+            <div id="dropZone" class="absolute inset-0 bg-blue-600 bg-opacity-80 text-white hidden justify-center items-center text-2xl z-10 pointer-events-none">Drop files here to simulate analysis (Client-side only)</div>
+
+            <div class="chat-header bg-gray-50 p-4 border-b border-gray-200 flex items-center">
+                <button id="sidebarToggle" onclick="toggleSidebar()" class="text-xl text-blue-600 mr-4 hidden">&#9776;</button>
+                <img src="icon-192.jpg" alt="AI Icon" class="header-icon w-8 h-8 rounded-full object-cover mr-4 border-2 border-blue-500">
+                <h3 class="text-lg font-semibold text-gray-800">Client-Side JS Simulator (Ultimate Hybrid AI)</h3>
             </div>
 
-            <div id="chatBox">
+            <div id="chatBox" class="flex-grow p-5 overflow-y-auto bg-gray-50 flex flex-col">
                 </div>
 
-            <div class="input-container">
-                <input type="text" id="userInput" placeholder="Ask a question, try math, or drag an image..." autocomplete="off">
-                <button id="voiceBtn" class="input-btn" onclick="toggleVoiceInput()">🎤</button>
-                <button id="sendBtn" class="input-btn" onclick="sendMessage()">&#9658;</button>
+            <div class="input-container p-4 border-t border-gray-200 flex items-center bg-white">
+                <input type="text" id="userInput" placeholder="Ask a question, try math, or drag an image..." autocomplete="off" class="flex-grow p-3 border border-gray-300 rounded-full mr-2 text-base focus:ring-blue-500 focus:border-blue-500">
+                
+                <button id="voiceBtn" class="input-btn bg-blue-600 text-white w-10 h-10 rounded-full text-xl flex justify-center items-center hover:bg-blue-700 transition ml-2" onclick="toggleVoiceInput()">🎤</button>
+                <button id="sendBtn" class="input-btn bg-blue-600 text-white w-10 h-10 rounded-full text-xl flex justify-center items-center hover:bg-blue-700 transition ml-2" onclick="sendMessage()">&#9658;</button>
             </div>
         </div>
     </div>
@@ -129,12 +134,12 @@
         const HISTORY_ROOT_KEY = 'CLIENT_AI_CHAT_HISTORY';
         const mathScope = {}; 
         let pipeline = null; 
-        let imageCaptioner = null; // New model for multimodality
+        let imageCaptioner = null;
         let sentenceTransformer = null; 
         let lancedb = null; 
         let knowledgeTable = null; 
         let isVoiceRecording = false;
-        let recognition = null; // Web Speech API
+        let recognition = null; 
         
         // UI Element References
         const chatBox = document.getElementById('chatBox');
@@ -155,7 +160,9 @@
 
             if (username === "ryzen" && password === "4060") {
                 document.getElementById("loginContainer").style.display = "none";
-                document.getElementById("gameSection").style.display = "flex";
+                // Show gameSection and set up mobile visibility helper class
+                document.getElementById("gameSection").classList.remove('hidden');
+                document.getElementById("gameSection").classList.add('flex');
 
                 initializeChatbotUI();
                 initializeModels();
@@ -189,7 +196,7 @@
                 
                 imageCaptioner = await window.transformersPipeline(
                     'image-to-text',
-                    'Xenova/blip-base' // Small model for basic image analysis
+                    'Xenova/blip-base'
                 );
                 
                 thinkingDiv.remove();
@@ -348,29 +355,25 @@ input: [tool_input_text]
 
             const prompt = `<s>${SYSTEM_PROMPT}\n\n${history} [INST] ${userText} ${tool_context}[/INST]`;
 
-            // Use the streaming feature for better UX
             const output = await pipeline(prompt, {
                 max_new_tokens: 180, 
                 do_sample: true,
                 temperature: 0.8,
-                // --- Streaming Enabled ---
                 streaming: true,
-                // -------------------------
             });
             
-            return output; // Return the full output object for streaming
+            return output;
         }
 
         async function streamLLMResponse(userText, toolOutput = null, imageCaption = null) {
             const output = await getLLMResponse(userText, toolOutput, imageCaption);
             
             if (typeof output === 'string') {
-                return output; // Handle 'FALLBACK' string
+                return output;
             }
 
-            // Create the new message container for streaming
             const messageDiv = document.createElement('div');
-            messageDiv.className = 'message bot-message';
+            messageDiv.className = 'message bot-message bg-gray-200 text-gray-800 self-start rounded-xl p-3 mb-4 max-w-xl rounded-bl-none';
             chatBox.appendChild(messageDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
             
@@ -380,12 +383,10 @@ input: [tool_input_text]
             for await (const chunk of output) {
                 let token = chunk.text;
                 
-                // Skip the prompt part
                 if (token.length < promptLength) continue;
 
                 token = token.substring(promptLength);
                 
-                // Clean up any remaining generation tags
                 token = token.replace('</s>', '').replace('[INST]', '').trimStart(); 
 
                 fullText += token;
@@ -422,11 +423,9 @@ input: [tool_input_text]
             const userText = userInput.value.trim();
             if (!userText && !imageCaption) return;
 
-            // Only append user text if it was explicitly typed
             if (userText) appendUserMessage(userText); 
             if (imageCaption) appendUserMessage(`[User prompted with image] ${userText || 'Analyze the image.'}`);
 
-            // Clear input and disable
             userInput.value = '';
             userInput.disabled = true;
             sendBtn.disabled = true;
@@ -435,20 +434,17 @@ input: [tool_input_text]
             let toolOutput = null;
             let finalResponse = null;
             
-            // --- STAGE 1: Keyword Check (Highest Priority/Speed) ---
             finalResponse = getKeywordResponse(userText.toLowerCase()); 
 
             if (finalResponse) {
                 lastResponseType = 'keyword';
             } else {
                 
-                // Create a temporary "Thinking" div (it will be removed and replaced by streaming)
                 const thinkingDiv = appendBotThinking('Routing query for best result...');
                 chatBox.scrollTop = chatBox.scrollHeight;
                 
-                // --- STAGE 2: LLM Tool Dispatch ---
                 const llmRawResponse = await streamLLMResponse(userText, null, imageCaption);
-                thinkingDiv.remove(); // Remove temporary thinking div after first LLM call
+                thinkingDiv.remove();
 
                 let toolRequest = null;
                 try {
@@ -459,12 +455,10 @@ input: [tool_input_text]
                     }
                 } catch (e) { /* Fall through to direct response */ }
                 
-                // --- STAGE 3: Tool Execution ---
                 if (toolRequest && toolRequest.tool && toolRequest.input) {
                     const toolName = toolRequest.tool;
                     const toolInput = toolRequest.input;
                     
-                    // Display tool execution message in the chat
                     const executionDiv = appendBotThinking(`Executing **${toolName}** on \`${toolInput.substring(0, 50)}...\` ...`);
                     chatBox.scrollTop = chatBox.scrollHeight;
 
@@ -474,35 +468,29 @@ input: [tool_input_text]
                         toolOutput = await performRAG(toolInput);
                     }
                     
-                    executionDiv.remove(); // Remove execution message
+                    executionDiv.remove();
 
-                    // Re-prompt the LLM with the tool output (This time, no YAML call is expected)
                     const thinkingDiv2 = appendBotThinking('Tool results received. Generating final answer...');
                     const finalLLMResponse = await streamLLMResponse(userText, toolOutput, imageCaption);
-                    thinkingDiv2.remove(); // Remove second thinking div
+                    thinkingDiv2.remove();
                     
                     finalResponse = finalLLMResponse;
                     lastResponseType = toolName; 
 
                 } else {
-                    // STAGE 4: Direct LLM response (The streaming output is already in `llmRawResponse`)
                     finalResponse = llmRawResponse;
                     lastResponseType = 'llm';
                 }
             }
 
-            // --- Display Final Response (If not already streamed) ---
             if (finalResponse && typeof finalResponse === 'string') {
-                 // For Keyword/Error responses, append the message normally
                 appendBotMessage(finalResponse, true); 
             } else if (finalResponse) {
-                // If it was streamed, the message is already displayed, just save to history and process math rendering/TTS
                 saveCurrentChat(null, finalResponse);
                 lastResponse = finalResponse;
                 processBotResponse(finalResponse); 
             }
             
-            // Re-enable UI
             userInput.disabled = false;
             sendBtn.disabled = false;
             voiceBtn.disabled = false;
@@ -510,11 +498,9 @@ input: [tool_input_text]
             renderSidebar(loadHistory());
         }
 
-        // --- Post-processing for streamed text ---
         function processBotResponse(text) {
              const messageDiv = chatBox.lastElementChild;
              if (messageDiv && messageDiv.classList.contains('bot-message')) {
-                // Rerender KaTeX for the streamed message
                 if (window.renderMathInElement) {
                     try {
                         window.renderMathInElement(messageDiv, {
@@ -525,7 +511,6 @@ input: [tool_input_text]
                         });
                     } catch (e) { console.warn('KaTeX render failed:', e); }
                 }
-                // Speak the response
                 speakResponse(text);
              }
         }
@@ -544,7 +529,6 @@ input: [tool_input_text]
                 return;
             }
             
-            // Check for Web Speech API support
             if (!('webkitSpeechRecognition' in window)) {
                 alert("Voice input is not supported in this browser. Try Chrome or Edge.");
                 return;
@@ -566,7 +550,7 @@ input: [tool_input_text]
                 recognition.onresult = (event) => {
                     const transcript = event.results[0][0].transcript;
                     userInput.value = transcript;
-                    sendMessage(); // Auto-send the transcribed message
+                    sendMessage();
                 };
 
                 recognition.onerror = (event) => {
@@ -585,8 +569,6 @@ input: [tool_input_text]
             try {
                 recognition.start();
             } catch (e) {
-                console.error("Failed to start recognition:", e);
-                // Handle case where recognition might be mid-process
                 if (e.message.includes('already started')) {
                     recognition.stop();
                 }
@@ -594,7 +576,6 @@ input: [tool_input_text]
         }
         
         function speakResponse(text) {
-            // Remove markdown for smoother speech
             const speechText = text.replace(/\*\*|#|```|\\(times|cdot)/g, ''); 
             
             if ('speechSynthesis' in window) {
@@ -634,7 +615,6 @@ input: [tool_input_text]
                 const fileName = file.name;
                 const fileType = file.type || 'application/octet-stream'; 
                 
-                // Only process images for the Captioner
                 if (fileType.startsWith('image/')) {
                     if (imageCaptioner === 'FALLBACK') {
                         appendUserMessage(`Dropped image: ${fileName}`);
@@ -648,12 +628,10 @@ input: [tool_input_text]
                         const thinkingDiv = appendBotThinking(`Analyzing image **${fileName}** using **BLIP-Base**...`);
                         
                         try {
-                            // Run the image captioning model
                             const result = await imageCaptioner(imageURL);
                             const caption = result[0].generated_text;
                             
                             thinkingDiv.remove();
-                            // Pass the caption to the main LLM for a descriptive answer
                             sendMessage(caption); 
 
                         } catch (error) {
@@ -665,14 +643,13 @@ input: [tool_input_text]
                     reader.readAsDataURL(file);
 
                 } else {
-                    // Fallback for non-image files (kept from previous versions)
                     appendUserMessage(`Dropped file: ${fileName}`);
                     appendBotMessage(`I only process image files for visual analysis. Other file types are rejected.`, true);
                 }
             }
         }
         
-        // --- Remaining Helper Functions (Unchanged) ---
+        // --- Remaining Helper Functions (Updated to use Tailwind classes) ---
 
         function clientSideMath(input) {
             math.config({ implicit: 'auto' });
@@ -715,7 +692,8 @@ input: [tool_input_text]
 
         function appendUserMessage(text) {
             const userMessageDiv = document.createElement('div');
-            userMessageDiv.className = 'message user-message';
+            // Tailwind classes for user message: blue background, white text, self-end, rounded corners
+            userMessageDiv.className = 'message user-message bg-blue-600 text-white self-end rounded-xl p-3 mb-4 max-w-xl rounded-br-none shadow-md';
             userMessageDiv.textContent = text;
             chatBox.appendChild(userMessageDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
@@ -723,7 +701,8 @@ input: [tool_input_text]
 
         function appendBotThinking(message) {
             const thinkingDiv = document.createElement('div');
-            thinkingDiv.className = 'message bot-message thinking-message';
+            // Tailwind classes combined with custom animation class
+            thinkingDiv.className = 'message bot-message thinking-message self-start rounded-xl p-3 mb-4 max-w-xl rounded-bl-none shadow-md';
             thinkingDiv.innerHTML = message || '...Thinking and checking sources<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>'; 
             chatBox.appendChild(thinkingDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
@@ -732,7 +711,8 @@ input: [tool_input_text]
 
         function appendBotMessage(text, saveToHistory = true) {
             const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'message bot-message';
+            // Tailwind classes for bot message: gray background, gray text, self-start, rounded corners
+            botMessageDiv.className = 'message bot-message bg-gray-200 text-gray-800 self-start rounded-xl p-3 mb-4 max-w-xl rounded-bl-none shadow-md';
             botMessageDiv.innerHTML = text;
             chatBox.appendChild(botMessageDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
@@ -754,8 +734,11 @@ input: [tool_input_text]
                 } catch (e) { console.warn('KaTeX render failed:', e); }
             }
         }
+        
+        // --- History Management and UI Functions (Updated to use Tailwind classes) ---
 
         function userStorageKey() { return HISTORY_ROOT_KEY; }
+
         function loadHistory() {
             const key = userStorageKey();
             const historyData = localStorage.getItem(key);
@@ -770,17 +753,24 @@ input: [tool_input_text]
             }
             return sessions;
         }
+
         function saveHistory(sessions) {
             const key = userStorageKey();
             localStorage.setItem(key, JSON.stringify(sessions));
             localStorage.setItem('currentSessionId', currentSessionId);
         }
+
         function renderChatBox(messages) {
             if (!chatBox) return;
             chatBox.innerHTML = '';
             (messages || []).forEach(msg => {
                 const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${msg.type}-message`;
+                // Use the new class logic
+                if (msg.type === 'user') {
+                     messageDiv.className = 'message user-message bg-blue-600 text-white self-end rounded-xl p-3 mb-4 max-w-xl rounded-br-none shadow-md';
+                } else {
+                    messageDiv.className = 'message bot-message bg-gray-200 text-gray-800 self-start rounded-xl p-3 mb-4 max-w-xl rounded-bl-none shadow-md';
+                }
                 messageDiv.innerHTML = msg.text;
                 chatBox.appendChild(messageDiv);
                 if (msg.type === 'bot' && window.renderMathInElement) {
@@ -789,6 +779,7 @@ input: [tool_input_text]
             });
             chatBox.scrollTop = chatBox.scrollHeight;
         }
+
         function initializeChatbotUI() {
             if (sendBtn) sendBtn.addEventListener('click', () => sendMessage());
             if (userInput) userInput.addEventListener('keypress', function (e) {
@@ -801,6 +792,7 @@ input: [tool_input_text]
             renderSidebar(sessions);
             renderChatBox(sessions[currentSessionId]);
         }
+
         function startNewChat() {
             Object.keys(mathScope).forEach(k => delete mathScope[k]);
             saveCurrentChat();
@@ -815,6 +807,7 @@ input: [tool_input_text]
             renderSidebar(allSessions);
             if (pipeline) updateInitialMessage();
         }
+
         function saveCurrentChat(userText, botResponse) {
             const allSessions = loadHistory();
             let currentSession = allSessions[currentSessionId] || [];
@@ -825,6 +818,7 @@ input: [tool_input_text]
                 saveHistory(allSessions);
             }
         }
+
         function renderSidebar(sessions) {
             if (!chatList) return;
             chatList.innerHTML = '';
@@ -833,37 +827,49 @@ input: [tool_input_text]
                 const messages = sessions[id];
                 const firstUserMsg = messages.find(m => m.type === 'user');
                 const titleText = firstUserMsg ? (firstUserMsg.text.substring(0, 30) + (firstUserMsg.text.length > 30 ? '...' : '')) : 'New Chat (Simulated)';
+
                 const listItem = document.createElement('li');
-                listItem.className = 'chat-item';
-                if (id === currentSessionId) listItem.classList.add('active');
+                // Tailwind classes for list item
+                listItem.className = 'chat-item px-5 py-3 cursor-pointer flex justify-between items-center transition duration-200 hover:bg-gray-700';
+                if (id === currentSessionId) listItem.classList.add('bg-gray-700', 'active');
+
                 const titleSpan = document.createElement('span');
-                titleSpan.className = 'chat-title';
+                // Tailwind classes for title
+                titleSpan.className = 'chat-title flex-grow whitespace-nowrap overflow-hidden text-ellipsis';
                 titleSpan.textContent = titleText;
+
                 const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'delete-chat-btn';
+                // Tailwind classes for delete button
+                deleteBtn.className = 'delete-chat-btn bg-transparent border-none text-red-400 cursor-pointer ml-3 text-lg hover:text-red-500 transition';
                 deleteBtn.textContent = '🗑️';
+
                 titleSpan.addEventListener('click', () => switchChat(id, sessions));
                 deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); deleteChat(id); });
+
                 listItem.dataset.sessionId = id;
                 listItem.appendChild(titleSpan);
                 listItem.appendChild(deleteBtn);
+
                 chatList.appendChild(listItem);
             });
             const activeItemElement = chatList.querySelector('.chat-item.active');
             if (activeItemElement) activeItemElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
+
         function switchChat(sessionId, sessions) {
             saveCurrentChat();
             currentSessionId = sessionId;
             const messages = sessions[sessionId];
             renderChatBox(messages);
+
             document.querySelectorAll('.chat-item').forEach(item => {
-                item.classList.remove('active');
-                if (item.dataset.sessionId === sessionId) item.classList.add('active');
+                item.classList.remove('bg-gray-700', 'active');
+                if (item.dataset.sessionId === sessionId) item.classList.add('bg-gray-700', 'active');
             });
             lastResponse = messages[messages.length - 1]?.text || '';
             lastResponseType = 'none'; 
         }
+
         function deleteChat(sessionIdToDelete) {
             if (!confirm("Are you sure you want to delete this chat history?")) return;
             const allSessions = loadHistory();
@@ -874,6 +880,7 @@ input: [tool_input_text]
                 if (sessionKeys.length > 0) { switchChat(sessionKeys[0], allSessions); } else { startNewChat(); }
             } else { renderSidebar(allSessions); }
         }
+
         function toggleSidebar() {
             const container = document.getElementById('gameSection');
             if (container) container.classList.toggle('sidebar-visible');
