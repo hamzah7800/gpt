@@ -96,7 +96,7 @@
         <h1>Welcome to the Client-Side AI</h1>
         <p>Login to access the simulator.</p>
         <input type="text" id="username" placeholder="Username (ryzen)">
-        <input type="password" id="password" placeholder="Password (4060)">
+        <input type="password" id="password" placeholder="4060)">
         <button onclick="validateLogin()">Login</button>
         <div id="error-message"></div>
     </div>
@@ -110,7 +110,7 @@
         </div>
 
         <div class="chat-interface">
-            <div id="dropZone">Drop files to simulate upload (Client-side only)</div>
+            <div id="dropZone">Drop files here to simulate analysis (Client-side only)</div>
             <div class="chat-header">
                 <button id="sidebarToggle" onclick="toggleSidebar()">&#9776;</button>
                 <img src="icon-192.jpg" alt="AI Icon" class="header-icon">
@@ -121,7 +121,7 @@
                 </div>
 
             <div class="input-container">
-                <input type="text" id="userInput" placeholder="Ask me about HTML, CSS, or a simple math problem (e.g., 5*2+3)..." autocomplete="off">
+                <input type="text" id="userInput" placeholder="Ask me about HTML, CSS, or a simple math problem (e.g., 5*2+3 or 5x2+3)..." autocomplete="off">
                 <button id="sendBtn" onclick="sendMessage()">&#9658;</button>
             </div>
         </div>
@@ -182,12 +182,15 @@
         ];
 
         /**
-         * 💡 IMPROVED LOGIC: This function now returns a specific error message on math failure,
-         * preventing the generic knowledge base fallback error.
+         * 💡 Math Logic: Configures math.js to use implicit multiplication,
+         * allowing 'x' for multiplication and algebraic syntax like '5(2+1)'.
          */
         function clientSideMath(input) {
+            // Configure math.js to handle implicit multiplication (e.g., 2x, 5(6))
+            math.config({ implicit: 'auto' });
+            
             // Check if the input contains at least one number or common math operator
-            const mathPattern = /\d|[+\-*/=^()]/;
+            const mathPattern = /\d|[+\-x*/=^()]/i;
             if (!mathPattern.test(input)) {
                 return null;
             }
@@ -195,13 +198,11 @@
             try {
                 const result = math.evaluate(input, mathScope);
 
-                // Handle function or undefined results
+                // Handle function or undefined results (like simple variable assignment)
                 if (typeof result === 'function' || typeof result === 'undefined') {
                     if (input.includes('=') && !input.includes('==') && !input.includes('!=')) {
                         return `Variable assignment successful! Current math scope includes: ${Object.keys(mathScope).join(', ')}`;
                     }
-                    // This is where simple inputs like '2' or 'pi' return the value, 
-                    // which is fine, as they pass the isNaN check below.
                     return null;
                 }
                 
@@ -209,15 +210,23 @@
                 if (typeof result === 'number' || result.constructor.name === 'BigNumber' || result.constructor.name === 'Complex') {
                     let output = result.toString();
                     if (result.constructor.name === 'BigNumber') {
-                        output = result.toPrecision(10);
+                        // Display BigNumber precision
+                        output = result.toPrecision(15); 
                     }
-                    return `**Math Result:** $${input.replace(/ /g, '')} = ${output}$`;
+                    
+                    // Format the input for display using KaTeX
+                    const displayInput = input.replace(/\*/g, '\\times');
+                    let finalInput = displayInput.replace(/([0-9])x([0-9])/g, '$1\\times$2'); // e.g., 2x3
+                    finalInput = finalInput.replace(/([0-9])\s*x\s*([0-9])/g, '$1\\times$2'); // e.g., 2 x 3
+                    finalInput = finalInput.replace(/x/g, '\\times'); // Any remaining 'x' assumed multiplication
+
+                    return `**Math Result:** $${finalInput.replace(/ /g, '')} = ${output}$`;
                 }
                 
                 return null;
 
             } catch (e) {
-                // 💡 FIX: Return a specific math failure message on error
+                // Return a specific math failure message on error
                 return `**Calculation Error:** I couldn't solve that math problem. Please check the syntax or try a simpler operation. (Details: ${e.message})`;
             }
         }
@@ -237,12 +246,9 @@
 
             let finalResponse = clientSideMath(userText);
 
-            // If clientSideMath handled the input (either successfully or with a math error message), 
-            // we skip the keyword search. If it returned null, we proceed to keyword search.
             if (!finalResponse) {
                 finalResponse = getBotResponse(userText.toLowerCase());
 
-                // Generic fallback only runs if keyword search failed
                 if (finalResponse.includes("I'm sorry, I can't process completely novel inputs")) {
                     finalResponse = `I am running entirely **client-side** and cannot fetch new information for '${userText}'. Please try a question about **Web Technologies** or a simple **math calculation** instead.`;
                 }
@@ -521,21 +527,34 @@
 
             dropTarget.addEventListener('drop', handleDrop, false);
 
+            // 💡 ENHANCED handleDrop function with better file classification
             function handleDrop(e) {
                 let dt = e.dataTransfer;
                 let files = dt.files;
                 if (files.length === 0) return;
 
-                const fileName = files[0].name;
-                const fileSize = (files[0].size / 1024 / 1024).toFixed(2);
+                const file = files[0];
+                const fileName = file.name;
+                const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                const fileType = file.type || 'application/octet-stream'; // Provide default if not set by browser
+                const extension = fileName.split('.').pop().toLowerCase();
 
-                const userDropMessage = `Attempting to upload file: ${fileName}`;
+                const userDropMessage = `Attempting to analyze dropped file: **${fileName}**`;
                 let botDropResponse;
 
-                if (fileName.toLowerCase().endsWith('.bat') || fileName.toLowerCase().endsWith('.exe')) {
-                    botDropResponse = `**SECURITY ALERT:** File **${fileName}** (${fileSize} MB) received. As a client-side simulator, I cannot execute or read this file for security reasons. Try asking about **CSS** instead.`;
+                // 💡 Advanced File Type Analysis (Mimics 'file-type' knowledge)
+                if (['exe', 'bat', 'sh', 'vbs', 'com', 'js', 'php'].includes(extension) || fileType.includes('script')) {
+                    botDropResponse = `**SECURITY ALERT** 🚨: File **${fileName}** (${fileSize} MB) received. I recognize this as a potential **executable or script file**. As a client-side simulator, I cannot execute or read this file for security reasons. File type: \`${fileType}\`.`;
+                } else if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'ico'].includes(extension) || fileType.startsWith('image/')) {
+                    botResponse = `File **${fileName}** (${fileSize} MB) received. This is a common **Image File**. Its MIME type is: \`${fileType}\`. I can tell it's likely a visual asset.`;
+                } else if (['pdf', 'doc', 'docx', 'xlsx', 'pptx', 'odt'].includes(extension) || fileType.includes('document')) {
+                    botResponse = `File **${fileName}** (${fileSize} MB) received. This appears to be a common **Document or Spreadsheet File**. MIME type: \`${fileType}\`. While I can't read the content, I know its general format.`;
+                } else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(extension) || fileType.includes('compressed') || fileType.includes('archive')) {
+                    botResponse = `File **${fileName}** (${fileSize} MB) received. This is recognized as a **Compressed Archive**. MIME type: \`${fileType}\`. I cannot extract its contents.`;
+                } else if (['html', 'htm', 'css', 'json', 'xml'].includes(extension) || fileType.startsWith('text/')) {
+                    botResponse = `File **${fileName}** (${fileSize} MB) received. This looks like a common **Web/Text/Code File**. MIME type: \`${fileType}\`.`;
                 } else {
-                    botDropResponse = `File **${fileName}** (${fileSize} MB) received. As a client-side simulator, I cannot process the content, but the drag-and-drop feature works! Try a simple math question instead.`;
+                    botResponse = `File **${fileName}** (${fileSize} MB) received. This is an **Unknown or Uncommon File Type** (\`${extension}\`). I can only detect the browser-provided MIME type: \`${fileType}\`.`;
                 }
 
                 appendUserMessage(userDropMessage);
@@ -544,12 +563,12 @@
                 setTimeout(() => {
                     const botMessageDiv = document.createElement('div');
                     botMessageDiv.className = 'message bot-message';
-                    botMessageDiv.innerHTML = botDropResponse;
+                    botMessageDiv.innerHTML = botResponse;
                     chatBox.appendChild(botMessageDiv);
                     chatBox.scrollTop = chatBox.scrollHeight;
 
-                    saveCurrentChat(userDropMessage, botDropResponse);
-                    lastResponse = botDropResponse;
+                    saveCurrentChat(userDropMessage, botResponse);
+                    lastResponse = botResponse;
 
                     userInput.disabled = false;
                     userInput.focus();
