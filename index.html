@@ -12,6 +12,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.js"></script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
@@ -26,17 +27,15 @@
         .dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes dot-fade { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
         
-        /* Tool Card Styles */
+        /* Tool Card Styles (CSS classes added for the new tools) */
         .tool-card { padding: 0.75rem; margin-bottom: 0rem; border-radius: 0.5rem; }
         .tool-card-math { background-color: #e0f7fa; border: 1px solid #00bcd4; color: #006064; }
         .tool-card-rag { background-color: #e8f5e9; border: 1px solid #4caf50; color: #1b5e20; }
         .tool-card-vision { background-color: #fce4ec; border: 1px solid #e91e63; color: #880e4f; }
         .tool-card-generation { background-color: #e3f2fd; border: 1px solid #2196f3; color: #0d47a1; } 
-        /* NEW TOOL STYLES */
         .tool-card-code { background-color: #f3e5f5; border: 1px solid #9c27b0; color: #4a148c; }
         .tool-card-api { background-color: #fffde7; border: 1px solid #ffeb3b; color: #f57f17; }
         .tool-card-imagegen { background-color: #e1f5fe; border: 1px solid #03a9f4; color: #01579b; }
-
         .tool-card-fallback { background-color: #ffebee; border: 1px solid #f44336; color: #b71c1c; }
 
         .response-content { margin-top: 0.5rem; } 
@@ -102,6 +101,7 @@
         const HISTORY_ROOT_KEY = 'CLIENT_AI_CHAT_HISTORY';
         let chatContext = []; 
 
+        // Math.js scope for variable assignment persistence within a session
         const mathScope = {}; 
         
         let isVoiceRecording = false;
@@ -124,6 +124,7 @@
             const password = document.getElementById("password").value.trim();
             const errorMessage = document.getElementById("error-message");
 
+            // Correct Login credentials
             if (username === "ryzen" && password === "4060") {
                 document.getElementById("loginContainer").style.display = "none";
                 const gameSection = document.getElementById("gameSection");
@@ -343,6 +344,7 @@
              const messageDiv = chatBox.lastElementChild;
              if (messageDiv && messageDiv.classList.contains('bot-message')) {
                 const contentDiv = messageDiv.querySelector('.response-content') || messageDiv; 
+                // Render KaTeX for mathematical expressions
                 if (window.renderMathInElement) {
                     try {
                         window.renderMathInElement(contentDiv, {
@@ -353,6 +355,7 @@
                         });
                     } catch (e) { console.warn('KaTeX render failed:', e); }
                 }
+                // Speak the response
                 speakResponse(text);
              }
         }
@@ -362,7 +365,6 @@
 // 3. TOOL IMPLEMENTATIONS 
 // ---------------------------
 
-        // --- CORE TOOLS (Math & RAG) ---
         function clientSideMath(input) {
             const mathPattern = /^\s*(\d|\(|\-|\+|calculate|solve)/i; 
             if (!mathPattern.test(input) && !input.includes('=')) {
@@ -455,7 +457,6 @@
             return union === 0 ? 0 : intersection / union;
         }
 
-        // --- ADVANCED GENERATION MOCK ---
         function clientSideEssayGenerator(input) {
             const lowQuery = input.toLowerCase();
             const generationKeywords = ['write an essay on', 'explain in detail', 'describe the importance of', 'compare and contrast', 'generate an article about'];
@@ -502,7 +503,6 @@
             return formatToolResponse(template, 'generation');
         }
 
-        // --- NEW TOOL 1: CODE EXECUTION MOCK (for Copilot/Gemini-style code execution) ---
         function clientSideCodeExecutionMock(input) {
             const codePattern = /(run this code|execute|debug|solve this in code):?\s*[\n`].*/i;
             if (!codePattern.test(input)) {
@@ -547,7 +547,6 @@
             return formatToolResponse(response, 'code');
         }
 
-        // --- NEW TOOL 2: API CALL MOCK (for Real-time/Current Data) ---
         function clientSideAPIMock(input) {
             const apiKeywords = ['current time', 'today', 'latest news', 'stock price', 'weather'];
             const lowQuery = input.toLowerCase();
@@ -585,7 +584,6 @@
             return formatToolResponse(response, 'api');
         }
 
-        // --- NEW TOOL 3: IMAGE GENERATION MOCK (for Multi-Modality/DALL-E) ---
         function clientSideImageGenerationMock(input) {
             const imageGenKeywords = ['generate an image of', 'create a photo of', 'draw me a picture of'];
             const lowQuery = input.toLowerCase();
@@ -622,7 +620,6 @@
             return formatToolResponse(response, 'imagegen');
         }
 
-        // --- ADVANCED VISION MOCK (Image Drop) ---
         function clientSideVisionMock(imageDetails) {
             const sizeKB = Math.round(imageDetails.size / 1024);
             const fileName = imageDetails.name;
@@ -646,7 +643,6 @@
             
             return formatToolResponse(analysis, 'vision');
         }
-
 
         
         function setupDragAndDrop() {
