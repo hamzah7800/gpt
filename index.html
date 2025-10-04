@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client-Side Simulator (Pro Tools Edition)</title>
+    <title>Ultimate Client-Side AI Simulator (JS/ML Tools)</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
@@ -13,6 +13,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.js"></script>
     
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
@@ -27,7 +30,7 @@
         .dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes dot-fade { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
         
-        /* Tool Card Styles (CSS classes added for the new tools) */
+        /* Tool Card Styles */
         .tool-card { padding: 0.75rem; margin-bottom: 0rem; border-radius: 0.5rem; }
         .tool-card-math { background-color: #e0f7fa; border: 1px solid #00bcd4; color: #006064; }
         .tool-card-rag { background-color: #e8f5e9; border: 1px solid #4caf50; color: #1b5e20; }
@@ -36,6 +39,7 @@
         .tool-card-code { background-color: #f3e5f5; border: 1px solid #9c27b0; color: #4a148c; }
         .tool-card-api { background-color: #fffde7; border: 1px solid #ffeb3b; color: #f57f17; }
         .tool-card-imagegen { background-color: #e1f5fe; border: 1px solid #03a9f4; color: #01579b; }
+        .tool-card-ml { background-color: #f3e8ff; border: 1px solid #9333ea; color: #5b21b6; } /* NEW ML Tool Card */
         .tool-card-fallback { background-color: #ffebee; border: 1px solid #f44336; color: #b71c1c; }
 
         .response-content { margin-top: 0.5rem; } 
@@ -54,7 +58,7 @@
 <body class="bg-gray-100 flex justify-center items-center min-h-screen p-4">
 
     <div id="loginContainer" class="bg-white p-10 rounded-xl shadow-2xl w-full max-w-sm text-center">
-        <h1 class="text-3xl text-blue-600 font-bold mb-6">Welcome to the Client-Side AI</h1>
+        <h1 class="text-3xl text-blue-600 font-bold mb-6">Welcome to the Ultimate Client-Side AI</h1>
         <p class="text-gray-600 mb-4">Login to access the simulator.</p>
         <input type="text" id="username" placeholder="Username (ryzen)" class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
         <input type="password" id="password" placeholder="Key (4060)" class="w-full p-3 mb-6 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
@@ -73,19 +77,19 @@
 
         <div class="chat-interface flex-grow flex flex-col relative">
             
-            <div id="dropZone" class="absolute inset-0 bg-blue-600 bg-opacity-80 text-white hidden justify-center items-center text-2xl z-10 pointer-events-none">Drop Image for Analysis (Mocked)</div>
+            <div id="dropZone" class="absolute inset-0 bg-purple-600 bg-opacity-80 text-white hidden justify-center items-center text-2xl z-10 pointer-events-none">Drop Image for ML Classification (TensorFlow.js)</div>
 
             <div class="chat-header bg-gray-50 p-4 border-b border-gray-200 flex items-center">
                 <button id="sidebarToggle" onclick="toggleSidebar()" class="text-xl text-blue-600 mr-4 hidden">&#9776;</button>
                 <img src="icon-192.jpg" alt="AI Icon" class="header-icon w-8 h-8 rounded-full object-cover mr-4 border-2 border-blue-500">
-                <h3 class="text-lg font-semibold text-gray-800">Client-Side JS Simulator (Pro Tools Edition)</h3>
+                <h3 class="text-lg font-semibold text-gray-800">Ultimate JS Simulator (ML & Tools Active)</h3>
             </div>
 
             <div id="chatBox" class="flex-grow p-5 overflow-y-auto bg-gray-50 flex flex-col">
                 </div>
 
             <div class="input-container p-4 border-t border-gray-200 flex items-center bg-white">
-                <input type="text" id="userInput" placeholder="Ask a question, run code, or drag an image..." autocomplete="off" class="flex-grow p-3 border border-gray-300 rounded-full mr-2 text-base focus:ring-blue-500 focus:border-blue-500">
+                <input type="text" id="userInput" placeholder="Ask a question, run code, or drag an image for ML..." autocomplete="off" class="flex-grow p-3 border border-gray-300 rounded-full mr-2 text-base focus:ring-blue-500 focus:border-blue-500">
                 
                 <button id="voiceBtn" class="input-btn bg-blue-600 text-white w-10 h-10 rounded-full text-xl flex justify-center items-center hover:bg-blue-700 transition ml-2" onclick="toggleVoiceInput()">🎤</button>
                 <button id="sendBtn" class="input-btn bg-blue-600 text-white w-10 h-10 rounded-full text-xl flex justify-center items-center hover:bg-blue-700 transition ml-2" onclick="sendMessage()">&#9658;</button>
@@ -100,12 +104,12 @@
         let currentSessionId = 'session_' + Date.now();
         const HISTORY_ROOT_KEY = 'CLIENT_AI_CHAT_HISTORY';
         let chatContext = []; 
-
-        // Math.js scope for variable assignment persistence within a session
         const mathScope = {}; 
-        
         let isVoiceRecording = false;
         let recognition = null; 
+        
+        // ML Model State
+        let mobilenetModel = null; 
         
         // UI Element References
         const chatBox = document.getElementById('chatBox');
@@ -113,6 +117,7 @@
         const chatList = document.querySelector('.chat-list');
         const voiceBtn = document.getElementById('voiceBtn');
         const sendBtn = document.getElementById('sendBtn');
+        const dropZone = document.getElementById('dropZone');
 
 
 // ---------------------------
@@ -124,7 +129,6 @@
             const password = document.getElementById("password").value.trim();
             const errorMessage = document.getElementById("error-message");
 
-            // Correct Login credentials
             if (username === "ryzen" && password === "4060") {
                 document.getElementById("loginContainer").style.display = "none";
                 const gameSection = document.getElementById("gameSection");
@@ -142,7 +146,20 @@
             }
         }
         
-        function initializeChatbotUI() {
+        async function initializeChatbotUI() {
+            // Load the MobileNet model immediately after login (ML-specific setup)
+            try {
+                if (window.mobilenet && window.tf) {
+                    mobilenetModel = await mobilenet.load();
+                    console.log("TensorFlow.js MobileNet Model Loaded Successfully.");
+                } else {
+                    console.warn("TensorFlow.js or MobileNet not loaded. ML Vision will be mocked.");
+                }
+            } catch (e) {
+                console.error("Error loading MobileNet model:", e);
+                // Fallback to mock if loading fails
+            }
+
             if (sendBtn) sendBtn.addEventListener('click', () => sendMessage());
             if (userInput) userInput.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') sendMessage();
@@ -156,27 +173,24 @@
             userInput.focus();
         }
 
-
 // ---------------------------
-// 2. CORE CHATBOT LOGIC (Pure JS Tool Dispatch)
+// 2. CORE CHATBOT LOGIC (Tool Dispatch)
 // ---------------------------
 
         const KNOWLEDGE_BASE = [
-            // RAG/Knowledge base is a simple list of facts
             { keywords: ['html', 'what html', 'define html', 'html stands for'], response: "**HTML** (HyperText Markup Language) forms the **structure** of web pages." },
             { keywords: ['javascript', 'what is javascript', 'js'], response: "**JavaScript** is the programming language that enables **interactive web pages**." },
-            { keywords: ['webgpu', 'define webgpu', 'gpu'], response: "**WebGPU** is a new web standard for high-performance **parallel computations** using the GPU from a web browser." },
             { keywords: ['llm', 'what is llm', 'large language model'], response: "**LLM** (Large Language Model) is a type of AI that can understand and generate human-like text." },
-            { keywords: ['browser', 'first browser', 'mosaic'], response: "The first popular graphical web browser was **Mosaic**, developed by Marc Andreessen and Eric Bina." },
+            { keywords: ['tensorflow', 'tfjs', 'machine learning', 'client-side ai'], response: "**TensorFlow.js** is a powerful library for running **Machine Learning models** directly in the browser using JavaScript." },
         ];
         
-        async function sendMessage(imageDetails = null) {
+        async function sendMessage(fileDataUrl = null, fileDetails = null) {
             const userText = userInput.value.trim();
-            if (!userText && !imageDetails) return;
+            if (!userText && !fileDataUrl) return;
 
             // 1. Append User Message
             if (userText) appendUserMessage(userText); 
-            if (imageDetails) appendUserMessage(`[Vision Prompt] Analyzing file: ${imageDetails.name}`);
+            if (fileDetails) appendUserMessage(`[ML/Vision Prompt] Analyzing file: ${fileDetails.name}`);
 
             userInput.value = '';
             userInput.disabled = true;
@@ -184,49 +198,47 @@
             voiceBtn.disabled = true;
 
             let finalResponse = null;
-            let query = userText || (imageDetails ? `Analyze the image: ${imageDetails.name}` : '');
+            let query = userText || (fileDetails ? `Analyze the image: ${fileDetails.name}` : '');
             
-            // Update chat context for RAG
             if (userText) {
                 chatContext.push(userText);
-                if (chatContext.length > 3) chatContext.shift(); // Keep only the last 3 user inputs
+                if (chatContext.length > 3) chatContext.shift();
             }
             
             const thinkingDiv = appendBotThinking('Processing query with pure JS tools...');
             
-            // 2. Tool Execution Logic - PRIORITY ORDER (New tools added)
+            // 2. Tool Execution Logic - PRIORITY ORDER
             
-            // 2a. Image Vision Tool (Highest priority when file dropped)
-            if (imageDetails) {
-                 finalResponse = clientSideVisionMock(imageDetails);
+            // 2a. Real-time ML Tool (Highest priority when file dropped with actual model)
+            if (fileDataUrl && mobilenetModel) {
+                 finalResponse = await clientSideML(fileDataUrl, fileDetails);
+                 lastResponseType = 'ml_real';
+            }
+            // 2b. Vision Tool Mock (Fallback for ML if model not loaded or error)
+            else if (fileDetails) {
+                 finalResponse = clientSideVisionMock(fileDetails);
                  lastResponseType = 'vision_mock';
             }
 
-            // 2b. Code Execution Mock (High priority for code)
+            // 2c. Code Execution Mock
             if (!finalResponse) {
                 finalResponse = clientSideCodeExecutionMock(query);
-                if (finalResponse) {
-                    lastResponseType = 'code_mock';
-                }
+                if (finalResponse) lastResponseType = 'code_mock';
             }
 
-            // 2c. Image Generation Mock (High priority for image generation requests)
+            // 2d. Image Generation Mock 
             if (!finalResponse) {
                 finalResponse = clientSideImageGenerationMock(query);
-                if (finalResponse) {
-                    lastResponseType = 'image_gen_mock';
-                }
+                if (finalResponse) lastResponseType = 'image_gen_mock';
             }
 
-            // 2d. API/Live Search Mock (High priority for real-time/current data)
+            // 2e. API/Live Search Mock 
             if (!finalResponse) {
                 finalResponse = clientSideAPIMock(query);
-                if (finalResponse) {
-                    lastResponseType = 'api_mock';
-                }
+                if (finalResponse) lastResponseType = 'api_mock';
             }
 
-            // 2e. Math Tool 
+            // 2f. Math Tool 
             if (!finalResponse) {
                 const mathResult = clientSideMath(query);
                 if (mathResult) {
@@ -235,7 +247,7 @@
                 }
             }
             
-            // 2f. Simulated Text Generation Tool (General complex queries)
+            // 2g. Simulated Text Generation Tool (General complex queries)
             if (!finalResponse) {
                 const essayResult = clientSideEssayGenerator(query);
                 if (essayResult) {
@@ -244,12 +256,10 @@
                 }
             }
 
-            // 2g. Keyword/RAG Tool (Factual lookups)
+            // 2h. Keyword/RAG Tool (Factual lookups)
             if (!finalResponse) {
                 finalResponse = getKeywordResponse(query.toLowerCase(), chatContext); 
-                if (finalResponse) {
-                    lastResponseType = 'rag'; 
-                }
+                if (finalResponse) lastResponseType = 'rag'; 
             }
 
             // 3. Fallback
@@ -280,45 +290,20 @@
             let cssClass = `tool-card-fallback`;
 
             switch (toolType) {
-                case 'math':
-                    icon = '🧮';
-                    title = 'MATH TOOL (Calculations)';
-                    cssClass = 'tool-card-math';
+                // ... (existing cases: math, rag, vision, generation, code, api, imagegen) ...
+                case 'math': icon = '🧮'; title = 'MATH TOOL (Calculations)'; cssClass = 'tool-card-math'; break;
+                case 'rag': icon = '📜'; title = 'RAG TOOL (Knowledge Base)'; cssClass = 'tool-card-rag'; break;
+                case 'vision_mock': icon = '👁️'; title = 'VISION TOOL MOCK (File/Image Analysis)'; cssClass = 'tool-card-vision'; break;
+                case 'generation_mock': icon = '✍️'; title = 'GENERATION TOOL (Simulated Essay)'; cssClass = 'tool-card-generation'; break;
+                case 'code_mock': icon = '💻'; title = 'CODE EXECUTION MOCK (Copilot/Gemini)'; cssClass = 'tool-card-code'; break;
+                case 'api_mock': icon = '🌐'; title = 'API CALL MOCK (Real-Time Search)'; cssClass = 'tool-card-api'; break;
+                case 'image_gen_mock': icon = '🎨'; title = 'IMAGE GENERATION MOCK (Multi-Modality)'; cssClass = 'tool-card-imagegen'; break;
+                case 'ml_real':
+                    icon = '🧠';
+                    title = 'ML TOOL (TensorFlow.js Classification)';
+                    cssClass = 'tool-card-ml';
                     break;
-                case 'rag':
-                    icon = '📜';
-                    title = 'RAG TOOL (Knowledge Base)';
-                    cssClass = 'tool-card-rag';
-                    break;
-                case 'vision':
-                    icon = '👁️';
-                    title = 'VISION TOOL (File/Image Analysis)';
-                    cssClass = 'tool-card-vision';
-                    break;
-                case 'generation':
-                    icon = '✍️';
-                    title = 'GENERATION TOOL (Simulated Essay)';
-                    cssClass = 'tool-card-generation';
-                    break;
-                case 'code':
-                    icon = '💻';
-                    title = 'CODE EXECUTION MOCK (Copilot/Gemini)';
-                    cssClass = 'tool-card-code';
-                    break;
-                case 'api':
-                    icon = '🌐';
-                    title = 'API CALL MOCK (Real-Time Search)';
-                    cssClass = 'tool-card-api';
-                    break;
-                case 'imagegen':
-                    icon = '🎨';
-                    title = 'IMAGE GENERATION MOCK (Multi-Modality)';
-                    cssClass = 'tool-card-imagegen';
-                    break;
-                default:
-                    icon = '❓';
-                    title = 'GENERAL FALLBACK';
-                    break;
+                default: icon = '❓'; title = 'GENERAL FALLBACK'; break;
             }
 
             return `<div class="${cssClass} tool-card">
@@ -329,297 +314,58 @@
                     </div>`;
         }
 
-        function getFallbackResponse(query) {
-            const lowQuery = query.toLowerCase();
-            if (lowQuery.includes('hello') || lowQuery.includes('hi')) {
-                return formatToolResponse("Hello there! I'm the **Client-Side JS Simulator**. I use specialized, local tools to answer complex queries.", 'fallback');
-            }
-            if (lowQuery.includes('how are you') || lowQuery.includes('what are you')) {
-                return formatToolResponse("I am an advanced JavaScript program, running entirely in your browser. I now feature tools that mock the functionality of **Gemini**, **OpenAI**, and **Copilot**.", 'fallback');
-            }
-            return formatToolResponse(`I'm sorry, I couldn't find a direct tool match for **"${query}"**. Try asking me to 'write an essay', 'generate an image of...', or 'run this code: 2+2'.`, 'fallback');
-        }
+        // ... (getKeywordResponse, jaccardSimilarity, getFallbackResponse, processBotResponse functions - retained from previous code) ...
 
-        function processBotResponse(text) {
-             const messageDiv = chatBox.lastElementChild;
-             if (messageDiv && messageDiv.classList.contains('bot-message')) {
-                const contentDiv = messageDiv.querySelector('.response-content') || messageDiv; 
-                // Render KaTeX for mathematical expressions
-                if (window.renderMathInElement) {
-                    try {
-                        window.renderMathInElement(contentDiv, {
-                            delimiters: [
-                                { left: '$$', right: '$$', display: true },
-                                { left: '$', right: '$', display: false }
-                            ]
-                        });
-                    } catch (e) { console.warn('KaTeX render failed:', e); }
-                }
-                // Speak the response
-                speakResponse(text);
-             }
-        }
+// **-- New/Updated Tool Implementations --**
 
+        async function clientSideML(fileDataUrl, fileDetails) {
+            if (!mobilenetModel) return null;
 
-// ---------------------------
-// 3. TOOL IMPLEMENTATIONS 
-// ---------------------------
+            const tempImg = document.createElement('img');
+            tempImg.src = fileDataUrl;
+            tempImg.style.display = 'none';
+            document.body.appendChild(tempImg);
 
-        function clientSideMath(input) {
-            const mathPattern = /^\s*(\d|\(|\-|\+|calculate|solve)/i; 
-            if (!mathPattern.test(input) && !input.includes('=')) {
-                 return null;
-            }
-            
-            let processedInput = input.trim()
-                .replace(/calculate|what is|solve|the result of/i, '')
-                .replace(/the square root of/gi, 'sqrt(') 
-                .replace(/x/g, '*')
-                .trim();
-            
-            if (processedInput.toLowerCase().startsWith('sqrt') && !processedInput.includes(')')) {
-                processedInput += ')'; 
-            }
-
-            math.config({ implicit: 'auto' });
+            let predictions = [];
             try {
-                const result = math.evaluate(processedInput, mathScope);
-                
-                if (typeof result === 'number' || result.constructor.name === 'BigNumber' || result.constructor.name === 'Complex' || result.isMatrix) {
-                    let output = result.toString();
-                    if (result.constructor.name === 'BigNumber') output = result.toPrecision(15); 
-                    
-                    let finalInput = processedInput.replace(/\*/g, '\\times').replace(/ /g, ''); 
-                    
-                    return formatToolResponse(`I used **Math.js** to solve the expression. The result is: $$${finalInput} = ${output}$$`, 'math');
-                }
-                if (input.includes('=')) {
-                     return formatToolResponse(`Variable assignment executed in Math.js (e.g. \`a = 5\`), but **variables are NOT saved** in my memory scope. Try using it in the same query: \`a=5; a*2\`.`, 'math');
-                }
-
-                return formatToolResponse(`I used **Math.js**, but the result was a complex object I cannot display.`, 'math');
+                // Run the ML model locally
+                predictions = await mobilenetModel.classify(tempImg);
             } catch (e) {
-                return null; 
+                console.error("ML Classification Failed:", e);
+                document.body.removeChild(tempImg);
+                return formatToolResponse(`**Classification Error:** The ML Model (${fileDetails.name}) failed to classify. Error: ${e.message}`, 'ml_real');
             }
+
+            document.body.removeChild(tempImg);
+
+            if (predictions.length === 0) {
+                 return formatToolResponse(`**Classification Result:** No clear classification found by MobileNet.`, 'ml_real');
+            }
+
+            const topPrediction = predictions[0];
+            const confidence = Math.round(topPrediction.probability * 100);
+
+            const analysis = `
+                ### **Real-Time ML Classification (TensorFlow.js)**
+                **Input File:** ${fileDetails.name}
+                
+                **Top Prediction:**
+                - **Class:** **${topPrediction.className}**
+                - **Confidence:** ${confidence}%
+                
+                **Detailed Results:**
+                <ol class="list-decimal list-inside mt-2">
+                    ${predictions.slice(0, 3).map(p => `<li>${p.className} (${Math.round(p.probability * 100)}%)</li>`).join('')}
+                </ol>
+                
+                **Engine:** MobileNet (Pre-trained Model)
+            `;
+
+            return formatToolResponse(analysis, 'ml_real');
         }
+
+        // --- (clientSideMath, clientSideEssayGenerator, clientSideCodeExecutionMock, clientSideAPIMock, clientSideImageGenerationMock are retained as-is) ---
         
-        function getKeywordResponse(input, context) {
-            let bestMatch = null;
-            let maxConfidence = 0.15; 
-
-            const fullQuery = [...context, input].join(' ').toLowerCase();
-
-            for (const item of KNOWLEDGE_BASE) {
-                for (const keyword of item.keywords) {
-                    const confidence = jaccardSimilarity(fullQuery, keyword);
-                    
-                    if (confidence > maxConfidence) {
-                        maxConfidence = confidence;
-                        bestMatch = item;
-                    }
-                }
-            }
-
-            if (bestMatch) {
-                return formatToolResponse(`[RAG TOOL SEARCH RESULT - Confidence: ${Math.round(maxConfidence * 100)}%] ${bestMatch.response}`, 'rag');
-            }
-            
-            return null;
-        }
-
-        function jaccardSimilarity(str1, str2) {
-            str1 = str1.toLowerCase().replace(/\s/g, '');
-            str2 = str2.toLowerCase().replace(/\s/g, '');
-            
-            if (str1.length < 2 || str2.length < 2) {
-                return str1.includes(str2) || str2.includes(str1) ? 1.0 : 0.0;
-            }
-
-            const getNGrams = (s, n = 2) => {
-                const ngrams = new Set();
-                for (let i = 0; i <= s.length - n; i++) {
-                    ngrams.add(s.substring(i, i + n));
-                }
-                return ngrams;
-            };
-
-            const set1 = getNGrams(str1);
-            const set2 = getNGrams(str2);
-
-            let intersection = 0;
-            for (const gram of set1) {
-                if (set2.has(gram)) {
-                    intersection++;
-                }
-            }
-
-            const union = set1.size + set2.size - intersection;
-            return union === 0 ? 0 : intersection / union;
-        }
-
-        function clientSideEssayGenerator(input) {
-            const lowQuery = input.toLowerCase();
-            const generationKeywords = ['write an essay on', 'explain in detail', 'describe the importance of', 'compare and contrast', 'generate an article about'];
-
-            if (!generationKeywords.some(keyword => lowQuery.includes(keyword))) {
-                return null;
-            }
-
-            let subject = lowQuery.replace(/^(write an essay on|explain in detail|describe the importance of|compare and contrast|generate an article about)\s*/, '').trim();
-            subject = subject.replace(/^(the|a)\s*/, '');
-            subject = subject.charAt(0).toUpperCase() + subject.slice(1);
-            if (!subject || subject.length < 5) {
-                subject = 'The Role of Decentralized Computing'; 
-            }
-            
-            const templateData = {
-                subject: subject,
-                isComparison: lowQuery.includes('compare and contrast'),
-                coreConcept: subject.split(' ')[0], 
-                adjective: ['critical', 'fundamental', 'transformative', 'disruptive'][Math.floor(Math.random() * 4)]
-            };
-
-            let template = `
-                ## **Essay Draft: The ${templateData.adjective} Role of ${templateData.subject}**
-                *(Generated using Simulated Templating Engine)*
-                
-                **1. Introduction**
-                The widespread acceptance of **${templateData.subject}** marks a ${templateData.adjective} inflection point in the technological sector. This paper argues that the efficacy of modern digital ecosystems hinges upon a robust understanding and integration of **${templateData.coreConcept}**. We will analyze its foundational necessity and its systemic impact across multiple domains.
-                
-                **2. Foundational Principles**
-                At its core, ${templateData.subject} operates on the principle of distributed autonomy, ensuring that processing is shifted to the user's local machine, thereby minimizing latency and reliance on centralized server infrastructure. This architecture facilitates high-fidelity, real-time interactivity—a requirement for all next-generation applications. 
-                
-                ${templateData.isComparison ? 
-                    `**3. Comparative Analysis (A Simulated 'Compare & Contrast' Section)**
-                    While traditional methods often rely on sequential, server-bound execution, ${templateData.subject} utilizes parallel execution paths. For instance, comparing the approach to **synchronous** processes reveals a distinct advantage in throughput, particularly for graphics and large data computations. The shift is from a 'request-wait' model to an **asynchronous, parallelized processing** model.` : 
-                    `**3. Practical Application & Impact**
-                    The practical implications of ${templateData.subject} are vast. It enables resource-intensive tasks, such as real-time **machine learning inference** and complex data visualization, to be executed seamlessly on commodity hardware. This capability democratizes access to powerful computing resources, moving processing closer to the user for efficiency.`
-                }
-                
-                **4. Conclusion**
-                In closing, the adoption of **${templateData.subject}** is not merely an option but a strategic imperative. It underpins the entire shift toward ${templateData.adjective} and performant web development. Future advancements will focus on optimizing resource delegation and ensuring seamless integration with other specialized tools (like RAG and Vision).
-            `;
-
-            return formatToolResponse(template, 'generation');
-        }
-
-        function clientSideCodeExecutionMock(input) {
-            const codePattern = /(run this code|execute|debug|solve this in code):?\s*[\n`].*/i;
-            if (!codePattern.test(input)) {
-                return null;
-            }
-
-            let codeSnippet = input.match(/```(js|javascript|python)?\s*([\s\S]*?)```/i);
-            if (!codeSnippet) {
-                codeSnippet = input.match(/(run this code|execute|debug|solve this in code):\s*(.*)/i);
-            }
-
-            let code = codeSnippet ? (codeSnippet[2] || codeSnippet[4]).trim() : null;
-            if (!code) {
-                return formatToolResponse(`I see a code request, but I couldn't find a clear \`\`\`code\`\`\` block or snippet to execute.`, 'code');
-            }
-
-            // Simulate code execution and result
-            let mockOutput;
-            if (code.includes('2+2') || code.includes('5*8')) {
-                mockOutput = "42 // Simulated result of a simple calculation.";
-            } else if (code.includes('for (') || code.includes('while (') || code.includes('function')) {
-                mockOutput = "Code executed successfully. No errors found. The primary function appears to be an iteration or definition.";
-            } else if (code.includes('import ') || code.includes('require(')) {
-                mockOutput = "Dependency import simulated. Code analysis suggests a utility function is being defined.";
-            } else {
-                mockOutput = "Simulation complete. Output: 'Code is functional but requires further context to assess efficiency.'";
-            }
-            
-            const response = `
-                ### **Code Execution Report**
-                **Input Code (Simulated Run):**
-                \`\`\`javascript
-                ${code}
-                \`\`\`
-                
-                **Simulated Output:**
-                \`\`\`
-                ${mockOutput}
-                \`\`\`
-                **Verdict:** This tool suggests the code is structurally sound and executed without crashing.
-            `;
-            return formatToolResponse(response, 'code');
-        }
-
-        function clientSideAPIMock(input) {
-            const apiKeywords = ['current time', 'today', 'latest news', 'stock price', 'weather'];
-            const lowQuery = input.toLowerCase();
-            
-            if (!apiKeywords.some(keyword => lowQuery.includes(keyword))) {
-                return null;
-            }
-
-            const current = new Date();
-            let mockData = '';
-            let subject = '';
-
-            if (lowQuery.includes('time') || lowQuery.includes('today')) {
-                mockData = current.toLocaleTimeString() + ' on ' + current.toLocaleDateString();
-                subject = 'Current Time & Date';
-            } else if (lowQuery.includes('stock')) {
-                mockData = `The simulated **JS-SIM** stock is up 1.5% at **$420.69** (Data pulled: ${current.toLocaleTimeString()}).`;
-                subject = 'Financial Data';
-            } else {
-                mockData = `Search result: A new web framework (SimulaJS) has been released this week, emphasizing client-side processing.`;
-                subject = 'Current Event/News';
-            }
-
-            const response = `
-                ### **API Call Report (Simulated External Data)**
-                **External Source:** Google Search API / Browsing Tool (Mock)
-                
-                **Query Subject:** ${subject}
-                
-                **Result (Live Data Mock):**
-                > ${mockData}
-                
-                **Note:** This mock represents the LLM calling an external tool for information that is too current or specialized for its knowledge base.
-            `;
-            return formatToolResponse(response, 'api');
-        }
-
-        function clientSideImageGenerationMock(input) {
-            const imageGenKeywords = ['generate an image of', 'create a photo of', 'draw me a picture of'];
-            const lowQuery = input.toLowerCase();
-
-            if (!imageGenKeywords.some(keyword => lowQuery.includes(keyword))) {
-                return null;
-            }
-
-            let prompt = lowQuery.replace(/^(generate an image of|create a photo of|draw me a picture of)\s*/, '').trim();
-            prompt = prompt.charAt(0).toUpperCase() + prompt.slice(1);
-            if (!prompt || prompt.length < 5) {
-                prompt = 'A futuristic cat driving a unicycle';
-            }
-            
-            const styles = ['Digital Art', 'Photorealistic', 'Abstract Watercolor', 'Low-Poly'];
-            const mockStyle = styles[Math.floor(Math.random() * styles.length)];
-
-            const response = `
-                ### **Simulated Image Generation Result**
-                **Prompt:** *${prompt}*
-                
-                **Result:** A unique image has been successfully generated locally.
-                
-                **Metadata:**
-                * **Resolution:** 1024x1024
-                * **Style:** ${mockStyle}
-                * **Engine:** Client-Side Diffusion Mock v2.1
-                
-                 
-                
-                **Note:** The actual image rendering is done via a browser-side placeholder tag, but the process of interpreting the prompt and setting parameters is complete.
-            `;
-
-            return formatToolResponse(response, 'imagegen');
-        }
-
         function clientSideVisionMock(imageDetails) {
             const sizeKB = Math.round(imageDetails.size / 1024);
             const fileName = imageDetails.name;
@@ -629,7 +375,7 @@
             const mockResolution = '1920x1080 (Simulated)'; 
 
             const analysis = `
-                ### **Simulated Visual Analysis Report**
+                ### **Simulated Visual Analysis Report (ML Model not loaded)**
                 
                 | Metric | Result |
                 | :--- | :--- |
@@ -637,17 +383,18 @@
                 | **File Size** | ${sizeKB} KB |
                 | **Simulated Resolution** | ${mockResolution} |
                 | **Primary Categories** | ${mockCategories} |
-                | **Assessment** | **High Confidence:** Image content is structured and likely represents technical data or a user-generated asset. All key components appear distinct and well-defined. |
-                | **Next Action** | (Simulated) Ready for further analysis by a language tool.
+                | **Assessment** | **MOCK:** Image analysis based on file name/size metadata. Load the **TensorFlow.js** model to enable real classification. |
             `;
             
-            return formatToolResponse(analysis, 'vision');
+            return formatToolResponse(analysis, 'vision_mock');
         }
-
         
+        // --- (All other existing Tool functions are assumed to be present here) ---
+
+// **-- Updated Drag and Drop (now handling real files) --**
+
         function setupDragAndDrop() {
             const dropTarget = document.querySelector('.chat-interface');
-            const dropZone = document.getElementById('dropZone');
             
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                 dropTarget.addEventListener(eventName, preventDefaults, false);
@@ -684,25 +431,168 @@
                 const fileType = file.type || 'application/octet-stream'; 
                 
                 if (fileType.startsWith('image/')) {
-                    const imageDetails = {
-                        name: file.name,
-                        size: file.size, 
-                        type: file.type
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const fileDataUrl = event.target.result;
+                        const fileDetails = {
+                            name: file.name,
+                            size: file.size, 
+                            type: file.type
+                        };
+                        sendMessage(fileDataUrl, fileDetails);
                     };
-                    sendMessage(imageDetails);
+                    reader.readAsDataURL(file);
 
                 } else {
                     appendUserMessage(`Dropped file: ${file.name}`);
-                    appendBotMessage(formatToolResponse(`I only process image files for visual analysis (currently mocked). Other file types are rejected.`, 'fallback'), true);
+                    appendBotMessage(formatToolResponse(`I only process image files for visual analysis/ML. Other file types are rejected.`, 'fallback'), true);
                 }
             }
         }
 
+// --- (All other existing UI/History functions are assumed to be present here) ---
 
-// ---------------------------
-// 4. UI/HELPER FUNCTIONS (History, Speech, Rendering)
-// ---------------------------
+// Placeholder functions for the assumed-retained functions:
 
+        function getKeywordResponse(input, context) {
+            let bestMatch = null;
+            let maxConfidence = 0.15; 
+            const fullQuery = [...context, input].join(' ').toLowerCase();
+            for (const item of KNOWLEDGE_BASE) {
+                for (const keyword of item.keywords) {
+                    const confidence = jaccardSimilarity(fullQuery, keyword);
+                    if (confidence > maxConfidence) {
+                        maxConfidence = confidence;
+                        bestMatch = item;
+                    }
+                }
+            }
+            if (bestMatch) return formatToolResponse(`[RAG TOOL SEARCH RESULT - Confidence: ${Math.round(maxConfidence * 100)}%] ${bestMatch.response}`, 'rag');
+            return null;
+        }
+
+        function jaccardSimilarity(str1, str2) {
+             str1 = str1.toLowerCase().replace(/\s/g, '');
+            str2 = str2.toLowerCase().replace(/\s/g, '');
+            if (str1.length < 2 || str2.length < 2) { return str1.includes(str2) || str2.includes(str1) ? 1.0 : 0.0; }
+            const getNGrams = (s, n = 2) => {
+                const ngrams = new Set();
+                for (let i = 0; i <= s.length - n; i++) ngrams.add(s.substring(i, i + n));
+                return ngrams;
+            };
+            const set1 = getNGrams(str1);
+            const set2 = getNGrams(str2);
+            let intersection = 0;
+            for (const gram of set1) { if (set2.has(gram)) intersection++; }
+            const union = set1.size + set2.size - intersection;
+            return union === 0 ? 0 : intersection / union;
+        }
+        
+        function clientSideMath(input) {
+            const mathPattern = /^\s*(\d|\(|\-|\+|calculate|solve)/i; 
+            if (!mathPattern.test(input) && !input.includes('=')) { return null; }
+            let processedInput = input.trim().replace(/calculate|what is|solve|the result of/i, '').replace(/the square root of/gi, 'sqrt(').replace(/x/g, '*').trim();
+            if (processedInput.toLowerCase().startsWith('sqrt') && !processedInput.includes(')')) processedInput += ')'; 
+            math.config({ implicit: 'auto' });
+            try {
+                const result = math.evaluate(processedInput, mathScope);
+                if (typeof result === 'number' || result.constructor.name === 'BigNumber' || result.constructor.name === 'Complex' || result.isMatrix) {
+                    let output = result.toString();
+                    if (result.constructor.name === 'BigNumber') output = result.toPrecision(15); 
+                    let finalInput = processedInput.replace(/\*/g, '\\times').replace(/ /g, ''); 
+                    return formatToolResponse(`I used **Math.js** to solve the expression. The result is: $$${finalInput} = ${output}$$`, 'math');
+                }
+                if (input.includes('=')) return formatToolResponse(`Variable assignment executed in Math.js (e.g. \`a = 5\`), but **variables are NOT saved** in my memory scope. Try using it in the same query: \`a=5; a*2\`.`, 'math');
+                return formatToolResponse(`I used **Math.js**, but the result was a complex object I cannot display.`, 'math');
+            } catch (e) { return null; }
+        }
+
+        function clientSideCodeExecutionMock(input) {
+            const codePattern = /(run this code|execute|debug|solve this in code):?\s*[\n`].*/i;
+            if (!codePattern.test(input)) return null;
+            let codeSnippet = input.match(/```(js|javascript|python)?\s*([\s\S]*?)```/i);
+            if (!codeSnippet) codeSnippet = input.match(/(run this code|execute|debug|solve this in code):\s*(.*)/i);
+            let code = codeSnippet ? (codeSnippet[2] || codeSnippet[4]).trim() : null;
+            if (!code) return formatToolResponse(`I see a code request, but I couldn't find a clear \`\`\`code\`\`\` block or snippet to execute.`, 'code_mock');
+            let mockOutput;
+            if (code.includes('2+2') || code.includes('5*8')) mockOutput = "42 // Simulated result of a simple calculation.";
+            else if (code.includes('for (') || code.includes('while (') || code.includes('function')) mockOutput = "Code executed successfully. No errors found. The primary function appears to be an iteration or definition.";
+            else if (code.includes('import ') || code.includes('require(')) mockOutput = "Dependency import simulated. Code analysis suggests a utility function is being defined.";
+            else mockOutput = "Simulation complete. Output: 'Code is functional but requires further context to assess efficiency.'";
+            const response = `### **Code Execution Report**\n**Input Code (Simulated Run):**\n\`\`\`javascript\n${code}\n\`\`\`\n**Simulated Output:**\n\`\`\`\n${mockOutput}\n\`\`\`\n**Verdict:** This tool suggests the code is structurally sound and executed without crashing.`;
+            return formatToolResponse(response, 'code_mock');
+        }
+
+        function clientSideAPIMock(input) {
+            const apiKeywords = ['current time', 'today', 'latest news', 'stock price', 'weather'];
+            const lowQuery = input.toLowerCase();
+            if (!apiKeywords.some(keyword => lowQuery.includes(keyword))) return null;
+            const current = new Date();
+            let mockData = '';
+            let subject = '';
+            if (lowQuery.includes('time') || lowQuery.includes('today')) { mockData = current.toLocaleTimeString() + ' on ' + current.toLocaleDateString(); subject = 'Current Time & Date'; }
+            else if (lowQuery.includes('stock')) { mockData = `The simulated **JS-SIM** stock is up 1.5% at **$420.69** (Data pulled: ${current.toLocaleTimeString()}).`; subject = 'Financial Data'; }
+            else { mockData = `Search result: A new web framework (SimulaJS) has been released this week, emphasizing client-side processing.`; subject = 'Current Event/News'; }
+            const response = `### **API Call Report (Simulated External Data)**\n**External Source:** Google Search API / Browsing Tool (Mock)\n**Query Subject:** ${subject}\n**Result (Live Data Mock):**\n> ${mockData}\n**Note:** This mock represents the LLM calling an external tool for information that is too current or specialized for its knowledge base.`;
+            return formatToolResponse(response, 'api_mock');
+        }
+
+        function clientSideImageGenerationMock(input) {
+            const imageGenKeywords = ['generate an image of', 'create a photo of', 'draw me a picture of'];
+            const lowQuery = input.toLowerCase();
+            if (!imageGenKeywords.some(keyword => lowQuery.includes(keyword))) return null;
+            let prompt = lowQuery.replace(/^(generate an image of|create a photo of|draw me a picture of)\s*/, '').trim();
+            prompt = prompt.charAt(0).toUpperCase() + prompt.slice(1);
+            if (!prompt || prompt.length < 5) prompt = 'A futuristic cat driving a unicycle';
+            const styles = ['Digital Art', 'Photorealistic', 'Abstract Watercolor', 'Low-Poly'];
+            const mockStyle = styles[Math.floor(Math.random() * styles.length)];
+            const response = `### **Simulated Image Generation Result**\n**Prompt:** *${prompt}*\n**Result:** A unique image has been successfully generated locally.\n**Metadata:**\n* **Resolution:** 1024x1024\n* **Style:** ${mockStyle}\n* **Engine:** Client-Side Diffusion Mock v2.1\n\n**Note:** The actual image rendering is done via a browser-side placeholder tag, but the process of interpreting the prompt and setting parameters is complete.`;
+            return formatToolResponse(response, 'image_gen_mock');
+        }
+        
+        function clientSideEssayGenerator(input) {
+            const lowQuery = input.toLowerCase();
+            const generationKeywords = ['write an essay on', 'explain in detail', 'describe the importance of', 'compare and contrast', 'generate an article about'];
+            if (!generationKeywords.some(keyword => lowQuery.includes(keyword))) return null;
+            let subject = lowQuery.replace(/^(write an essay on|explain in detail|describe the importance of|compare and contrast|generate an article about)\s*/, '').trim();
+            subject = subject.replace(/^(the|a)\s*/, '');
+            subject = subject.charAt(0).toUpperCase() + subject.slice(1);
+            if (!subject || subject.length < 5) subject = 'The Role of Decentralized Computing'; 
+            const templateData = { subject: subject, isComparison: lowQuery.includes('compare and contrast'), coreConcept: subject.split(' ')[0], adjective: ['critical', 'fundamental', 'transformative', 'disruptive'][Math.floor(Math.random() * 4)] };
+            let template = `## **Essay Draft: The ${templateData.adjective} Role of ${templateData.subject}**\n*(Generated using Simulated Templating Engine)*\n**1. Introduction**\nThe widespread acceptance of **${templateData.subject}** marks a ${templateData.adjective} inflection point in the technological sector. This paper argues that the efficacy of modern digital ecosystems hinges upon a robust understanding and integration of **${templateData.coreConcept}**. We will analyze its foundational necessity and its systemic impact across multiple domains.\n**2. Foundational Principles**\nAt its core, ${templateData.subject} operates on the principle of distributed autonomy, ensuring that processing is shifted to the user's local machine, thereby minimizing latency and reliance on centralized server infrastructure. This architecture facilitates high-fidelity, real-time interactivity—a requirement for all next-generation applications. \n${templateData.isComparison ? `**3. Comparative Analysis (A Simulated 'Compare & Contrast' Section)**\nWhile traditional methods often rely on sequential, server-bound execution, ${templateData.subject} utilizes parallel execution paths. For instance, comparing the approach to **synchronous** processes reveals a distinct advantage in throughput, particularly for graphics and large data computations. The shift is from a 'request-wait' model to an **asynchronous, parallelized processing** model.` : `**3. Practical Application & Impact**\nThe practical implications of ${templateData.subject} are vast. It enables resource-intensive tasks, such as real-time **machine learning inference** and complex data visualization, to be executed seamlessly on commodity hardware. This capability democratizes access to powerful computing resources, moving processing closer to the user for efficiency.`}\n**4. Conclusion**\nIn closing, the adoption of **${templateData.subject}** is not merely an option but a strategic imperative. It underpins the entire shift toward ${templateData.adjective} and performant web development. Future advancements will focus on optimizing resource delegation and ensuring seamless integration with other specialized tools (like RAG and Vision).`;
+            return formatToolResponse(template, 'generation_mock');
+        }
+
+        function getFallbackResponse(query) {
+            const lowQuery = query.toLowerCase();
+            if (lowQuery.includes('hello') || lowQuery.includes('hi')) {
+                return formatToolResponse("Hello there! I'm the **Ultimate Client-Side JS Simulator**. I now feature real **TensorFlow.js** image classification (try dropping an image!) alongside all the other tools.", 'fallback');
+            }
+            if (lowQuery.includes('how are you') || lowQuery.includes('what are you')) {
+                return formatToolResponse("I am an advanced JavaScript program, running entirely in your browser. I now feature tools that mock the functionality of **Gemini**, **OpenAI**, and **Copilot**, and include **real ML capabilities**.", 'fallback');
+            }
+            return formatToolResponse(`I'm sorry, I couldn't find a direct tool match for **"${query}"**. Try asking me to 'write an essay', 'generate an image of...', or 'run this code: 2+2'.`, 'fallback');
+        }
+        
+        function processBotResponse(text) {
+             const messageDiv = chatBox.lastElementChild;
+             if (messageDiv && messageDiv.classList.contains('bot-message')) {
+                const contentDiv = messageDiv.querySelector('.response-content') || messageDiv; 
+                if (window.renderMathInElement) {
+                    try {
+                        window.renderMathInElement(contentDiv, {
+                            delimiters: [
+                                { left: '$$', right: '$$', display: true },
+                                { left: '$', right: '$', display: false }
+                            ]
+                        });
+                    } catch (e) { console.warn('KaTeX render failed:', e); }
+                }
+                // Speak the response (if desired)
+                // speakResponse(text); 
+             }
+        }
+        
         function toggleVoiceInput() {
              if (isVoiceRecording) {
                 recognition.stop();
@@ -711,36 +601,30 @@
                 voiceBtn.innerHTML = '🎤';
                 return;
             }
-            
             if (!('webkitSpeechRecognition' in window)) {
                 alert("Voice input is not supported in this browser. Try Chrome or Edge.");
                 return;
             }
-
             if (!recognition) {
                 recognition = new webkitSpeechRecognition();
                 recognition.continuous = false;
                 recognition.interimResults = false;
                 recognition.lang = 'en-US';
-
                 recognition.onstart = () => {
                     isVoiceRecording = true;
                     voiceBtn.classList.add('voice-recording');
                     voiceBtn.innerHTML = '🔴';
                     userInput.placeholder = '...Listening (Speak Now)';
                 };
-
                 recognition.onresult = (event) => {
                     const transcript = event.results[0][0].transcript;
                     userInput.value = transcript;
                     sendMessage();
                 };
-
                 recognition.onerror = (event) => {
                     console.error('Speech Recognition Error:', event.error);
                     appendBotMessage(formatToolResponse(`⚠️ Voice Error: ${event.error}. Try typing instead.`, 'fallback'));
                 };
-
                 recognition.onend = () => {
                     isVoiceRecording = false;
                     voiceBtn.classList.remove('voice-recording');
@@ -748,22 +632,15 @@
                     userInput.placeholder = 'Ask a question, run code, or drag an image...';
                 };
             }
-
             try {
                 recognition.start();
             } catch (e) {
-                if (e.message.includes('already started')) {
-                    recognition.stop();
-                } else {
-                    console.error(e);
-                }
+                if (e.message.includes('already started')) { recognition.stop(); } else { console.error(e); }
             }
         }
         
         function speakResponse(text) {
-            const speechText = text.replace(/<[^>]*>?/gm, '') 
-                                 .replace(/\*\*|#|```|\\(times|cdot)/g, ''); 
-            
+            const speechText = text.replace(/<[^>]*>?/gm, '').replace(/\*\*|#|```|\\(times|cdot)/g, ''); 
             if ('speechSynthesis' in window) {
                 const utterance = new SpeechSynthesisUtterance(speechText);
                 utterance.pitch = 1.0;
@@ -794,7 +671,6 @@
             const botMessageDiv = document.createElement('div');
             const isToolCard = text.includes('tool-card'); 
             const paddingClass = isToolCard ? 'p-1' : 'p-3'; 
-
             botMessageDiv.className = `message bot-message bg-gray-200 text-gray-800 self-start rounded-xl ${paddingClass} mb-4 max-w-xl rounded-bl-none shadow-md`; 
             botMessageDiv.innerHTML = text;
             chatBox.appendChild(botMessageDiv);
@@ -860,7 +736,7 @@
             lastResponse = '';
             lastResponseType = 'none'; 
             
-            const newSession = [{ type: 'bot', text: formatToolResponse("New conversation started! Context and memory have been cleared. Try the new **Code Execution Mock** or the **Image Generation Mock**!", 'fallback') }];
+            const newSession = [{ type: 'bot', text: formatToolResponse("New conversation started! Context and memory have been cleared. Try dropping an image for **real ML classification**!", 'fallback') }];
             const allSessions = loadHistory();
             allSessions[currentSessionId] = newSession;
             saveHistory(allSessions);
@@ -886,7 +762,7 @@
             sessionKeys.forEach(id => {
                 const messages = sessions[id];
                 const firstUserMsg = messages.find(m => m.type === 'user');
-                const titleText = firstUserMsg ? (firstUserMsg.text.substring(0, 30) + (firstUserMsg.text.length > 30 ? '...' : '')) : 'New Chat (Pure JS)';
+                const titleText = firstUserMsg ? (firstUserMsg.text.substring(0, 30) + (firstUserMsg.text.length > 30 ? '...' : '')) : 'New Chat (Ultimate)';
 
                 const listItem = document.createElement('li');
                 listItem.className = 'chat-item px-5 py-3 cursor-pointer flex justify-between items-center transition duration-200 hover:bg-gray-700';
@@ -924,7 +800,6 @@
             });
             lastResponse = messages[messages.length - 1]?.text || '';
             lastResponseType = 'none'; 
-            // Rebuild context
             chatContext = messages.filter(m => m.type === 'user').slice(-3).map(m => m.text); 
         }
 
@@ -943,6 +818,7 @@
             const container = document.getElementById('gameSection');
             if (container) container.classList.toggle('sidebar-visible');
         }
+
     </script>
 </body>
 </html>
