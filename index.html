@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>kakashi hatake ai</title>
+    <title>AI</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
@@ -26,7 +26,7 @@
         .dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes dot-fade { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
         
-        /* Tool Card Styles */
+        /* Tool Card Styles (Retain colors for functional distinction) */
         .tool-card { padding: 0.75rem; margin-bottom: 1rem; border-radius: 0.5rem; opacity: 0; transform: translateY(10px); animation: tool-card-flow 0.5s forwards; }
         .tool-card-math { background-color: #e0f7fa; border: 1px solid #00bcd4; color: #006064; }
         .tool-card-rag { background-color: #e8f5e9; border: 1px solid #4caf50; color: #1b5e20; }
@@ -54,22 +54,22 @@
             opacity: 0;
         }
         
-        /* --- Clean System Indicator (No Emoji) --- */
+        /* --- Clean System Indicator --- */
         #bootAnimation {
             position: absolute;
             top: 20px;
             right: 20px;
-            width: 100px; /* Smaller and cleaner */
+            width: 100px;
             height: 100px;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 0; /* Ensures no content shows */
+            font-size: 0;
             background-color: #3b82f6;
             border: 4px solid #1d4ed8;
             border-radius: 50%;
             transition: transform 1.5s ease;
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); /* Subtle blue glow */
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
             z-index: 10;
         }
         
@@ -163,7 +163,7 @@
     </div>
 
     <script>
-        // GLOBAL STATE VARIABLES (Functionality retained)
+        // GLOBAL STATE VARIABLES
         let lastResponse = '';
         let lastResponseType = 'none'; 
         let currentSessionId = 'session_' + Date.now();
@@ -348,12 +348,12 @@
                     break;
                 case 'rag':
                     icon = '📜';
-                    title = 'RAG TOOL (Knowledge Base)';
+                    title = 'RAG TOOL (Ninja Info Scroll)'; // Themed Title
                     cssClass = 'tool-card-rag';
                     break;
                 case 'vision':
                     icon = '👁️';
-                    title = 'VISION TOOL (Mocked Analysis)';
+                    title = 'VISION TOOL (Mangekyō Analysis)'; // Themed Title
                     cssClass = 'tool-card-vision';
                     break;
                 default:
@@ -373,12 +373,15 @@
         function getFallbackResponse(query) {
             const lowQuery = query.toLowerCase();
             if (lowQuery.includes('hello') || lowQuery.includes('hi')) {
-                return formatToolResponse("Hello there! I'm the pure JS simulator. I can do math and search my knowledge base. Ask me a calculation!", 'fallback');
+                // KAKASHI THEMED RESPONSE
+                return formatToolResponse("Hey. I'm the **Copy Ninja's Simulator**. I use my **Sharigan Tools** for calculations and my **Ninja Info Scrolls** for facts. Try a jutsu (math problem)!", 'fallback');
             }
             if (lowQuery.includes('how are you') || lowQuery.includes('what are you')) {
-                return formatToolResponse("I am a simple JavaScript toolset, relying on **Math.js** and my internal dictionary.", 'fallback');
+                // KAKASHI THEMED RESPONSE
+                return formatToolResponse("I am a simple **Jutsu System**, powered by JavaScript, Math.js, and a Knowledge Scroll database. I'm usually late.", 'fallback');
             }
-            return formatToolResponse(`I'm sorry, I couldn't find a direct or fuzzy match for **"${query}"** in my current knowledge base. Try a simple math problem or a technical term like 'WebGPU'.`, 'fallback');
+            // KAKASHI THEMED RESPONSE
+            return formatToolResponse(`I'm sorry, I couldn't find a direct or fuzzy match for **"${query}"** in my current **Ninja Scrolls**. Try a simple math problem (jutsu) or a technical term like 'WebGPU'.`, 'fallback');
         }
 
         function processBotResponse(text) {
@@ -655,7 +658,8 @@
                 currentSessionId = 'session_' + Date.now();
                 sessions[currentSessionId] = [{
                     type: 'bot',
-                    text: formatToolResponse("Hello! System boot complete. This is the **Client-Side JS Simulator**. I use **Math.js** for calculations and a **Knowledge Base** for facts. Ask me anything!", 'fallback')
+                    // KAKASHI THEMED INITIAL WELCOME MESSAGE
+                    text: formatToolResponse("Hello! Welcome, you've successfully bypassed the System Check. I am the **Copy Ninja's AI Simulator**. My **Sharigan Tools** handle calculations, and my **Ninja Info Scrolls** hold all the facts. Ask me anything!", 'fallback')
                 }];
                 localStorage.setItem(key, JSON.stringify(sessions));
             }
@@ -697,7 +701,8 @@
             lastResponse = '';
             lastResponseType = 'none'; 
             
-            const newSession = [{ type: 'bot', text: formatToolResponse("New conversation started! **Math variables and context have been cleared.** Ask me anything.", 'fallback') }];
+            // KAKASHI THEMED NEW CHAT MESSAGE
+            const newSession = [{ type: 'bot', text: formatToolResponse("New conversation started! **Chakra variables and context have been cleared.** Ask me anything.", 'fallback') }];
             const allSessions = loadHistory();
             allSessions[currentSessionId] = newSession;
             saveHistory(allSessions);
