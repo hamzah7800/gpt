@@ -24,7 +24,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
-        /* ... (CSS Styles remain the same) ... */
         /* --- General Styling --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
@@ -67,8 +66,8 @@
     <div id="loginContainer" class="bg-white p-10 rounded-xl shadow-2xl w-full max-w-sm text-center">
         <h1 class="text-3xl text-blue-600 font-bold mb-6">Welcome to the Ultimate Client-Side AI</h1>
         <p class="text-gray-600 mb-4">Login to access the simulator.</p>
-        <input type="text" id="username" placeholder="Username (ryzen)" class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
-        <input type="password" id="password" placeholder="Key (4060)" class="w-full p-3 mb-6 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+        <input type="text" id="username_login" placeholder="Username (ryzen)" class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+        <input type="password" id="password_login" placeholder="Key (4060)" class="w-full p-3 mb-6 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
         <button onclick="validateLogin()" class="w-full p-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition duration-200">Login</button>
         <div id="error-message" class="text-red-600 font-bold mt-4"></div>
     </div>
@@ -132,8 +131,9 @@
 // ---------------------------
 
         function validateLogin() {
-            const username = document.getElementById("username").value.trim();
-            const password = document.getElementById("password").value.trim();
+            // Updated IDs to ensure uniqueness and fix DOM warning
+            const username = document.getElementById("username_login").value.trim();
+            const password = document.getElementById("password_login").value.trim();
             const errorMessage = document.getElementById("error-message");
 
             if (username === "ryzen" && password === "4060") {
@@ -331,8 +331,6 @@
         }
 
 
-// **-- New Tool: Visualization Mock --**
-
         function clientSideVisualizationMock(input) {
             const lowQuery = input.toLowerCase();
             const vizKeywords = ['create a graph', 'show me the data', 'visualize', 'plot', 'd3', 'plotly'];
@@ -360,8 +358,20 @@
             return formatToolResponse(response, 'vis_mock');
         }
 
-        // --- (All other Tool, UI, History functions are assumed to be present below) ---
-
+        /**
+         * Helper function to wait for an image element to load its source.
+         * This is CRITICAL to fix the TensorFlow.js "texture size [0x0]" error.
+         */
+        function loadImage(imgElement) {
+            return new Promise((resolve, reject) => {
+                if (imgElement.complete && imgElement.naturalHeight !== 0) {
+                    return resolve();
+                }
+                imgElement.onload = () => resolve();
+                imgElement.onerror = (e) => reject(new Error('Image failed to load.'));
+            });
+        }
+        
         async function clientSideML(fileDataUrl, fileDetails) {
             if (!mobilenetModel) return null;
 
@@ -372,7 +382,8 @@
 
             let predictions = [];
             try {
-                // Run the ML model locally
+                // Wait for the image to fully load before attempting classification
+                await loadImage(tempImg); 
                 predictions = await mobilenetModel.classify(tempImg);
             } catch (e) {
                 console.error("ML Classification Failed:", e);
