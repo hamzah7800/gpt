@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client-Side AI Simulator (Mistral 7B Instruct)</title>
+    <title>Client-Side AI Simulator (Mistral 7B Fallback)</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
     <script type="module">
@@ -111,7 +111,7 @@
             <div class="chat-header">
                 <button id="sidebarToggle" onclick="toggleSidebar()">&#9776;</button>
                 <img src="icon-192.jpg" alt="AI Icon" class="header-icon">
-                <h3>Client-Side JS Simulator (Mistral 7B Instruct)</h3>
+                <h3>Client-Side JS Simulator (Mistral 7B Fallback)</h3>
             </div>
 
             <div id="chatBox">
@@ -127,6 +127,7 @@
     <script>
         // GLOBAL STATE VARIABLES
         let lastResponse = '';
+        let lastResponseType = 'none'; // <-- NEW: Tracks if last message was 'math', 'keyword', or 'llm'
         let currentSessionId = 'session_' + Date.now();
         const HISTORY_ROOT_KEY = 'CLIENT_AI_CHAT_HISTORY';
         const mathScope = {}; 
@@ -150,7 +151,7 @@
             const errorMessage = document.getElementById("error-message");
 
             if (username === "ryzen" && password === "4060") {
-                alert("Login successful! The Mistral 7B Instruct AI model will now download (~1.7 GB) and initialize. This initial download and setup may take a few minutes. If it fails, a smaller model will load automatically.");
+                alert("Login successful! The Mistral 7B Instruct AI model will now attempt to download (~1.7 GB) and initialize. If it fails (due to 401/gating errors), a smaller, guaranteed model will load automatically.");
                 document.getElementById("loginContainer").style.display = "none";
                 document.getElementById("gameSection").style.display = "flex";
 
@@ -195,7 +196,7 @@
 
             } catch (error) {
                 console.error("LLM Initialization Failed:", error);
-                // Call the fallback function if the primary model fails
+                // Call the fallback function if the primary model fails. The console shows this will happen.
                 await initializeFallbackLLM(); 
             }
         }
@@ -218,17 +219,45 @@
               response: "The capital and largest city of Peru is **Lima**. (Local knowledge confirmed for speed and accuracy.)" 
             },
             
-            { keywords: ['what model', 'model are you'], response: "I use the highly optimized **Mistral 7B Instruct** model from the **Transformers.js** library for generative intelligence, all running on your browser's CPU. This is the smartest model we can run client-side. If I'm simple, the fallback **DistilGPT2** model is running." },
+            { keywords: ['what model', 'model are you'], response: "I use the highly optimized **Mistral 7B Instruct** model from the **Transformers.js** library for generative intelligence, all running on your browser's CPU. If I'm simple, the fallback **DistilGPT2** model is running." },
         ];
 
         function getKeywordResponse(input) {
-            // Check for questioning facts (e.g., "are u sure", "is that true")
+            // This is the trigger check for verification questions
             const isQuestioningFact = input.includes('u sure') || input.includes('are you sure') || input.includes('is that true') || input.includes('really');
+            
             if (isQuestioningFact) {
-                // Guaranteed intercept for verification (FIXED for persistent LLM failures)
-                return "Yes, I am completely certain. This specific fact (Lima is the capital of Peru) is confirmed by local, hardcoded data to ensure accuracy.";
+                // --- CONTEXTUAL CHECK: Overrides static Lima response ---
+                if (lastResponseType === 'math') {
+                    // This means the last response was a math calculation (e.g., 266.5)
+                    
+                    const allSessions = loadHistory();
+                    const currentSession = allSessions[currentSessionId];
+                    // Find the original math query (it's the last user message before the math response)
+                    const lastUserQuery = currentSession.slice(-2).find(m => m.type === 'user')?.text || '';
+                    
+                    if (lastUserQuery) {
+                       // Re-run the math problem silently
+                       const verifiedResponse = clientSideMath(lastUserQuery);
+                       // Extract the clean result from the *output string*
+                       const mathResult = verifiedResponse.split('=')[1]?.trim() || 'the result.';
+                        
+                       // Provide a specific, correct verification for the calculation
+                       return `Yes, I am certain about the math. The expression \`${lastUserQuery.replace(/\*/g, '\\times').replace(/x/g, '\\times')}\` was solved by the **Math.js** library, which strictly adheres to the standard order of operations (PEMDAS/BODMAS), yielding **${mathResult}**.`;
+                    }
+                }
+                
+                // --- Default Fallback Confirmation for Non-Math Queries ---
+                // We use the last response to determine context for hardcoded facts.
+                if (lastResponse.includes('Lima is the capital of Peru')) {
+                    return "Yes, I am completely certain. That specific fact is pulled directly from my **hardcoded knowledge base** for guaranteed accuracy, it is not an LLM hallucination.";
+                }
+                
+                // If the last response was LLM, let the LLM handle the 'are u sure' question in context.
+                return null; // Don't block the LLM if context is unclear
             }
 
+            // --- Normal Keyword Check ---
             for (const item of KNOWLEDGE_BASE) {
                 if (item.keywords.some(keyword => input.includes(keyword))) {
                     return item.response;
@@ -239,7 +268,7 @@
 
         async function getLLMResponse(userText) {
             if (pipeline === 'FALLBACK') {
-                return "The advanced AI model is in **FALLBACK mode** and cannot answer general knowledge questions. Please ask about math or basic web dev.";
+                return "The advanced AI model is in **FALLBACK mode** and cannot answer general knowledge questions. Try a math problem or ask about basic web dev (HTML, CSS).";
             }
             if (!pipeline) {
                 return "The advanced AI model is still loading. Please wait for the 'Model Loaded!' message before asking a general question.";
@@ -329,7 +358,8 @@
             if (!userText) return;
 
             appendUserMessage(userText);
-            saveCurrentChat(userText, null);
+            // Save initial user message before processing
+            saveCurrentChat(userText, null); 
 
             userInput.value = '';
             userInput.disabled = true;
@@ -337,18 +367,36 @@
             const thinkingDiv = appendBotThinking('Processing request...');
             chatBox.scrollTop = chatBox.scrollHeight;
 
+            // Reset type tracking for the new turn
+            lastResponseType = 'none'; 
+            
             let finalResponse = clientSideMath(userText); 
+            if (finalResponse) {
+                lastResponseType = 'math'; // Track Math Result
+            }
 
             if (!finalResponse) {
                 finalResponse = getKeywordResponse(userText.toLowerCase()); 
+                if (finalResponse) {
+                    // Check if the response was the math verification, which is a special keyword response
+                    if (finalResponse.includes("The expression")) {
+                        lastResponseType = 'math_verification';
+                    } else {
+                        lastResponseType = 'keyword'; // Track simple Keyword Fact
+                    }
+                }
             }
             
             if (!finalResponse) {
                 finalResponse = await getLLMResponse(userText); 
+                if (finalResponse) {
+                    lastResponseType = 'llm'; // Track LLM generated answer
+                }
             }
 
             if (!finalResponse) {
-                finalResponse = "I'm sorry, I cannot process completely novel inputs right now. Try a math problem or ask about web technology.";
+                finalResponse = "I'm sorry, I cannot process completely novel inputs right now. Try a math problem or ask about web technology. (LLM Fallback Mode)";
+                lastResponseType = 'none';
             }
 
             // --- Display Final Response ---
@@ -459,7 +507,7 @@
             
             if (saveToHistory) {
                 saveCurrentChat(null, text);
-                lastResponse = text;
+                lastResponse = text; // Update lastResponse here
             }
 
             if (window.renderMathInElement) {
@@ -523,6 +571,7 @@
             saveCurrentChat();
             currentSessionId = 'session_' + Date.now();
             lastResponse = '';
+            lastResponseType = 'none'; // Reset type
 
             const newSession = [{
                 type: 'bot',
@@ -600,6 +649,7 @@
                 if (item.dataset.sessionId === sessionId) item.classList.add('active');
             });
             lastResponse = messages[messages.length - 1]?.text || '';
+            lastResponseType = 'none'; // Cannot reliably determine type on switch, reset
         }
 
         function deleteChat(sessionIdToDelete) {
