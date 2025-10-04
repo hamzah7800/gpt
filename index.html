@@ -83,7 +83,7 @@
 
         <div class="chat-interface flex-grow flex flex-col relative">
             
-            <div id="dropZone" class="absolute inset-0 bg-purple-600 bg-opacity-80 text-white hidden justify-center items-center text-2xl z-10 pointer-events-none">Drop Image for ML Classification (TensorFlow.js)</div>
+            <div id="dropZone" tabindex="-1" class="absolute inset-0 bg-purple-600 bg-opacity-80 text-white hidden justify-center items-center text-2xl z-10 pointer-events-none">Drop Image for ML Classification (TensorFlow.js)</div>
 
             <div class="chat-header bg-gray-50 p-4 border-b border-gray-200 flex items-center">
                 <button id="sidebarToggle" onclick="toggleSidebar()" class="text-xl text-blue-600 mr-4 hidden">&#9776;</button>
@@ -131,7 +131,7 @@
 // ---------------------------
 
         function validateLogin() {
-            // Updated IDs to ensure uniqueness and fix DOM warning
+            // Using unique IDs for login fields
             const username = document.getElementById("username_login").value.trim();
             const password = document.getElementById("password_login").value.trim();
             const errorMessage = document.getElementById("error-message");
@@ -197,6 +197,9 @@
             { keywords: ['tensorflow', 'tfjs', 'machine learning', 'client-side ai'], response: "**TensorFlow.js** is a powerful library for running **Machine Learning models** directly in the browser using JavaScript." },
             { keywords: ['d3.js', 'what is d3'], response: "**D3.js** is the most powerful JavaScript library for creating custom data visualizations using HTML, SVG, and CSS." },
             { keywords: ['plotly', 'scientific charts'], response: "**Plotly.js** is excellent for declarative scientific, statistical, and 3D data visualization in the browser." },
+            { keywords: ['css', 'what is css'], response: "**CSS** (Cascading Style Sheets) is used for describing the presentation of a document written in HTML." },
+            { keywords: ['webassembly', 'wasm'], response: "**WebAssembly (Wasm)** is a low-level bytecode format designed for high-performance applications on the web, often used for games, video editing, and advanced client-side computations (like OpenCV.js)." },
+            { keywords: ['openai', 'gpt', 'chatgpt'], response: "**OpenAI's GPT models** (like ChatGPT) are large language models known for their ability to generate human-like text and perform a wide range of natural language tasks." },
         ];
         
         async function sendMessage(fileDataUrl = null, fileDetails = null) {
@@ -229,10 +232,10 @@
                  finalResponse = await clientSideML(fileDataUrl, fileDetails);
                  lastResponseType = 'ml_real';
             }
-            // 2b. Visualization Tool 
+            // 2b. Visualization Tool - NOW WITH REAL PLOTLY
             else if (!finalResponse) {
-                finalResponse = clientSideVisualizationMock(query);
-                if (finalResponse) lastResponseType = 'vis_mock';
+                finalResponse = await clientSideVisualization(query); // Await for Plotly rendering
+                if (finalResponse) lastResponseType = 'vis_real';
             }
             // 2c. Vision Tool Mock (Fallback for ML if model not loaded or error)
             else if (fileDetails) {
@@ -293,7 +296,7 @@
             thinkingDiv.remove();
 
             if (finalResponse && typeof finalResponse === 'string') {
-                appendBotMessage(finalResponse, true); 
+                appendBotMessage(finalResponse, true, lastResponseType); 
             }
             
             // 5. Cleanup
@@ -318,7 +321,7 @@
                 case 'api_mock': icon = '🌐'; title = 'API CALL MOCK (Real-Time Search)'; cssClass = 'tool-card-api'; break;
                 case 'image_gen_mock': icon = '🎨'; title = 'IMAGE GENERATION MOCK (Multi-Modality)'; cssClass = 'tool-card-imagegen'; break;
                 case 'ml_real': icon = '🧠'; title = 'ML TOOL (TensorFlow.js Classification)'; cssClass = 'tool-card-ml'; break;
-                case 'vis_mock': icon = '📈'; title = 'VISUALIZATION TOOL (D3/Plotly Mock)'; cssClass = 'tool-card-vis'; break;
+                case 'vis_real': icon = '📈'; title = 'VISUALIZATION TOOL (Plotly.js)'; cssClass = 'tool-card-vis'; break; // Updated for real Plotly
                 default: icon = '❓'; title = 'GENERAL FALLBACK'; break;
             }
 
@@ -331,32 +334,129 @@
         }
 
 
-        function clientSideVisualizationMock(input) {
+// **-- Real Plotly.js Visualization Tool --**
+        /**
+         * Dynamically creates and plots a chart using Plotly.js.
+         * @param {string} chartId - The ID for the div where the chart will be rendered.
+         * @param {Array<Object>} data - Plotly data array.
+         * @param {Object} layout - Plotly layout object.
+         */
+        async function createPlotlyChart(chartId, data, layout) {
+            if (!window.Plotly) {
+                console.error("Plotly.js not loaded.");
+                return;
+            }
+            
+            // Ensure the div exists before plotting
+            let chartDiv = document.getElementById(chartId);
+            if (!chartDiv) {
+                // This scenario should ideally not happen if appendBotMessage handles it
+                console.error(`Chart div with ID ${chartId} not found.`);
+                return;
+            }
+            await Plotly.newPlot(chartId, data, layout);
+        }
+
+        async function clientSideVisualization(input) {
             const lowQuery = input.toLowerCase();
-            const vizKeywords = ['create a graph', 'show me the data', 'visualize', 'plot', 'd3', 'plotly'];
+            const vizKeywords = ['create a graph', 'show me data', 'visualize', 'plot', 'bar chart', 'line chart', 'pie chart', 'scatter plot'];
             if (!vizKeywords.some(keyword => lowQuery.includes(keyword))) return null;
 
-            const subject = lowQuery.includes('performance') ? 'Performance Metrics' : 'Simulated Data Distribution';
-            const library = lowQuery.includes('d3') ? 'D3.js (Custom SVG/Canvas)' : (lowQuery.includes('plotly') ? 'Plotly.js (3D/Statistical)' : 'Plotly.js (Default)');
+            if (!window.Plotly) {
+                return formatToolResponse(`Plotly.js not fully loaded yet. Please try again in a moment.`, 'vis_mock');
+            }
 
-            const htmlContent = `
-                <div id="viz-placeholder-${Date.now()}" style="height: 250px; width: 100%; border: 1px solid #ccc; background-color: #fff; display: flex; justify-content: center; align-items: center;">
-                    <svg width="200" height="200">
-                        <circle cx="100" cy="100" r="80" fill="#2563eb" fill-opacity="0.7" />
-                        <text x="100" y="100" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="14">Chart Placeholder</text>
-                    </svg>
-                </div>
-            `;
+            const chartId = `plotly-chart-${Date.now()}`;
+            let data = [];
+            let layout = {
+                title: 'Simulated Data Visualization',
+                height: 300,
+                margin: {t: 40, b: 40, l: 40, r: 40}
+            };
 
-            const response = `
-                ### **Visualization Generation Report**
-                **Data Subject:** ${subject}
-                **Intended Engine:** ${library}
-                **Output:** ${htmlContent}
-                **Note:** The visualization engine (${library}) has been initialized. The final graphic is rendered directly into the chatbox using an embedded SVG placeholder, simulating a real-time chart creation.
+            // Generate some dynamic data based on query
+            if (lowQuery.includes('bar chart') || lowQuery.includes('bar graph')) {
+                data.push({
+                    x: ['A', 'B', 'C', 'D', 'E'],
+                    y: [Math.floor(Math.random() * 100), Math.floor(Math.random() * 100), Math.floor(Math.random() * 100), Math.floor(Math.random() * 100), Math.floor(Math.random() * 100)],
+                    type: 'bar',
+                    marker: { color: 'rgba(50,171,96,0.7)' }
+                });
+                layout.title = 'Simulated Bar Chart: Category Performance';
+                layout.xaxis = { title: 'Category' };
+                layout.yaxis = { title: 'Value' };
+            } else if (lowQuery.includes('line chart') || lowQuery.includes('line graph')) {
+                const x = Array.from({length: 10}, (_, i) => i + 1);
+                const y1 = x.map(val => Math.sin(val / 2) * 20 + 50 + Math.random() * 10);
+                const y2 = x.map(val => Math.cos(val / 2) * 15 + 40 + Math.random() * 10);
+                data.push({
+                    x: x, y: y1, mode: 'lines+markers', name: 'Series 1',
+                    line: { color: '#1f77b4' }, marker: { size: 8 }
+                });
+                 data.push({
+                    x: x, y: y2, mode: 'lines+markers', name: 'Series 2',
+                    line: { color: '#ff7f0e' }, marker: { size: 8 }
+                });
+                layout.title = 'Simulated Line Chart: Trend Over Time';
+                layout.xaxis = { title: 'Time Point' };
+                layout.yaxis = { title: 'Measurement' };
+            } else if (lowQuery.includes('pie chart')) {
+                 data.push({
+                    labels: ['Success', 'Failure', 'Pending'],
+                    values: [Math.floor(Math.random() * 50) + 20, Math.floor(Math.random() * 30) + 10, Math.floor(Math.random() * 20) + 5],
+                    type: 'pie',
+                    hoverinfo: 'label+percent',
+                    textinfo: 'percent',
+                    hole: .4,
+                    marker: { colors: ['#28a745', '#dc3545', '#ffc107'] }
+                 });
+                 layout.title = 'Simulated Pie Chart: Status Distribution';
+                 layout.showlegend = true;
+            } else if (lowQuery.includes('scatter plot')) {
+                const x = Array.from({length: 50}, () => Math.random() * 100);
+                const y = x.map(val => val * 0.8 + (Math.random() - 0.5) * 20); // Some correlation
+                data.push({
+                    x: x, y: y, mode: 'markers', name: 'Data Points',
+                    marker: { size: 8, color: '#9333ea', opacity: 0.7 }
+                });
+                layout.title = 'Simulated Scatter Plot: Correlation Analysis';
+                layout.xaxis = { title: 'Feature X' };
+                layout.yaxis = { title: 'Feature Y' };
+            }
+            else { // Default to a simple bar chart
+                data.push({
+                    x: ['Metric 1', 'Metric 2', 'Metric 3'],
+                    y: [75, 42, 91],
+                    type: 'bar',
+                    marker: { color: 'rgba(0,123,255,0.7)' }
+                });
+                layout.title = 'Default Simulated Metrics';
+                layout.xaxis = { title: 'Metric' };
+                layout.yaxis = { title: 'Score' };
+            }
+            
+            const responseHtml = `
+                ### **Visualization Report (Plotly.js)**
+                **Chart Type:** <code>${layout.title.replace('Simulated ', '').split(':')[0].trim()}</code>
+                **Engine:** <code>Plotly.js (Client-Side)</code>
+                **Output:**
+                <div id="${chartId}" style="height: 300px; width: 100%;" class="bg-white rounded-lg shadow-md p-2 mt-2"></div>
+                **Note:** The interactive chart above was generated directly in your browser using Plotly.js. You can zoom, pan, and hover over data points.
             `;
-            return formatToolResponse(response, 'vis_mock');
+            
+            // Append the message first so the div exists
+            appendBotMessage(formatToolResponse(responseHtml, 'vis_real'), false); 
+            
+            // Render the Plotly chart after the div is in the DOM
+            await createPlotlyChart(chartId, data, layout);
+
+            // Save to history after Plotly is done, ensuring the HTML content for the div is there
+            saveCurrentChat(null, formatToolResponse(responseHtml, 'vis_real'));
+            lastResponse = formatToolResponse(responseHtml, 'vis_real');
+            
+            return 'CHART_RENDERED'; // Indicate that a chart was rendered
         }
+
 
         /**
          * Helper function to wait for an image element to load its source.
@@ -373,48 +473,64 @@
         }
         
         async function clientSideML(fileDataUrl, fileDetails) {
-            if (!mobilenetModel) return null;
+            if (!mobilenetModel) {
+                 return formatToolResponse(`**Classification Error:** MobileNet model not loaded. ML Vision will be mocked.`, 'ml_real');
+            }
 
             const tempImg = document.createElement('img');
             tempImg.src = fileDataUrl;
-            tempImg.style.display = 'none';
+            tempImg.style.display = 'none'; // Keep hidden
             document.body.appendChild(tempImg);
 
             let predictions = [];
+            let errorOccurred = false;
+            let errorMessage = '';
+
             try {
-                // Wait for the image to fully load before attempting classification
                 await loadImage(tempImg); 
                 predictions = await mobilenetModel.classify(tempImg);
             } catch (e) {
+                errorOccurred = true;
+                errorMessage = e.message;
                 console.error("ML Classification Failed:", e);
-                document.body.removeChild(tempImg);
-                return formatToolResponse(`**Classification Error:** The ML Model (${fileDetails.name}) failed to classify. Error: ${e.message}`, 'ml_real');
+            } finally {
+                if (document.body.contains(tempImg)) {
+                    document.body.removeChild(tempImg);
+                }
             }
 
-            document.body.removeChild(tempImg);
+            if (errorOccurred) {
+                return formatToolResponse(`**Classification Error:** The ML Model (${fileDetails.name}) encountered an issue: <code>${errorMessage}</code>. This might happen with very small or corrupted images.`, 'ml_real');
+            }
 
             if (predictions.length === 0) {
-                 return formatToolResponse(`**Classification Result:** No clear classification found by MobileNet.`, 'ml_real');
+                 return formatToolResponse(`**Classification Result:** No clear classification found by MobileNet. This could be due to the image content being outside its training data (e.g., highly stylized art).`, 'ml_real');
             }
 
             const topPrediction = predictions[0];
             const confidence = Math.round(topPrediction.probability * 100);
 
-            const analysis = `
+            let analysis = `
                 ### **Real-Time ML Classification (TensorFlow.js)**
-                **Input File:** ${fileDetails.name}
+                **Input File:** <code>${fileDetails.name}</code>
                 
                 **Top Prediction:**
-                - **Class:** **${topPrediction.className}**
-                - **Confidence:** ${confidence}%
+                - **Class:** <code>**${topPrediction.className}**</code>
+                - **Confidence:** <code>${confidence}%</code>
                 
                 **Detailed Results:**
                 <ol class="list-decimal list-inside mt-2">
-                    ${predictions.slice(0, 3).map(p => `<li>${p.className} (${Math.round(p.probability * 100)}%)</li>`).join('')}
+                    ${predictions.slice(0, 5).map(p => `<li><code>${p.className}</code> (<code>${Math.round(p.probability * 100)}%</code>)</li>`).join('')}
                 </ol>
                 
-                **Engine:** MobileNet (Pre-trained Model)
+                **Engine:** <code>MobileNet (Pre-trained on ImageNet)</code>
             `;
+
+            if (confidence < 20 && !topPrediction.className.toLowerCase().includes('comic book') && !topPrediction.className.toLowerCase().includes('illustration')) {
+                 analysis += `<div class="mt-3 p-2 bg-yellow-100 border border-yellow-400 rounded-md text-sm text-yellow-800">
+                    ⚠️ **Low Confidence & Potential Mismatch:** The model is highly uncertain. MobileNet is primarily trained on real-world photos, so it often struggles with highly stylized art like anime. This explains why it might guess things like "French horn" for a character's features!
+                </div>`;
+            }
 
             return formatToolResponse(analysis, 'ml_real');
         }
@@ -424,7 +540,7 @@
             const fileName = imageDetails.name;
             const mockCategories = fileName.toLowerCase().includes('server') || fileName.toLowerCase().includes('data') ? 
                 'Server Infrastructure, Network Hardware, Data Center' : 
-                'Abstract Concept, User Interface Element, General Photography';
+                'Abstract Concept, User Interface Element, General Photography, Illustration';
             const mockResolution = '1920x1080 (Simulated)'; 
 
             const analysis = `
@@ -432,11 +548,11 @@
                 
                 | Metric | Result |
                 | :--- | :--- |
-                | **File Name** | ${fileName} |
-                | **File Size** | ${sizeKB} KB |
-                | **Simulated Resolution** | ${mockResolution} |
-                | **Primary Categories** | ${mockCategories} |
-                | **Assessment** | **MOCK:** Low-level image analysis using simulated **OpenCV.js** processing pipeline. For real classification, use a valid ML model. |
+                | **File Name** | <code>${fileName}</code> |
+                | **File Size** | <code>${sizeKB} KB</code> |
+                | **Simulated Resolution** | <code>${mockResolution}</code> |
+                | **Primary Categories** | <code>${mockCategories}</code> |
+                | **Assessment** | **MOCK:** Low-level image analysis using simulated **OpenCV.js** processing pipeline. For real classification, use a valid ML model. This mock suggests the image is an illustration, which is a better conceptual fit for anime. |
             `;
             
             return formatToolResponse(analysis, 'vision_mock');
@@ -503,16 +619,16 @@
             let code = codeSnippet ? (codeSnippet[2] || codeSnippet[4]).trim() : null;
             if (!code) return formatToolResponse(`I see a code request, but I couldn't find a clear \`\`\`code\`\`\` block or snippet to execute.`, 'code_mock');
             let mockOutput;
-            if (code.includes('2+2') || code.includes('5*8')) mockOutput = "42 // Simulated result of a simple calculation.";
-            else if (code.includes('for (') || code.includes('while (') || code.includes('function')) mockOutput = "Code executed successfully. No errors found. The primary function appears to be an iteration or definition.";
-            else if (code.includes('import ') || code.includes('require(')) mockOutput = "Dependency import simulated. Code analysis suggests a utility function is being defined.";
-            else mockOutput = "Simulation complete. Output: 'Code is functional but requires further context to assess efficiency.'";
+            if (code.includes('2+2') || code.includes('5*8') || code.includes('+') || code.includes('-')) mockOutput = "<code>42</code> // Simulated result of a simple calculation.";
+            else if (code.includes('for (') || code.includes('while (') || code.includes('function') || code.includes('def ')) mockOutput = "Code executed successfully. No syntax errors found. The primary function appears to be an iteration or definition. Output: <code>[Simulated Loop Output]</code>";
+            else if (code.includes('import ') || code.includes('require(') || code.includes('console.log')) mockOutput = "Dependency import simulated. Code analysis suggests a utility function is being defined. Output: <code>'Hello from simulated code!'</code>";
+            else mockOutput = "Simulation complete. Output: <code>'Code is functional but requires further context to assess efficiency.'</code>";
             const response = `### **Code Execution Report**\n**Input Code (Simulated Run):**\n\`\`\`javascript\n${code}\n\`\`\`\n**Simulated Output:**\n\`\`\`\n${mockOutput}\n\`\`\`\n**Verdict:** This tool suggests the code is structurally sound and executed without crashing.`;
             return formatToolResponse(response, 'code_mock');
         }
 
         function clientSideAPIMock(input) {
-            const apiKeywords = ['current time', 'today', 'latest news', 'stock price', 'weather'];
+            const apiKeywords = ['current time', 'today', 'latest news', 'stock price', 'weather', 'api search'];
             const lowQuery = input.toLowerCase();
             if (!apiKeywords.some(keyword => lowQuery.includes(keyword))) return null;
             const current = new Date();
@@ -521,20 +637,31 @@
             if (lowQuery.includes('time') || lowQuery.includes('today')) { mockData = current.toLocaleTimeString() + ' on ' + current.toLocaleDateString(); subject = 'Current Time & Date'; }
             else if (lowQuery.includes('stock')) { mockData = `The simulated **JS-SIM** stock is up 1.5% at **$420.69** (Data pulled: ${current.toLocaleTimeString()}).`; subject = 'Financial Data'; }
             else { mockData = `Search result: A new web framework (SimulaJS) has been released this week, emphasizing client-side processing.`; subject = 'Current Event/News'; }
-            const response = `### **API Call Report (Simulated External Data)**\n**External Source:** Google Search API / Browsing Tool (Mock)\n**Query Subject:** ${subject}\n**Result (Live Data Mock):**\n> ${mockData}\n**Note:** This mock represents the LLM calling an external tool for information that is too current or specialized for its knowledge base.`;
+            const response = `### **API Call Report (Simulated External Data)**\n**External Source:** <code>Google Search API / Browsing Tool (Mock)</code>\n**Query Subject:** <code>${subject}</code>\n**Result (Live Data Mock):**\n> ${mockData}\n**Note:** This mock represents the LLM calling an external tool for information that is too current or specialized for its knowledge base.`;
             return formatToolResponse(response, 'api_mock');
         }
 
         function clientSideImageGenerationMock(input) {
-            const imageGenKeywords = ['generate an image of', 'create a photo of', 'draw me a picture of'];
+            const imageGenKeywords = ['generate an image of', 'create a photo of', 'draw me a picture of', 'generate an image', 'create a photo'];
             const lowQuery = input.toLowerCase();
             if (!imageGenKeywords.some(keyword => lowQuery.includes(keyword))) return null;
-            let prompt = lowQuery.replace(/^(generate an image of|create a photo of|draw me a picture of)\s*/, '').trim();
+            let prompt = lowQuery.replace(/^(generate an image of|create a photo of|draw me a picture of|generate an image|create a photo)\s*/, '').trim();
             prompt = prompt.charAt(0).toUpperCase() + prompt.slice(1);
             if (!prompt || prompt.length < 5) prompt = 'A futuristic cat driving a unicycle';
-            const styles = ['Digital Art', 'Photorealistic', 'Abstract Watercolor', 'Low-Poly'];
+            const styles = ['Digital Art', 'Photorealistic', 'Abstract Watercolor', 'Low-Poly', 'Anime Style'];
             const mockStyle = styles[Math.floor(Math.random() * styles.length)];
-            const response = `### **Simulated Image Generation Result**\n**Prompt:** *${prompt}*\n**Result:** A unique image has been successfully generated locally.\n**Metadata:**\n* **Resolution:** 1024x1024\n* **Style:** ${mockStyle}\n* **Engine:** Client-Side Diffusion Mock v2.1\n\n**Note:** The actual image rendering is done via a browser-side placeholder tag, but the process of interpreting the prompt and setting parameters is complete.`;
+            const response = `### **Simulated Image Generation Result**
+**Prompt:** <code>*${prompt}*</code>
+**Result:** A unique image has been successfully generated locally.
+<div class="mt-2 text-center">
+    <img src="https://via.placeholder.com/256x256/2563eb/ffffff?text=Generated+Image" alt="Generated Image Placeholder" class="inline-block rounded-lg shadow-md max-w-full h-auto">
+</div>
+**Metadata:**
+* **Resolution:** <code>1024x1024</code> (Simulated)
+* **Style:** <code>${mockStyle}</code>
+* **Engine:** <code>Client-Side Diffusion Mock v2.1</code>
+
+**Note:** The actual image rendering is done via a browser-side placeholder tag, but the process of interpreting the prompt and setting parameters is complete.`;
             return formatToolResponse(response, 'image_gen_mock');
         }
         
@@ -547,7 +674,17 @@
             subject = subject.charAt(0).toUpperCase() + subject.slice(1);
             if (!subject || subject.length < 5) subject = 'The Role of Decentralized Computing'; 
             const templateData = { subject: subject, isComparison: lowQuery.includes('compare and contrast'), coreConcept: subject.split(' ')[0], adjective: ['critical', 'fundamental', 'transformative', 'disruptive'][Math.floor(Math.random() * 4)] };
-            let template = `## **Essay Draft: The ${templateData.adjective} Role of ${templateData.subject}**\n*(Generated using Simulated Templating Engine)*\n**1. Introduction**\nThe widespread acceptance of **${templateData.subject}** marks a ${templateData.adjective} inflection point in the technological sector. This paper argues that the efficacy of modern digital ecosystems hinges upon a robust understanding and integration of **${templateData.coreConcept}**. We will analyze its foundational necessity and its systemic impact across multiple domains.\n**2. Foundational Principles**\nAt its core, ${templateData.subject} operates on the principle of distributed autonomy, ensuring that processing is shifted to the user's local machine, thereby minimizing latency and reliance on centralized server infrastructure. This architecture facilitates high-fidelity, real-time interactivity—a requirement for all next-generation applications. \n${templateData.isComparison ? `**3. Comparative Analysis (A Simulated 'Compare & Contrast' Section)**\nWhile traditional methods often rely on sequential, server-bound execution, ${templateData.subject} utilizes parallel execution paths. For instance, comparing the approach to **synchronous** processes reveals a distinct advantage in throughput, particularly for graphics and large data computations. The shift is from a 'request-wait' model to an **asynchronous, parallelized processing** model.` : `**3. Practical Application & Impact**\nThe practical implications of ${templateData.subject} are vast. It enables resource-intensive tasks, such as real-time **machine learning inference** and complex data visualization, to be executed seamlessly on commodity hardware. This capability democratizes access to powerful computing resources, moving processing closer to the user for efficiency.`}\n**4. Conclusion**\nIn closing, the adoption of **${templateData.subject}** is not merely an option but a strategic imperative. It underpins the entire shift toward ${templateData.adjective} and performant web development. Future advancements will focus on optimizing resource delegation and ensuring seamless integration with other specialized tools (like RAG and Vision).`;
+            let template = `## **Essay Draft: The ${templateData.adjective} Role of ${templateData.subject}**
+*(Generated using Simulated Templating Engine)*
+**1. Introduction**
+The widespread acceptance of **${templateData.subject}** marks a ${templateData.adjective} inflection point in the technological sector. This paper argues that the efficacy of modern digital ecosystems hinges upon a robust understanding and integration of **${templateData.coreConcept}**. We will analyze its foundational necessity and its systemic impact across multiple domains.
+**2. Foundational Principles**
+At its core, ${templateData.subject} operates on the principle of distributed autonomy, ensuring that processing is shifted to the user's local machine, thereby minimizing latency and reliance on centralized server infrastructure. This architecture facilitates high-fidelity, real-time interactivity—a requirement for all next-generation applications. 
+${templateData.isComparison ? `**3. Comparative Analysis (A Simulated 'Compare & Contrast' Section)**
+While traditional methods often rely on sequential, server-bound execution, ${templateData.subject} utilizes parallel execution paths. For instance, comparing the approach to **synchronous** processes reveals a distinct advantage in throughput, particularly for graphics and large data computations. The shift is from a 'request-wait' model to an **asynchronous, parallelized processing** model.` : `**3. Practical Application & Impact**
+The practical implications of ${templateData.subject} are vast. It enables resource-intensive tasks, such as real-time **machine learning inference** and complex data visualization, to be executed seamlessly on commodity hardware. This capability democratizes access to powerful computing resources, moving processing closer to the user for efficiency.`}
+**4. Conclusion**
+In closing, the adoption of **${templateData.subject}** is not merely an option but a strategic imperative. It underpins the entire shift toward ${templateData.adjective} and performant web development. Future advancements will focus on optimizing resource delegation and ensuring seamless integration with other specialized tools (like RAG and Vision).`;
             return formatToolResponse(template, 'generation_mock');
         }
 
@@ -557,9 +694,9 @@
                 return formatToolResponse("Hello there! I'm the **Ultimate Client-Side JS Simulator**. Try dropping an image, or asking me to 'plot a bar chart'!", 'fallback');
             }
             if (lowQuery.includes('how are you') || lowQuery.includes('what are you')) {
-                return formatToolResponse("I am an advanced JavaScript program, running entirely in your browser. I now feature **D3.js**, **Plotly.js**, and **OpenCV.js** for visualization and vision processing.", 'fallback');
+                return formatToolResponse("I am an advanced JavaScript program, running entirely in your browser. I now feature **D3.js**, **Plotly.js** (for real charts!), and **OpenCV.js** for visualization and vision processing.", 'fallback');
             }
-            return formatToolResponse(`I'm sorry, I couldn't find a direct tool match for **"${query}"**. Try asking me to 'write an essay', 'generate an image of...', 'run this code: 2+2', or 'visualize key performance indicators'.`, 'fallback');
+            return formatToolResponse(`I'm sorry, I couldn't find a direct tool match for **"${query}"**. Try asking me to 'write an essay', 'generate an image of...', 'run this code: 2+2', or 'plot a line chart of sales data'.`, 'fallback');
         }
         
         function processBotResponse(text) {
@@ -576,8 +713,6 @@
                         });
                     } catch (e) { console.warn('KaTeX render failed:', e); }
                 }
-                // Optional: Check for embedded visualization data/placeholder and render it here
-                // Example for Plotly: if (contentDiv.querySelector('[id^="viz-placeholder"]')) { /* ... Plotly.plot() logic ... */ }
              }
         }
         
@@ -655,7 +790,7 @@
             return thinkingDiv;
         }
 
-        function appendBotMessage(text, saveToHistory = true) {
+        function appendBotMessage(text, saveToHistory = true, responseType = 'none') {
             const botMessageDiv = document.createElement('div');
             const isToolCard = text.includes('tool-card'); 
             const paddingClass = isToolCard ? 'p-1' : 'p-3'; 
@@ -667,7 +802,7 @@
             if (saveToHistory) {
                 saveCurrentChat(null, text);
                 lastResponse = text; 
-                processBotResponse(text);
+                processBotResponse(text); // Process for MathJax
             }
         }
 
@@ -738,7 +873,7 @@
                 currentSessionId = 'session_' + Date.now();
                 sessions[currentSessionId] = [{
                     type: 'bot',
-                    text: formatToolResponse("Welcome! The simulator now has **D3.js**, **Plotly.js**, **OpenCV.js**, and **ml5.js** loaded. Try asking me to 'plot a graph'!", 'fallback')
+                    text: formatToolResponse("Welcome! The simulator now has **D3.js**, **Plotly.js** (for real charts!), **OpenCV.js**, and **ml5.js** loaded. Try asking me to 'plot a graph'!", 'fallback')
                 }];
                 localStorage.setItem(key, JSON.stringify(sessions));
             }
@@ -781,7 +916,7 @@
             lastResponse = '';
             lastResponseType = 'none'; 
             
-            const newSession = [{ type: 'bot', text: formatToolResponse("New conversation started! Context and memory have been cleared. Try dropping an image for **real ML classification**!", 'fallback') }];
+            const newSession = [{ type: 'bot', text: formatToolResponse("New conversation started! Context and memory have been cleared. Try dropping an image for **real ML classification** or 'plot a bar chart'!", 'fallback') }];
             const allSessions = loadHistory();
             allSessions[currentSessionId] = newSession;
             saveHistory(allSessions);
