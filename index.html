@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client-Side Simulator (Genjutsu Tools Edition)</title>
+    <title>Client-Side Simulator (3D Transition Edition)</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
@@ -18,60 +18,48 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
-        /* General Styling */
+        /* --- General Styling --- */
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            /* Subtle Genjutsu Effect: 
-               A very slight, slow hue shift to make the colors feel 'off' or 'altered' */
-            filter: hue-rotate(0deg); 
-            animation: genjutsu-shift 120s infinite alternate; 
-        }
-
-        @keyframes genjutsu-shift {
-            from { filter: hue-rotate(0deg); }
-            to { filter: hue-rotate(5deg); }
+            /* Genjutsu effect removed from main body */
         }
         
-        /* Thinking/Animation Styles */
+        /* --- Animation & Transition Styles --- */
         .thinking-message { background-color: #fff8e1; color: #ff9800; border: 1px solid #ffcc80; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
         .dot { opacity: 0; animation: dot-fade 1s infinite; }
         .dot:nth-child(2) { animation-delay: 0.2s; }
         .dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes dot-fade { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
-        .voice-recording { background-color: #ef4444; animation: voice-pulse 1s infinite alternate; }
-        @keyframes voice-pulse { from { opacity: 1; } to { opacity: 0.7; } }
         
-        /* Tool Card Styles */
+        /* Tool Card Styles (Standard colors, but with Chakra Flow fade-in) */
         .tool-card { padding: 0.75rem; margin-bottom: 1rem; border-radius: 0.5rem; opacity: 0; transform: translateY(10px); animation: chakra-flow 0.5s forwards; }
-        .tool-card-math { background-color: #e0f7fa; border: 1px solid #00bcd4; color: #006064; }
-        .tool-card-rag { background-color: #e8f5e9; border: 1px solid #4caf50; color: #1b5e20; }
-        .tool-card-fallback { background-color: #ffebee; border: 1px solid #f44336; color: #b71c1c; }
+        .tool-card-math { background-color: #e0f7fa; border: 1px solid #00bcd4; color: #006064; } /* Blue/Cyan */
+        .tool-card-rag { background-color: #e8f5e9; border: 1px solid #4caf50; color: #1b5e20; } /* Green */
+        .tool-card-fallback { background-color: #ffebee; border: 1px solid #f44336; color: #b71c1c; } /* Red */
         .tool-card-vision { background-color: #fce4ec; border: 1px solid #e91e63; color: #880e4f; }
 
-        /* Chakra Flow Animation for Tool Cards */
         @keyframes chakra-flow {
             to { opacity: 1; transform: translateY(0); }
         }
         
-        /* Kakashi Theme Styles */
-        .sharingan-blue { color: #1e3a8a; } 
-        .sharingan-red { color: #dc2626; } 
-        .sharingan-bg { background-color: #f3f4f6; } 
-        
-        #kakashiContainer {
-            perspective: 1000px; 
-            transition: opacity 1s ease-in-out, transform 1s ease-in-out;
+        /* --- Kakashi Genjutsu 3D Styles --- */
+        .genjutsu-container {
+            position: relative;
+            /* Sets up the 3D space for the animation */
+            perspective: 1000px;
+            transition: opacity 0.5s ease-in-out;
         }
 
-        .kakashi-animation-start {
+        #loginContainer {
+            transition: transform 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.5s ease;
+            transform: translateZ(0) rotateY(0deg) scale(1);
+        }
+
+        .genjutsu-active #loginContainer {
+            /* Pulls the box back, spins it fast, and scales it down to simulate 'entering' */
+            transform: translateZ(-1000px) rotateY(360deg) scale(0.1);
             opacity: 0;
-            transform: translateY(-50px);
-        }
-
-        .kakashi-animation-end {
-            opacity: 1;
-            transform: translateY(0);
         }
 
         .kakashi-eye-cover {
@@ -99,7 +87,6 @@
             right: 35px;
             display: none;
             color: #dc2626; 
-            transition: opacity 0.5s;
             z-index: 5;
             text-shadow: 0 0 5px #fef2f2; 
         }
@@ -114,6 +101,20 @@
             to { transform: rotate(360deg); }
         }
 
+        /* Blackout Layer for teleport */
+        #blackoutOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            opacity: 0;
+            z-index: 999;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
         @media (max-width: 1200px) {
             .sidebar { position: absolute; z-index: 20; height: 100%; transform: translateX(-100%); transition: transform 0.3s ease; }
             #gameSection.sidebar-visible .sidebar { transform: translateX(0); }
@@ -124,54 +125,60 @@
 </head>
 <body class="bg-gray-100 flex justify-center items-center min-h-screen p-4">
 
-    <div id="loginContainer" class="kakashi-animation-start kakashi-animation-end bg-white p-10 rounded-xl shadow-2xl w-full max-w-md text-center sharingan-bg relative overflow-hidden">
-        
-        <div id="kakashiEye" class="kakashi-eye-cover"></div>
-        <div class="sharingan-icon">⭕</div> <h1 class="text-3xl sharingan-blue font-bold mb-4 border-b pb-2 border-gray-300">Client-Side AI Simulator</h1>
-        <h2 class="text-xl text-gray-700 font-semibold mb-6">"Copying... I mean, Calculating!" (Kakashi Mode)</h2>
-        <p class="text-gray-600 mb-4">You must have the Sharingan (correct credentials) to proceed.</p>
-        
-        <input type="text" id="username" placeholder="Chakra Level (ryzen)" class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring-red-600 focus:border-red-600">
-        <input type="password" id="password" placeholder="Jutsu (4060)" class="w-full p-3 mb-6 border border-gray-300 rounded-lg focus:ring-red-600 focus:border-red-600">
-        
-        <button onclick="validateLogin()" class="w-full p-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition duration-200 shadow-lg">Activate Sharingan & Login</button>
-        <div id="error-message" class="text-red-600 font-bold mt-4"></div>
+    <div id="blackoutOverlay"></div>
+
+    <div class="genjutsu-container w-full max-w-md">
+        <div id="loginContainer" class="bg-white p-10 rounded-xl shadow-2xl w-full text-center relative overflow-hidden">
+            
+            <div id="kakashiEye" class="kakashi-eye-cover"></div>
+            <div class="sharingan-icon">⭕</div> 
+
+            <h1 class="text-3xl text-blue-600 font-bold mb-4 border-b pb-2 border-gray-300">Client-Side AI Simulator</h1>
+            <h2 class="text-xl text-gray-700 font-semibold mb-6">Kakashi is in the way. Use the correct chakra to proceed.</h2>
+            <p class="text-gray-600 mb-4">Credentials act as your unique chakra signature.</p>
+            
+            <input type="text" id="username" placeholder="Chakra Level (ryzen)" class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring-red-600 focus:border-red-600">
+            <input type="password" id="password" placeholder="Jutsu (4060)" class="w-full p-3 mb-6 border border-gray-300 rounded-lg focus:ring-red-600 focus:border-red-600">
+            
+            <button onclick="validateLogin()" class="w-full p-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition duration-200 shadow-lg">Activate Genjutsu Bypass</button>
+            <div id="error-message" class="text-red-600 font-bold mt-4"></div>
+        </div>
     </div>
 
-    <div id="gameSection" class="hidden bg-white rounded-xl shadow-2xl w-full max-w-7xl h-[95vh] max-h-[800px] overflow-hidden flex transition-all duration-300">
+    <div id="gameSection" class="hidden bg-white rounded-xl shadow-2xl w-full max-w-7xl h-[95vh] max-h-[800px] overflow-hidden flex transition-all duration-300 opacity-0">
         
         <div class="sidebar bg-gray-800 text-white w-64 flex flex-col border-r border-gray-700">
-            <h2 class="px-5 pt-5 text-lg font-semibold border-b border-gray-700 pb-3 mb-4">Chat History (Scrolls)</h2>
+            <h2 class="px-5 pt-5 text-lg font-semibold border-b border-gray-700 pb-3 mb-4">Chat History</h2>
             <div id="mathScopeStatus" class="px-5 text-sm text-yellow-400 mb-4">Math Scope: **0** variables loaded</div>
-            <button class="new-chat-btn mx-5 mb-4 p-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition" onclick="startNewChat()">+ New Mission</button>
+            <button class="new-chat-btn mx-5 mb-4 p-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition" onclick="startNewChat()">+ New Chat</button>
             <ul class="chat-list list-none p-0 m-0 flex-grow overflow-y-auto">
                 </ul>
         </div>
 
         <div class="chat-interface flex-grow flex flex-col relative">
             
-            <div id="dropZone" class="absolute inset-0 bg-red-600 bg-opacity-80 text-white hidden justify-center items-center text-2xl z-10 pointer-events-none">Drop Image Scroll for Visual Jutsu (Mocked)</div>
+            <div id="dropZone" class="absolute inset-0 bg-blue-600 bg-opacity-80 text-white hidden justify-center items-center text-2xl z-10 pointer-events-none">Drop Image Scroll for Visual Jutsu (Mocked)</div>
 
             <div class="chat-header bg-gray-50 p-4 border-b border-gray-200 flex items-center">
-                <button id="sidebarToggle" onclick="toggleSidebar()" class="text-xl text-red-600 mr-4 hidden">&#9776;</button>
-                <img src="icon-192.jpg" alt="AI Icon" class="header-icon w-8 h-8 rounded-full object-cover mr-4 border-2 border-red-500">
-                <h3 class="text-lg font-semibold text-gray-800">The Sixth Hokage's Toolkit (Genjutsu Edition)</h3>
+                <button id="sidebarToggle" onclick="toggleSidebar()" class="text-xl text-blue-600 mr-4 hidden">&#9776;</button>
+                <img src="icon-192.jpg" alt="AI Icon" class="header-icon w-8 h-8 rounded-full object-cover mr-4 border-2 border-blue-500">
+                <h3 class="text-lg font-semibold text-gray-800">Client-Side JS Simulator (Tool Edition)</h3>
             </div>
 
             <div id="chatBox" class="flex-grow p-5 overflow-y-auto bg-gray-50 flex flex-col">
                 </div>
 
             <div class="input-container p-4 border-t border-gray-200 flex items-center bg-white">
-                <input type="text" id="userInput" placeholder="Ask a question, try math, or drag an image..." autocomplete="off" class="flex-grow p-3 border border-gray-300 rounded-full mr-2 text-base focus:ring-red-500 focus:border-red-500">
+                <input type="text" id="userInput" placeholder="Ask a question, try math, or drag an image..." autocomplete="off" class="flex-grow p-3 border border-gray-300 rounded-full mr-2 text-base focus:ring-blue-500 focus:border-blue-500">
                 
-                <button id="voiceBtn" class="input-btn bg-red-600 text-white w-10 h-10 rounded-full text-xl flex justify-center items-center hover:bg-red-700 transition ml-2" onclick="toggleVoiceInput()">🎤</button>
-                <button id="sendBtn" class="input-btn bg-red-600 text-white w-10 h-10 rounded-full text-xl flex justify-center items-center hover:bg-red-700 transition ml-2" onclick="sendMessage()">&#9658;</button>
+                <button id="voiceBtn" class="input-btn bg-blue-600 text-white w-10 h-10 rounded-full text-xl flex justify-center items-center hover:bg-blue-700 transition ml-2" onclick="toggleVoiceInput()">🎤</button>
+                <button id="sendBtn" class="input-btn bg-blue-600 text-white w-10 h-10 rounded-full text-xl flex justify-center items-center hover:bg-blue-700 transition ml-2" onclick="sendMessage()">&#9658;</button>
             </div>
         </div>
     </div>
 
     <script>
-        // GLOBAL STATE VARIABLES
+        // GLOBAL STATE VARIABLES (Retained enhanced logic)
         let lastResponse = '';
         let lastResponseType = 'none'; 
         let currentSessionId = 'session_' + Date.now();
@@ -190,8 +197,9 @@
         const sendBtn = document.getElementById('sendBtn');
         const kakashiEye = document.getElementById('kakashiEye');
         const mathScopeStatus = document.getElementById('mathScopeStatus');
+        const blackout = document.getElementById('blackoutOverlay');
+        const loginContainer = document.querySelector('.genjutsu-container');
         
-        // Multi-turn context: Store the last 3 turns (user queries)
         let chatContext = []; 
 
 
@@ -205,21 +213,36 @@
             const errorMessage = document.getElementById("error-message");
 
             if (username === "ryzen" && password === "4060") {
-                // Kakashi Animation Sequence
+                // Step 1: Start Kakashi animation
                 kakashiEye.classList.add('kakashi-eye-uncovered');
                 document.querySelector('.sharingan-icon').style.display = 'block';
                 
                 NProgress.start();
-                errorMessage.textContent = "Sharingan Activated! Entering Mission Mode...";
+                errorMessage.textContent = "Genjutsu Detected! Entering the illusion...";
 
+                // Step 2: Trigger 3D Genjutsu Transition
                 setTimeout(() => {
-                    document.getElementById("loginContainer").style.display = "none";
-                    document.getElementById("gameSection").classList.remove('hidden');
-                    document.getElementById("gameSection").classList.add('flex');
+                    loginContainer.classList.add('genjutsu-active');
+                    blackout.style.opacity = 1; // Blackout for "teleport" effect
+                }, 500);
+
+                // Step 3: End Genjutsu, Transition to main UI
+                setTimeout(() => {
+                    blackout.style.opacity = 0; // Fade out blackout
+                    loginContainer.style.display = "none";
                     
-                    NProgress.done();
-                    initializeChatbotUI();
-                }, 2000); // 2 seconds for the animation
+                    const gameSection = document.getElementById("gameSection");
+                    gameSection.classList.remove('hidden');
+                    gameSection.classList.add('flex');
+                    
+                    // Smoothly fade in the main interface
+                    setTimeout(() => {
+                        gameSection.style.opacity = 1;
+                        NProgress.done();
+                        initializeChatbotUI();
+                    }, 200);
+
+                }, 2000); // Total transition time
             } else {
                 errorMessage.textContent = "Incorrect Chakra Level or Jutsu. Try again.";
                 kakashiEye.classList.remove('kakashi-eye-uncovered');
@@ -229,7 +252,7 @@
         
         function initializeChatbotUI() {
             loadMathScope(); 
-            updateMathScopeStatus(); // Display the loaded status
+            updateMathScopeStatus(); 
             if (sendBtn) sendBtn.addEventListener('click', () => sendMessage());
             if (userInput) userInput.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') sendMessage();
@@ -250,7 +273,7 @@
 
         function saveMathScope() {
             localStorage.setItem(MATH_SCOPE_KEY, JSON.stringify(mathScope));
-            updateMathScopeStatus(); // Update display on save
+            updateMathScopeStatus(); 
         }
         
         function updateMathScopeStatus() {
@@ -264,7 +287,6 @@
 // ---------------------------
 
         const KNOWLEDGE_BASE = [
-            // RAG/Knowledge base is now a simple list of facts
             { keywords: ['html', 'hypertext markup language', 'define html', 'html stands for'], response: "**HTML** (HyperText Markup Language) forms the **structure** of web pages." },
             { keywords: ['javascript', 'js', 'programming language', 'interactive web'], response: "**JavaScript** is the programming language that enables **interactive web pages**." },
             { keywords: ['webgpu', 'gpu', 'parallel computations'], response: "**WebGPU** is a new web standard for high-performance **parallel computations** using the GPU from a web browser." },
@@ -276,9 +298,8 @@
             const userText = userInput.value.trim();
             if (!userText && !imageCaption) return;
 
-            // 1. Pre-process and Append User Message
             if (userText) appendUserMessage(userText); 
-            if (imageCaption) appendUserMessage(`[Vision Jutsu Activated] ${userText || 'Analyze the image.'}`);
+            if (imageCaption) appendUserMessage(`[Vision Tool Active] ${userText || 'Analyze the image.'}`);
 
             userInput.value = '';
             userInput.disabled = true;
@@ -288,48 +309,39 @@
             let finalResponse = null;
             let query = userText || (imageCaption ? `Analyze the image showing: ${imageCaption}` : '');
             
-            // Update Context BEFORE generating a response
             if (userText) {
                 chatContext.push(userText);
                 if (chatContext.length > 3) chatContext.shift(); 
             }
             
-            const thinkingDiv = appendBotThinking('Processing query with the Sixth Hokage\'s tools...');
+            const thinkingDiv = appendBotThinking('Processing query with pure JS tools...');
             
-            // 2. Tool Execution Logic
-            
-            // Try Math Tool first (Highest confidence)
             const mathResult = clientSideMath(query);
             if (mathResult) {
                 finalResponse = mathResult;
                 lastResponseType = 'math';
             }
             
-            // Try Keyword/RAG Tool (Medium confidence)
             if (!finalResponse) {
-                // Pass the context for better RAG
                 finalResponse = getKeywordResponse(query.toLowerCase(), chatContext); 
                 if (finalResponse) {
                     lastResponseType = 'rag'; 
                 }
             }
 
-            // Handle Image Input (Simulated Vision)
             if (imageCaption && !finalResponse) {
                  finalResponse = formatToolResponse(
-                    `**SIMULATED VISION RESPONSE:** I have used my **Mangekyo Sharingan** (mocked vision tool) to analyze the image, which appears to show: **${imageCaption}**.`, 
+                    `**SIMULATED VISION RESPONSE:** I have analyzed the image, which appears to show: **${imageCaption}**.`, 
                     'vision'
                  );
                  lastResponseType = 'vision_mock';
             }
 
-            // Fallback (Lowest confidence)
             if (!finalResponse) {
                 finalResponse = getFallbackResponse(query);
                 lastResponseType = 'fallback';
             }
 
-            // 3. Render Final Response
             await new Promise(r => setTimeout(r, 1200)); 
             thinkingDiv.remove();
 
@@ -337,7 +349,6 @@
                 appendBotMessage(finalResponse, true); 
             }
             
-            // 4. Cleanup
             userInput.disabled = false;
             sendBtn.disabled = false;
             voiceBtn.disabled = false;
@@ -386,16 +397,14 @@
                 return formatToolResponse("Hello there! I'm the pure JS simulator. I can do math and search my knowledge scrolls. Ask me a calculation!", 'fallback');
             }
             if (lowQuery.includes('how are you') || lowQuery.includes('what are you')) {
-                return formatToolResponse("I am a simple JavaScript toolset, using my Sharingan-like processing power to help you. I rely on **Math.js** and my internal dictionary.", 'fallback');
+                return formatToolResponse("I am a simple JavaScript toolset, relying on **Math.js** and my internal dictionary.", 'fallback');
             }
-            // General hard-coded response
-            return formatToolResponse(`I'm sorry, I couldn't find a direct or fuzzy match for **"${query}"** in my current knowledge scrolls. Try a simple math problem or a technical term like 'WebGPU'.`, 'fallback');
+            return formatToolResponse(`I'm sorry, I couldn't find a direct or fuzzy match for **"${query}"** in my current knowledge base. Try a simple math problem or a technical term like 'WebGPU'.`, 'fallback');
         }
 
         function processBotResponse(text) {
              const messageDiv = chatBox.lastElementChild;
              if (messageDiv && messageDiv.classList.contains('bot-message')) {
-                // Ensure KaTeX only renders in the .response-content area, not the tool card header
                 const contentDiv = messageDiv.querySelector('.response-content') || messageDiv; 
                 if (window.renderMathInElement) {
                     try {
@@ -413,7 +422,7 @@
 
 
 // ---------------------------
-// 3. TOOL IMPLEMENTATIONS (Math, RAG/Keyword)
+// 3. TOOL IMPLEMENTATIONS 
 // ---------------------------
 
         function clientSideMath(input) {
@@ -429,7 +438,6 @@
             try {
                 const result = math.evaluate(processedInput, mathScope);
                 
-                // Immediately save the scope if a variable was set/updated
                 saveMathScope(); 
 
                 if (typeof result === 'number' || result.constructor.name === 'BigNumber' || result.constructor.name === 'Complex' || result.isMatrix) {
@@ -440,7 +448,6 @@
                     
                     return formatToolResponse(`I used **Math.js** to solve the expression. The result is: $$${finalInput} = ${output}$$`, 'math');
                 }
-                // Handle variable assignment without explicit numeric output (e.g., "a = 5")
                 if (input.includes('=')) {
                      return formatToolResponse(`Variable assignment successful! The variable **\`${input.trim()}\`** is now stored in my memory scope.`, 'math');
                 }
@@ -451,19 +458,11 @@
             }
         }
 
-        /**
-         * Calculates Jaccard Similarity between two strings (Intersection / Union).
-         * Uses 2-gram (character pairs) for robustness against simple misspellings.
-         * @param {string} str1 
-         * @param {string} str2 
-         * @returns {number} Similarity score between 0 and 1.
-         */
         function jaccardSimilarity(str1, str2) {
             str1 = str1.toLowerCase().replace(/\s/g, '');
             str2 = str2.toLowerCase().replace(/\s/g, '');
             
             if (str1.length < 2 || str2.length < 2) {
-                // Fallback for very short strings, check simple word overlap
                 return str1.includes(str2) || str2.includes(str1) ? 1.0 : 0.0;
             }
 
@@ -491,19 +490,14 @@
 
         function getKeywordResponse(input, context) {
             let bestMatch = null;
-            let maxConfidence = 0.35; // Lowered threshold because Jaccard is more strict
+            let maxConfidence = 0.35; 
 
-            // 1. Combine current query and recent context for better matching
             const fullQuery = [...context, input].join(' ').toLowerCase();
 
-            // 2. Perform Fuzzy Search on Knowledge Base
             for (const item of KNOWLEDGE_BASE) {
                 for (const keyword of item.keywords) {
                     const confidence = jaccardSimilarity(fullQuery, keyword);
                     
-                    // Simple debugging log (can be removed later)
-                    // console.log(`Query: "${fullQuery}" vs Keyword: "${keyword}" -> Confidence: ${confidence.toFixed(2)}`);
-
                     if (confidence > maxConfidence) {
                         maxConfidence = confidence;
                         bestMatch = item;
@@ -528,7 +522,6 @@
 
             function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
 
-            // Visual feedback
             dropTarget.addEventListener('dragenter', (e) => {
                 if (e.target.closest('.chat-interface') && !e.target.closest('.input-container')) {
                     dropZone.classList.remove('hidden');
@@ -558,12 +551,12 @@
                 const fileType = file.type || 'application/octet-stream'; 
                 
                 if (fileType.startsWith('image/')) {
-                    const mockCaption = `A simulated caption for '${fileName}' generated locally. It looks like a ${Math.random() > 0.5 ? 'computer' : 'landscape'}.`;
+                    const mockCaption = `A simulated caption for '${fileName}'. It looks like a ${Math.random() > 0.5 ? 'computer' : 'landscape'}.`;
                     sendMessage(mockCaption);
 
                 } else {
                     appendUserMessage(`Dropped file: ${fileName}`);
-                    appendBotMessage(formatToolResponse(`I only process image scrolls (files) for visual jutsu (currently mocked). Other file types are rejected.`, 'fallback'), true);
+                    appendBotMessage(formatToolResponse(`I only process image files for visual analysis (currently mocked). Other file types are rejected.`, 'fallback'), true);
                 }
             }
         }
@@ -643,7 +636,8 @@
 
         function appendUserMessage(text) {
             const userMessageDiv = document.createElement('div');
-            userMessageDiv.className = 'message user-message bg-red-600 text-white self-end rounded-xl p-3 mb-4 max-w-xl rounded-br-none shadow-md';
+            // Revert user message color to blue-600
+            userMessageDiv.className = 'message user-message bg-blue-600 text-white self-end rounded-xl p-3 mb-4 max-w-xl rounded-br-none shadow-md'; 
             userMessageDiv.textContent = text;
             chatBox.appendChild(userMessageDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
@@ -683,7 +677,7 @@
                 currentSessionId = 'session_' + Date.now();
                 sessions[currentSessionId] = [{
                     type: 'bot',
-                    text: formatToolResponse("Hello! Welcome to the Genjutsu-Enhanced Simulator. The environment may feel slightly altered, but my tools are functioning optimally. Ask me anything!", 'fallback')
+                    text: formatToolResponse("Hello! You successfully bypassed the Genjutsu. This is the **Client-Side JS Simulator**. I use **Math.js** for calculations and a **Knowledge Base** for facts. Ask me anything!", 'fallback')
                 }];
                 localStorage.setItem(key, JSON.stringify(sessions));
             }
@@ -702,7 +696,8 @@
             (messages || []).forEach(msg => {
                 const messageDiv = document.createElement('div');
                 if (msg.type === 'user') {
-                     messageDiv.className = 'message user-message bg-red-600 text-white self-end rounded-xl p-3 mb-4 max-w-xl rounded-br-none shadow-md';
+                     // Revert user message color to blue-600
+                     messageDiv.className = 'message user-message bg-blue-600 text-white self-end rounded-xl p-3 mb-4 max-w-xl rounded-br-none shadow-md';
                      messageDiv.textContent = msg.text;
                 } else {
                     messageDiv.className = 'message bot-message bg-gray-200 text-gray-800 self-start rounded-xl p-1 mb-4 max-w-xl rounded-bl-none shadow-md';
@@ -725,7 +720,7 @@
             lastResponse = '';
             lastResponseType = 'none'; 
             
-            const newSession = [{ type: 'bot', text: formatToolResponse("New conversation started! **Math variables and context have been cleared.** The Genjutsu remains active. Ask me anything.", 'fallback') }];
+            const newSession = [{ type: 'bot', text: formatToolResponse("New conversation started! **Math variables and context have been cleared.** Ask me anything.", 'fallback') }];
             const allSessions = loadHistory();
             allSessions[currentSessionId] = newSession;
             saveHistory(allSessions);
@@ -751,7 +746,7 @@
             sessionKeys.forEach(id => {
                 const messages = sessions[id];
                 const firstUserMsg = messages.find(m => m.type === 'user');
-                const titleText = firstUserMsg ? (firstUserMsg.text.substring(0, 30) + (firstUserMsg.text.length > 30 ? '...' : '')) : 'New Mission';
+                const titleText = firstUserMsg ? (firstUserMsg.text.substring(0, 30) + (firstUserMsg.text.length > 30 ? '...' : '')) : 'New Chat';
 
                 const listItem = document.createElement('li');
                 listItem.className = 'chat-item px-5 py-3 cursor-pointer flex justify-between items-center transition duration-200 hover:bg-gray-700';
