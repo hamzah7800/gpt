@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client-Side Simulator (Pure Tools Edition)</title>
+    <title>Client-Side Simulator (Advanced Tools Edition)</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
@@ -27,15 +27,14 @@
         @keyframes dot-fade { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
         
         /* Tool Card Styles */
-        /* Note: Colors kept to functionally distinguish the tool results */
         .tool-card { padding: 0.75rem; margin-bottom: 0rem; border-radius: 0.5rem; }
         .tool-card-math { background-color: #e0f7fa; border: 1px solid #00bcd4; color: #006064; }
         .tool-card-rag { background-color: #e8f5e9; border: 1px solid #4caf50; color: #1b5e20; }
         .tool-card-vision { background-color: #fce4ec; border: 1px solid #e91e63; color: #880e4f; }
-        .tool-card-generation { background-color: #e3f2fd; border: 1px solid #2196f3; color: #0d47a1; } /* NEW COLOR */
+        .tool-card-generation { background-color: #e3f2fd; border: 1px solid #2196f3; color: #0d47a1; } 
         .tool-card-fallback { background-color: #ffebee; border: 1px solid #f44336; color: #b71c1c; }
 
-        .response-content { margin-top: 0.5rem; } /* Separator for tool card content */
+        .response-content { margin-top: 0.5rem; } 
 
         .voice-recording { background-color: #ef4444; animation: voice-pulse 1s infinite alternate; }
         @keyframes voice-pulse { from { opacity: 1; } to { opacity: 0.7; } }
@@ -75,7 +74,7 @@
             <div class="chat-header bg-gray-50 p-4 border-b border-gray-200 flex items-center">
                 <button id="sidebarToggle" onclick="toggleSidebar()" class="text-xl text-blue-600 mr-4 hidden">&#9776;</button>
                 <img src="icon-192.jpg" alt="AI Icon" class="header-icon w-8 h-8 rounded-full object-cover mr-4 border-2 border-blue-500">
-                <h3 class="text-lg font-semibold text-gray-800">Client-Side JS Simulator (Pure Tools Edition)</h3>
+                <h3 class="text-lg font-semibold text-gray-800">Client-Side JS Simulator (Advanced Tools Edition)</h3>
             </div>
 
             <div id="chatBox" class="flex-grow p-5 overflow-y-auto bg-gray-50 flex flex-col">
@@ -165,13 +164,13 @@
             { keywords: ['browser', 'first browser', 'mosaic'], response: "The first popular graphical web browser was **Mosaic**, developed by Marc Andreessen and Eric Bina." },
         ];
         
-        async function sendMessage(imageCaption = null) {
+        async function sendMessage(imageDetails = null) {
             const userText = userInput.value.trim();
-            if (!userText && !imageCaption) return;
+            if (!userText && !imageDetails) return;
 
             // 1. Append User Message
             if (userText) appendUserMessage(userText); 
-            if (imageCaption) appendUserMessage(`[Vision Prompt] ${userText || 'Analyze the image.'}`);
+            if (imageDetails) appendUserMessage(`[Vision Prompt] Analyzing file: ${imageDetails.name}`);
 
             userInput.value = '';
             userInput.disabled = true;
@@ -179,7 +178,7 @@
             voiceBtn.disabled = true;
 
             let finalResponse = null;
-            let query = userText || (imageCaption ? `Analyze the image showing: ${imageCaption}` : '');
+            let query = userText || (imageDetails ? `Analyze the image: ${imageDetails.name}` : '');
             
             // Update chat context for RAG
             if (userText) {
@@ -191,14 +190,22 @@
             
             // 2. Tool Execution Logic
             
+            // Handle Image Input (Simulated)
+            if (imageDetails) {
+                 finalResponse = clientSideVisionMock(imageDetails);
+                 lastResponseType = 'vision_mock';
+            }
+
             // Try Math Tool first (Highest confidence for math)
-            const mathResult = clientSideMath(query);
-            if (mathResult) {
-                finalResponse = mathResult;
-                lastResponseType = 'math';
+            if (!finalResponse) {
+                const mathResult = clientSideMath(query);
+                if (mathResult) {
+                    finalResponse = mathResult;
+                    lastResponseType = 'math';
+                }
             }
             
-            // 💡 NEW: Try Simulated Text Generation Tool (High confidence for complex queries)
+            // Try Simulated Text Generation Tool (High confidence for complex queries)
             if (!finalResponse) {
                 const essayResult = clientSideEssayGenerator(query);
                 if (essayResult) {
@@ -213,15 +220,6 @@
                 if (finalResponse) {
                     lastResponseType = 'rag'; 
                 }
-            }
-
-            // Handle Image Input (Simulated)
-            if (imageCaption && !finalResponse) {
-                 finalResponse = formatToolResponse(
-                    `**SIMULATED VISION RESPONSE:** Image analysis result: **${imageCaption}**.`, 
-                    'vision'
-                 );
-                 lastResponseType = 'vision_mock';
             }
 
             // Fallback (Lowest confidence)
@@ -289,12 +287,12 @@
         function getFallbackResponse(query) {
             const lowQuery = query.toLowerCase();
             if (lowQuery.includes('hello') || lowQuery.includes('hi')) {
-                return formatToolResponse("Hello there! I'm the **Client-Side JS Simulator**. I use **Math.js** and a **Simulated Generation Tool** to answer complex queries. Ask me to 'write an essay'!", 'fallback');
+                return formatToolResponse("Hello there! I'm the **Client-Side JS Simulator**. I use specialized, local tools to answer complex queries.", 'fallback');
             }
             if (lowQuery.includes('how are you') || lowQuery.includes('what are you')) {
-                return formatToolResponse("I am a simple JavaScript program. I now feature a **Simulated Generation Tool** for essay-like responses, in addition to Math.js and RAG.", 'fallback');
+                return formatToolResponse("I am an advanced JavaScript program, running entirely in your browser. I now feature a structured **Vision Mock** and an improved **Essay Generator**.", 'fallback');
             }
-            return formatToolResponse(`I'm sorry, I couldn't find a direct keyword match, a mathematical expression, or a suitable template for **"${query}"**. Try asking me to write an essay on 'The History of JavaScript'.`, 'fallback');
+            return formatToolResponse(`I'm sorry, I couldn't find a direct tool match for **"${query}"**. Try asking me to 'write an essay on a tech topic' or drop an image for analysis.`, 'fallback');
         }
 
         function processBotResponse(text) {
@@ -317,19 +315,25 @@
 
 
 // ---------------------------
-// 3. TOOL IMPLEMENTATIONS (Math, RAG/Keyword, Vision Mock, GENERATION MOCK)
+// 3. TOOL IMPLEMENTATIONS 
 // ---------------------------
 
         function clientSideMath(input) {
-            // Check for explicit math commands or high probability math symbols
-            const mathPattern = /^\s*(\d|\(|\-|\+)/; 
-            if (!mathPattern.test(input) && !input.includes('calculate') && !input.includes('solve') && !input.includes('=')) {
+            const mathPattern = /^\s*(\d|\(|\-|\+|calculate|solve)/i; 
+            if (!mathPattern.test(input) && !input.includes('=')) {
                  return null;
             }
             
-            let processedInput = input.trim().replace(/calculate|what is|solve|the result of/i, '')
-                                             .replace(/x/g, '*');
+            let processedInput = input.trim()
+                .replace(/calculate|what is|solve|the result of/i, '')
+                .replace(/the square root of/gi, 'sqrt(') 
+                .replace(/x/g, '*')
+                .trim();
             
+            if (processedInput.toLowerCase().startsWith('sqrt') && !processedInput.includes(')')) {
+                processedInput += ')'; 
+            }
+
             math.config({ implicit: 'auto' });
             try {
                 const result = math.evaluate(processedInput, mathScope);
@@ -356,40 +360,74 @@
             const lowQuery = input.toLowerCase();
             const generationKeywords = ['write an essay on', 'explain in detail', 'describe the importance of', 'compare and contrast', 'generate an article about'];
 
-            // 1. Check if the query is a generation request
             if (!generationKeywords.some(keyword => lowQuery.includes(keyword))) {
                 return null;
             }
 
-            // 2. Extract the subject (very simple extraction)
             let subject = lowQuery.replace(/^(write an essay on|explain in detail|describe the importance of|compare and contrast|generate an article about)\s*/, '').trim();
             subject = subject.replace(/^(the|a)\s*/, '');
             subject = subject.charAt(0).toUpperCase() + subject.slice(1);
             if (!subject || subject.length < 5) {
-                subject = 'The History of Client-Side Tools'; 
+                subject = 'The Role of Decentralized Computing'; 
             }
             
-            const template = `
-                ### **Essay Draft: ${subject}** (Simulated Generation)
+            // --- Advanced Templating Mock (Simulating Handlebars.js logic) ---
+            const templateData = {
+                subject: subject,
+                isComparison: lowQuery.includes('compare and contrast'),
+                coreConcept: subject.split(' ')[0], 
+                adjective: ['critical', 'fundamental', 'transformative', 'disruptive'][Math.floor(Math.random() * 4)]
+            };
+
+            let template = `
+                ## **Essay Draft: The ${templateData.adjective} Role of ${templateData.subject}**
+                *(Generated using Simulated Templating Engine)*
                 
                 **1. Introduction**
-                The concept of **${subject}** represents a fundamental shift in modern computing paradigms. At its core, this idea challenges traditional limitations by emphasizing (Subject-specific detail) a distributed and highly performant architecture. This essay will explore the theoretical foundation, key components, and future implications of **${subject}**.
+                The widespread acceptance of **${templateData.subject}** marks a ${templateData.adjective} inflection point in the technological sector. This paper argues that the efficacy of modern digital ecosystems hinges upon a robust understanding and integration of **${templateData.coreConcept}**. We will analyze its foundational necessity and its systemic impact across multiple domains.
                 
-                **2. Theoretical Framework**
-                The theoretical success of **${subject}** is rooted in the principle of tool delegation. By leveraging specialized, isolated functions (like a Math tool, or a RAG tool), the overall system achieves robustness and modularity. This contrasts sharply with monolithic systems that lack clear division of labor, leading to bottlenecks and efficiency challenges.
+                **2. Foundational Principles**
+                At its core, ${templateData.subject} operates on the principle of distributed autonomy, ensuring that processing is shifted to the user's local machine, thereby minimizing latency and reliance on centralized server infrastructure. This architecture facilitates high-fidelity, real-time interactivity—a requirement for all next-generation applications. 
                 
-                **3. Practical Application & Impact**
-                In practice, the application of **${subject}** has led to significant advances in user experience and accessibility. For example, systems built on this philosophy demonstrate lower latency and reduced reliance on remote server infrastructure. The primary impact is seen in complex processing tasks, where parallel execution is essential for speed and accuracy.
+                ${templateData.isComparison ? 
+                    `**3. Comparative Analysis (A Simulated 'Compare & Contrast' Section)**
+                    While traditional methods often rely on sequential, server-bound execution, ${templateData.subject} utilizes parallel execution paths. For instance, comparing the approach to **synchronous** processes reveals a distinct advantage in throughput, particularly for graphics and large data computations. The shift is from a 'request-wait' model to an **asynchronous, parallelized processing** model.` : 
+                    `**3. Practical Application & Impact**
+                    The practical implications of ${templateData.subject} are vast. It enables resource-intensive tasks, such as real-time **machine learning inference** and complex data visualization, to be executed seamlessly on commodity hardware. This capability democratizes access to powerful computing resources, moving processing closer to the user for efficiency.`
+                }
                 
                 **4. Conclusion**
-                In summary, the role of **${subject}** in the technological landscape cannot be overstated. By focusing on specialized, client-side capabilities, the model for interaction is being redefined. Further research into contextual integration and cross-tool communication will unlock even greater potential in this exciting area.
-                
-                ---
-                *Note: This response was generated using the **Simulated Text Generation Tool** and is based on a fixed template and keyword injection.*
+                In closing, the adoption of **${templateData.subject}** is not merely an option but a strategic imperative. It underpins the entire shift toward ${templateData.adjective} and performant web development. Future advancements will focus on optimizing resource delegation and ensuring seamless integration with other specialized tools (like RAG and Vision).
             `;
 
             return formatToolResponse(template, 'generation');
         }
+
+        function clientSideVisionMock(imageDetails) {
+            // Enhanced Mock based on file data
+            const sizeKB = Math.round(imageDetails.size / 1024);
+            const fileName = imageDetails.name;
+            const mockCategories = fileName.toLowerCase().includes('server') || fileName.toLowerCase().includes('data') ? 
+                'Server Infrastructure, Network Hardware, Data Center' : 
+                'Abstract Concept, User Interface Element, General Photography';
+            const mockResolution = '1920x1080 (Simulated)'; 
+
+            const analysis = `
+                ### **Simulated Visual Analysis Report**
+                
+                | Metric | Result |
+                | :--- | :--- |
+                | **File Name** | ${fileName} |
+                | **File Size** | ${sizeKB} KB |
+                | **Simulated Resolution** | ${mockResolution} |
+                | **Primary Categories** | ${mockCategories} |
+                | **Assessment** | **High Confidence:** Image content is structured and likely represents technical data or a user-generated asset. All key components appear distinct and well-defined. |
+                | **Next Action** | (Simulated) Ready for further analysis by a language tool.
+            `;
+            
+            return formatToolResponse(analysis, 'vision');
+        }
+
 
         function jaccardSimilarity(str1, str2) {
             str1 = str1.toLowerCase().replace(/\s/g, '');
@@ -424,7 +462,7 @@
 
         function getKeywordResponse(input, context) {
             let bestMatch = null;
-            let maxConfidence = 0.35; // Threshold for a match
+            let maxConfidence = 0.15; 
 
             const fullQuery = [...context, input].join(' ').toLowerCase();
 
@@ -465,6 +503,7 @@
             }, false);
 
             dropTarget.addEventListener('dragleave', (e) => {
+                // Check if the cursor is leaving the chat area completely
                 if (!e.relatedTarget || !e.relatedTarget.closest('.chat-interface')) {
                     dropZone.classList.add('hidden');
                     dropZone.classList.remove('flex');
@@ -482,16 +521,19 @@
                 if (files.length === 0) return;
 
                 const file = files[0];
-                const fileName = file.name;
                 const fileType = file.type || 'application/octet-stream'; 
                 
                 if (fileType.startsWith('image/')) {
-                    // MOCKING the Image Analysis
-                    const mockCaption = `A simulated caption for '${fileName}' generated locally. It looks like a ${Math.random() > 0.5 ? 'server rack' : 'data center floor'}.`;
-                    sendMessage(mockCaption);
+                    // Pass enhanced file metadata to the vision mock
+                    const imageDetails = {
+                        name: file.name,
+                        size: file.size, 
+                        type: file.type
+                    };
+                    sendMessage(imageDetails);
 
                 } else {
-                    appendUserMessage(`Dropped file: ${fileName}`);
+                    appendUserMessage(`Dropped file: ${file.name}`);
                     appendBotMessage(formatToolResponse(`I only process image files for visual analysis (currently mocked). Other file types are rejected.`, 'fallback'), true);
                 }
             }
@@ -560,7 +602,6 @@
         }
         
         function speakResponse(text) {
-            // Remove HTML/Markdown/KaTeX delimiters for clean speech
             const speechText = text.replace(/<[^>]*>?/gm, '') 
                                  .replace(/\*\*|#|```|\\(times|cdot)/g, ''); 
             
@@ -592,7 +633,6 @@
 
         function appendBotMessage(text, saveToHistory = true) {
             const botMessageDiv = document.createElement('div');
-            // The bot message container only takes full padding if it's NOT a tool card response
             const isToolCard = text.includes('tool-card'); 
             const paddingClass = isToolCard ? 'p-1' : 'p-3'; 
 
@@ -618,7 +658,7 @@
                 currentSessionId = 'session_' + Date.now();
                 sessions[currentSessionId] = [{
                     type: 'bot',
-                    text: formatToolResponse("Hello! I am a **Pure JavaScript Simulator**. I now feature a **Simulated Generation Tool** for essay-like responses, in addition to Math.js and RAG. Ask me to 'write an essay'!", 'fallback')
+                    text: formatToolResponse("Welcome! I am the **Advanced Client-Side JS Simulator**. Try dropping an image or asking for a detailed essay!", 'fallback')
                 }];
                 localStorage.setItem(key, JSON.stringify(sessions));
             }
@@ -661,7 +701,7 @@
             lastResponse = '';
             lastResponseType = 'none'; 
             
-            const newSession = [{ type: 'bot', text: formatToolResponse("New conversation started! Context and temporary memory have been cleared. Try the new **Simulated Generation Tool**!", 'fallback') }];
+            const newSession = [{ type: 'bot', text: formatToolResponse("New conversation started! Context and memory have been cleared. Try the new **Advanced Generation Tool** or drop an image!", 'fallback') }];
             const allSessions = loadHistory();
             allSessions[currentSessionId] = newSession;
             saveHistory(allSessions);
