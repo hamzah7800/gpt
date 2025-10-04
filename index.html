@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client-Side AI Simulator (Mistral 7B Fallback)</title>
+    <title>Client-Side AI Simulator (iPad Optimized)</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
     <script type="module">
@@ -84,6 +84,22 @@
         @media (max-width: 600px) {
             #gameSection { width: 100vw; height: 100vh; border-radius: 0; }
             #loginContainer { margin: 20px; padding: 20px; }
+        }
+        
+        /* --- iPad 10th Gen Optimization (768px-1180px) --- */
+        /* Targets common iPad widths (Portrait: 820px, Landscape: 1180px) */
+        @media (min-width: 768px) and (max-width: 1180px) {
+            body { 
+                padding: 10px; 
+            }
+            #gameSection {
+                width: 98vw;
+                height: 98vh;
+                max-width: none; /* Allow it to fill the width */
+            }
+            .sidebar {
+                width: 200px; /* A bit narrower in landscape for more chat space */
+            }
         }
     </style>
 </head>
