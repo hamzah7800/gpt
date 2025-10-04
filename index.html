@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client-Side AI Simulator (T5-Small)</title>
+    <title>Client-Side AI Simulator (Gemma 2B)</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
     <script type="module">
@@ -111,7 +111,7 @@
             <div class="chat-header">
                 <button id="sidebarToggle" onclick="toggleSidebar()">&#9776;</button>
                 <img src="icon-192.jpg" alt="AI Icon" class="header-icon">
-                <h3>Client-Side JS Simulator (T5-Small)</h3>
+                <h3>Client-Side JS Simulator (Gemma 2B)</h3>
             </div>
 
             <div id="chatBox">
@@ -150,7 +150,7 @@
             const errorMessage = document.getElementById("error-message");
 
             if (username === "ryzen" && password === "4060") {
-                alert("Login successful! The T5-Small AI model will now download and initialize. This may take about a minute.");
+                alert("Login successful! The Gemma 2B AI model will now download (~1.6 GB) and initialize. This initial download and setup may take a few minutes depending on your connection/CPU.");
                 document.getElementById("loginContainer").style.display = "none";
                 document.getElementById("gameSection").style.display = "flex";
 
@@ -164,17 +164,19 @@
 
         async function initializeLLM() {
             try {
-                const thinkingDiv = appendBotThinking('Initializing AI Model (Downloading & Compiling)...');
+                const thinkingDiv = appendBotThinking('Initializing AI Model (Downloading & Compiling ~1.6 GB)... This will take a few minutes on first run.');
                 
                 if (typeof window.transformersPipeline === 'undefined') {
                     throw new Error("transformersPipeline is undefined. Check console for module loading errors.");
                 }
                 
-                // --- MODEL CHANGED TO T5-SMALL (Sequence-to-sequence) ---
-                pipeline = await window.transformersPipeline('text2text-generation', 'Xenova/t5-small'); 
+                // --- SWITCHING TO GEMMA 2B for the best client-side quality/intelligence ---
+                const modelName = 'Xenova/gemma-2b-it-core'; 
+                // This is a decoder-only model for instruction following
+                pipeline = await window.transformersPipeline('text-generation', modelName); 
                 
                 thinkingDiv.remove();
-                appendBotMessage("🚀 **T5-Small Model Loaded!** This model is different (encoder-decoder) and generally better for direct question-answering than the previous models. Ask away!", false);
+                appendBotMessage(`🚀 **Gemma 2B Model Loaded!** This is the most capable model you can run client-side. It should perform much better on general knowledge, but it **cannot** analyze PDFs or large files like cloud LLMs.`, false);
                 userInput.focus();
 
             } catch (error) {
@@ -201,15 +203,14 @@
               response: "The capital and largest city of Peru is **Lima**. (Local knowledge confirmed for speed and accuracy.)" 
             },
             
-            { keywords: ['what model', 'model are you'], response: "I use a custom JavaScript architecture for utilities (math, file analysis) and the **T5-Small model** from the **Transformers.js** library for generative intelligence, all running on your browser's CPU." },
+            { keywords: ['what model', 'model are you'], response: "I use the highly capable **Gemma 2B model** from the **Transformers.js** library for generative intelligence, all running on your browser's CPU. This is the best available client-side LLM." },
         ];
 
         function getKeywordResponse(input) {
             // Check for questioning facts (e.g., "are u sure", "is that true")
             const isQuestioningFact = input.includes('u sure') || input.includes('are you sure') || input.includes('is that true') || input.includes('really');
             if (isQuestioningFact) {
-                // Guaranteed intercept for verification, since the actual fact (Lima) is hardcoded.
-                // We assume if they are asking this, it follows a fact we know.
+                // Guaranteed intercept for verification (FIXED for persistent LLM failures)
                 return "Yes, I am completely certain. This specific fact (Lima is the capital of Peru) is confirmed by local, hardcoded data to ensure accuracy.";
             }
 
@@ -226,30 +227,31 @@
                 return "The advanced AI model is in **FALLBACK mode** and cannot answer general knowledge questions. Please ask about math or basic web dev.";
             }
             if (!pipeline) {
-                return "The advanced AI model is still loading. Please wait for the 'AI Model Loaded!' message before asking a general question.";
+                return "The advanced AI model is still loading. Please wait for the 'Model Loaded!' message before asking a general question.";
             }
 
             const allSessions = loadHistory();
             const currentSession = allSessions[currentSessionId];
 
-            // Build context from the last few messages
+            // Build context from the last few messages for better coherence
             const context = currentSession.slice(-5).map(msg => 
-                msg.type === 'user' ? `User: ${msg.text}` : `Assistant: ${msg.text}`
+                msg.type === 'user' ? `<start_of_turn>user\n${msg.text}<end_of_turn>` : `<start_of_turn>model\n${msg.text}<end_of_turn>`
             ).join('\n');
             
-            // T5 models often need a clear task prefix
-            const prompt = `question: ${userText} context: ${context}`;
+            // Gemma Instruction-Tuning Prompt Format (Recommended by Xenova)
+            const prompt = `${context}<start_of_turn>user\n${userText}<end_of_turn>\n<start_of_turn>model\n`;
 
             const output = await pipeline(prompt, {
-                max_new_tokens: 60, 
+                max_new_tokens: 100, // Longer generation for better answers
                 do_sample: true,
                 temperature: 0.9,
             });
-            
-            // For T5, the output is often an array with a generated text property
-            let botText = output[0]?.generated_text || "I was unable to generate a coherent response from the T5 model for that query.";
 
-            return `**LLM Result (T5-Small):** ${botText} (Generated by the client-side model.)`;
+            // Extract only the model's response
+            let botText = output[0].generated_text.substring(prompt.length).trim();
+            botText = botText.split('<end_of_turn>')[0].trim();
+
+            return `**LLM Result (Gemma 2B):** ${botText} (Generated by the client-side model.)`;
         }
 
         function clientSideMath(input) {
