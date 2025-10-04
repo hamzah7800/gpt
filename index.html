@@ -7,9 +7,10 @@
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-nK4wG4K23o/w4bB0g/m7rA9j6G/Y99/N4J59y4/54A==" crossorigin="anonymous">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-y0Y7/qNqjA/L/jN8G7O98L7E7N9N9N4N4N4N4N4N4N4N4N4N4N4N4N4N4" crossorigin="anonymous"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-qGf1rL458L8E7N9N9N4N4N4N4N4N4N4N4N4N4N4N4N4N4N4" onload="renderMathInElement(document.body);" crossorigin="anonymous"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
 
     <style>
         /* General Setup */
@@ -52,7 +53,7 @@
             border: 2px solid #1e88e5;
         }
 
-        #sidebarToggle { background: none; border: none; font-size: 20px; cursor: pointer; color: #1e88e5; margin-right: 15px; display: none; } /* Show on smaller screens */
+        #sidebarToggle { background: none; border: none; font-size: 20px; cursor: pointer; color: #1e88e5; margin-right: 15px; display: none; }
         #chatBox { flex-grow: 1; padding: 20px; overflow-y: auto; background-color: #f9f9f9; }
 
         /* Messages */
@@ -180,31 +181,44 @@
             { keywords: ['what model', 'model are you'], response: "I operate using a custom, **client-side JavaScript model** using keyword matching and hardcoded data." },
         ];
 
+        /**
+         * 💡 IMPROVED LOGIC: This function now returns a specific error message on math failure,
+         * preventing the generic knowledge base fallback error.
+         */
         function clientSideMath(input) {
-            const mathRegex = /^[\d\s\.\,\*\+\-\/\(\)a-zA-Z\^\=\!\%\&\|\<\>\[\]\{\}\:]+$/;
-            const looksLikeMath = mathRegex.test(input) && !getBotResponse(input);
-
-            if (!looksLikeMath) return null;
+            // Check if the input contains at least one number or common math operator
+            const mathPattern = /\d|[+\-*/=^()]/;
+            if (!mathPattern.test(input)) {
+                return null;
+            }
 
             try {
                 const result = math.evaluate(input, mathScope);
 
+                // Handle function or undefined results
                 if (typeof result === 'function' || typeof result === 'undefined') {
                     if (input.includes('=') && !input.includes('==') && !input.includes('!=')) {
-                        return `Variable assignment successful! Current scope: ${Object.keys(mathScope).join(', ')}`;
+                        return `Variable assignment successful! Current math scope includes: ${Object.keys(mathScope).join(', ')}`;
                     }
+                    // This is where simple inputs like '2' or 'pi' return the value, 
+                    // which is fine, as they pass the isNaN check below.
                     return null;
                 }
-
-                let output = result.toString();
-                if (result.constructor.name === 'BigNumber') {
-                    output = result.toPrecision(10);
+                
+                // Final Check for a successful calculation result
+                if (typeof result === 'number' || result.constructor.name === 'BigNumber' || result.constructor.name === 'Complex') {
+                    let output = result.toString();
+                    if (result.constructor.name === 'BigNumber') {
+                        output = result.toPrecision(10);
+                    }
+                    return `**Math Result:** $${input.replace(/ /g, '')} = ${output}$`;
                 }
-
-                return `**Math Result:** $${input.replace(/ /g, '')} = ${output}$`;
+                
+                return null;
 
             } catch (e) {
-                return null;
+                // 💡 FIX: Return a specific math failure message on error
+                return `**Calculation Error:** I couldn't solve that math problem. Please check the syntax or try a simpler operation. (Details: ${e.message})`;
             }
         }
 
@@ -223,13 +237,17 @@
 
             let finalResponse = clientSideMath(userText);
 
+            // If clientSideMath handled the input (either successfully or with a math error message), 
+            // we skip the keyword search. If it returned null, we proceed to keyword search.
             if (!finalResponse) {
                 finalResponse = getBotResponse(userText.toLowerCase());
+
+                // Generic fallback only runs if keyword search failed
+                if (finalResponse.includes("I'm sorry, I can't process completely novel inputs")) {
+                    finalResponse = `I am running entirely **client-side** and cannot fetch new information for '${userText}'. Please try a question about **Web Technologies** or a simple **math calculation** instead.`;
+                }
             }
 
-            if (finalResponse.includes("I'm sorry, I can't process completely novel inputs")) {
-                 finalResponse = `I am running entirely **client-side** and cannot fetch new information for '${userText}'. Please try a question about **Web Technologies** or a simple **math calculation** instead.`;
-            }
 
             setTimeout(() => {
                 thinkingDiv.remove();
