@@ -6,7 +6,11 @@
     <title>Client-Side AI Simulator (FULL FEATURE)</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
-    <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.14.0"></script>
+    <script type="module">
+        // Import the pipeline function and expose it globally for the main script
+        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.14.0';
+        window.transformersPipeline = pipeline;
+    </script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
 
@@ -162,8 +166,12 @@
             try {
                 const thinkingDiv = appendBotThinking('Initializing AI Model (Downloading & Compiling)... This may take 30-120 seconds on first run.');
                 
-                // Using a small, efficient text generation model
-                pipeline = await (self.transformers).pipeline('text-generation', 'Xenova/distilgpt2');
+                // --- FIX APPLIED HERE: Use the globally exposed 'transformersPipeline' function ---
+                if (typeof window.transformersPipeline === 'undefined') {
+                    throw new Error("transformersPipeline is undefined. Check console for module loading errors.");
+                }
+                
+                pipeline = await window.transformersPipeline('text-generation', 'Xenova/distilgpt2');
                 
                 thinkingDiv.remove();
                 appendBotMessage("🚀 AI Model Loaded! You can now ask general knowledge questions (e.g., 'What is the capital of Peru?') or continue with math/web questions.", false);
@@ -171,7 +179,8 @@
 
             } catch (error) {
                 console.error("LLM Initialization Failed:", error);
-                appendBotMessage("❌ LLM failed to load. Falling back to simple keyword mode. General knowledge questions will fail.", false);
+                // Fallback message is now clearer
+                appendBotMessage(`❌ LLM failed to load. Falling back to simple keyword mode. Error: ${error.message}. General knowledge questions will fail.`, false);
                 pipeline = 'FALLBACK'; 
             }
         }
@@ -191,6 +200,14 @@
         ];
 
         function getKeywordResponse(input) {
+            // Check for questioning facts
+            const isQuestioningFact = input.includes('u sure') || input.includes('are you sure') || input.includes('is that true') || input.includes('really');
+            if (isQuestioningFact) {
+                if (lastResponse.includes('client-side simulator') || lastResponse.includes('local knowledge') || lastResponse.includes('Math Result')) {
+                    return "Yes, I am certain. The information I provided is based on accurate, hardcoded data or direct calculation.";
+                }
+            }
+
             for (const item of KNOWLEDGE_BASE) {
                 if (item.keywords.some(keyword => input.includes(keyword))) {
                     return item.response;
@@ -237,8 +254,8 @@
 
             // --- Pre-processing for improved accuracy ---
             let processedInput = input.trim();
-            processedInput = processedInput.replace(/,/g, '.'); // Fix comma usage
-            processedInput = processedInput.replace(/([0-9)])\s*\(/g, '$1*('); // Implicit multiplication before parentheses
+            processedInput = processedInput.replace(/,/g, '.'); 
+            processedInput = processedInput.replace(/([0-9)])\s*\(/g, '$1*('); 
 
             try {
                 const result = math.evaluate(processedInput, mathScope);
@@ -359,7 +376,7 @@
                 const userDropMessage = `Attempting to analyze dropped file: **${fileName}**`;
                 let botResponse;
 
-                // --- Smarter File Type Analysis (Mimics file-type/Dropzone.js knowledge) ---
+                // --- Smarter File Type Analysis ---
                 if (['exe', 'bat', 'sh', 'vbs', 'com', 'js', 'php'].includes(extension) || fileType.includes('script')) {
                     botResponse = `**SECURITY ALERT** 🚨: File **${fileName}** (${fileSize} MB) received. This is a potential **executable or script file**. I cannot execute or read this file for security reasons. File type: \`${fileType}\`.`;
                 } else if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'ico'].includes(extension) || fileType.startsWith('image/')) {
