@@ -86,7 +86,7 @@
             #loginContainer { margin: 20px; padding: 20px; }
         }
         
-        /* --- iPad 10th Gen Optimization (768px-1180px) --- */
+        /* iPad Optimization */
         @media (min-width: 768px) and (max-width: 1180px) {
             body { 
                 padding: 10px; 
@@ -145,19 +145,16 @@
         let lastResponseType = 'none'; 
         let currentSessionId = 'session_' + Date.now();
         const HISTORY_ROOT_KEY = 'CLIENT_AI_CHAT_HISTORY';
-        const mathScope = {}; 
-        let pipeline = null; 
+        const mathScope = {}; // For Math.js variable storage
+        let pipeline = null; // The loaded LLM pipeline
 
         // UI Element References
         const chatBox = document.getElementById('chatBox');
         const userInput = document.getElementById('userInput');
         const chatList = document.querySelector('.chat-list');
-        const newChatBtn = document.querySelector('.new-chat-btn');
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const chatbotContainer = document.getElementById('gameSection');
 
 // ---------------------------
-// 1. LOGIN & LLM INITIALIZATION (Updated Fallback Model)
+// 1. LOGIN & LLM INITIALIZATION (Optimized for iPad Stability)
 // ---------------------------
 
         function validateLogin() {
@@ -166,67 +163,60 @@
             const errorMessage = document.getElementById("error-message");
 
             if (username === "ryzen" && password === "4060") {
-                alert("Login successful! The smart model (Mistral 7B) will attempt to load. If it fails, a powerful, non-gated alternative (TinyLlama-1.1B) will load automatically.");
+                alert("Login successful! Loading AI models optimized for client-side stability.");
                 document.getElementById("loginContainer").style.display = "none";
                 document.getElementById("gameSection").style.display = "flex";
 
                 initializeChatbotUI();
-                initializeLLM(); 
+                initializeLLM(); // Start the optimized LLM loading process
 
             } else {
                 errorMessage.textContent = "Invalid username or password. Try again.";
             }
         }
 
-        async function initializeFallbackLLM() {
-             try {
-                // CHANGED: TinyLlama is much better than DistilGPT2, making the fallback useful.
-                const modelName = 'Xenova/TinyLlama-1.1B-Chat-v1.0'; 
-                const thinkingDiv = appendBotThinking(`Initializing Fallback AI Model (**TinyLlama 1.1B** ~500 MB)...`);
-                
-                pipeline = await window.transformersPipeline('text-generation', modelName);
-                thinkingDiv.remove();
-                appendBotMessage(`⚠️ **Smarter Fallback Model Loaded!** The main model failed (401/gating error). I'm running **TinyLlama 1.1B**.`, false);
-             } catch (e) {
-                console.error("Fallback LLM Failed:", e);
-                // Last ditch effort if TinyLlama also fails (e.g., due to low memory on older devices)
-                const thinkingDiv = appendBotThinking(`TinyLlama failed. Loading basic **DistilGPT2** (~260 MB)...`);
-                try {
-                     pipeline = await window.transformersPipeline('text-generation', 'Xenova/distilgpt2');
-                     thinkingDiv.remove();
-                     appendBotMessage(`⚠️ **Basic Fallback Loaded (DistilGPT2).** Answers will be simple.`, false);
-                } catch (e2) {
-                    thinkingDiv.remove();
-                    appendBotMessage(`❌ **ERROR:** All AI models failed to load. Only Math and Keyword answers will work.`, false);
-                    pipeline = 'FALLBACK';
-                }
-             }
-        }
-
         async function initializeLLM() {
+            const TINYLLAMA_MODEL = 'Xenova/TinyLlama-1.1B-Chat-v1.0'; // Best mobile option (~500 MB)
+            const DISTILGPT2_MODEL = 'Xenova/distilgpt2'; // Smallest functional model (~260 MB)
+            
+            // 1. Attempt to load TinyLlama 1.1B
             try {
-                const thinkingDiv = appendBotThinking('Initializing Primary AI Model (Downloading & Compiling Mistral 7B Instruct ~1.7 GB)...');
+                const thinkingDiv = appendBotThinking(`Initializing **Smart Mobile Model (TinyLlama 1.1B)**...`);
                 
                 if (typeof window.transformersPipeline === 'undefined') {
-                    throw new Error("transformersPipeline is undefined.");
+                    throw new Error("transformersPipeline library is missing.");
                 }
                 
-                const modelName = 'Xenova/Mistral-7B-Instruct-v0.2'; 
-                pipeline = await window.transformersPipeline('text-generation', modelName); 
+                pipeline = await window.transformersPipeline('text-generation', TINYLLAMA_MODEL); 
                 
                 thinkingDiv.remove();
-                appendBotMessage(`🎉 **Mistral 7B Instruct Model Loaded!** I'm using the best model for deep answers.`, false);
+                appendBotMessage(`🎉 **TinyLlama 1.1B Loaded!** The best model for your iPad is active for general and creative tasks.`, false);
                 userInput.focus();
 
             } catch (error) {
-                console.error("LLM Initialization Failed:", error);
-                await initializeFallbackLLM(); 
+                console.error("TinyLlama failed to load. Falling back to minimal model.", error);
+
+                // 2. If TinyLlama fails (memory/timeout), load the smallest model (DistilGPT2)
+                try {
+                    const thinkingDiv = appendBotThinking(`TinyLlama failed. Loading minimal **DistilGPT2** (~260 MB) for guaranteed stability...`);
+                    
+                    pipeline = await window.transformersPipeline('text-generation', DISTILGPT2_MODEL);
+                    
+                    thinkingDiv.remove();
+                    appendBotMessage(`⚠️ **Minimal Model Loaded (DistilGPT2).** Only simple, short answers will be generated.`, false);
+
+                } catch (e2) {
+                    // 3. Final Fallback: Pure JavaScript mode
+                    console.error("Critical Failure: All AI models failed to load.", e2);
+                    appendBotMessage(`❌ **ERROR:** AI Generation Failed. Only **Math.js** and **Keyword** answers will work.`, false);
+                    pipeline = 'FALLBACK';
+                }
             }
         }
 
 
 // ---------------------------
-// 2. CORE CHATBOT LOGIC (Optimized Dispatcher)
+// 2. CORE CHATBOT LOGIC (Optimized Hybrid Dispatcher)
 // ---------------------------
 
         // LOCAL KNOWLEDGE BASE (Guaranteed answers)
@@ -234,11 +224,11 @@
             { keywords: ['hello', 'hi', 'hey'], response: "Hello! I am an advanced **client-side** simulator running entirely in your browser. I can perform **math**, analyze **files**, and generate novel answers using a **local LLM**." },
             { keywords: ['html', 'what html', 'define html'], response: "HTML stands for **HyperText Markup Language**. It forms the structure of web pages." },
             { keywords: ['capital of peru', 'peru capital'], response: "The capital and largest city of Peru is **Lima**. (Local knowledge confirmed for speed and accuracy.)" },
-            { keywords: ['what model', 'model are you'], response: "I use the highly optimized **Mistral 7B Instruct** model for generative intelligence. If I'm slower, I'm running the **TinyLlama 1.1B** fallback." },
+            { keywords: ['what model', 'model are you'], response: "I use the highly optimized **TinyLlama 1.1B** model for generative intelligence. If I am slow, I am likely using the **DistilGPT2** fallback." },
         ];
 
         function getKeywordResponse(input) {
-            // Contextual verification check
+            // Contextual verification check (using last response for context)
             const isVerification = input.includes('u sure') || input.includes('are you sure') || input.includes('is that true');
             
             if (isVerification && lastResponseType === 'math') {
@@ -251,10 +241,6 @@
                    return `Yes, the math is certain. The expression \`${lastUserQuery.replace(/\*/g, '\\times').replace(/x/g, '\\times')}\` was solved by the **Math.js** library, yielding **${mathResult}**.`;
                 }
             }
-            if (isVerification && lastResponse.includes('Lima is the capital of Peru')) {
-                return "Yes, I am completely certain. That specific fact is pulled directly from my **hardcoded knowledge base** for guaranteed accuracy.";
-            }
-
             // Normal Keyword Check
             for (const item of KNOWLEDGE_BASE) {
                 if (item.keywords.some(keyword => input.includes(keyword))) {
@@ -265,9 +251,9 @@
         }
 
         async function getLLMResponse(userText) {
-            // CHANGED: Simplified "limted" messaging based on pipeline status
+            // Handle LLM failure state gracefully
             if (pipeline === 'FALLBACK') {
-                return "The current local AI model is small and cannot answer that. Try asking about a simple concept.";
+                return "The local AI model failed to load. Only Math and Keyword answers are available.";
             }
             if (!pipeline) {
                 return "The local AI model is still loading. Please wait a moment.";
@@ -282,10 +268,10 @@
             ).join('');
             
             const prompt = `<s>${history} [INST] ${userText} [/INST]`;
-            const modelName = pipeline.model.includes('Mistral') ? 'Mistral 7B' : 'TinyLlama 1.1B';
+            const modelName = pipeline.model.includes('TinyLlama') ? 'TinyLlama 1.1B' : 'DistilGPT2';
 
             const output = await pipeline(prompt, {
-                max_new_tokens: 120, // SLIGHTLY OPTIMIZED: Shorter max tokens for faster output
+                max_new_tokens: 120, // Optimized for speed
                 do_sample: true,
                 temperature: 0.8,
             });
@@ -299,6 +285,7 @@
         }
 
         function clientSideMath(input) {
+            // Math.js configuration and evaluation logic
             math.config({ implicit: 'auto' });
             const mathPattern = /\d|[+\-x*/=^()]/i;
             if (!mathPattern.test(input)) return null;
@@ -307,12 +294,6 @@
 
             try {
                 const result = math.evaluate(processedInput, mathScope);
-                if (typeof result === 'function' || typeof result === 'undefined') {
-                    if (input.includes('=') && !input.includes('==') && !input.includes('!=')) {
-                        return `Variable assignment successful! Math scope includes: ${Object.keys(mathScope).join(', ')}`;
-                    }
-                    return null;
-                }
                 
                 if (typeof result === 'number' || result.constructor.name === 'BigNumber' || result.constructor.name === 'Complex') {
                     let output = result.toString();
@@ -343,13 +324,13 @@
 
             lastResponseType = 'none'; 
             
-            // 1. Check for Math (Fastest, most accurate)
+            // 1. Math Path (Fastest, most accurate)
             let finalResponse = clientSideMath(userText); 
             if (finalResponse) {
                 lastResponseType = 'math';
             }
 
-            // 2. Check for Keyword (Instant, accurate facts)
+            // 2. Keyword Path (Instant, accurate facts)
             if (!finalResponse) {
                 finalResponse = getKeywordResponse(userText.toLowerCase()); 
                 if (finalResponse) {
@@ -357,7 +338,7 @@
                 }
             }
             
-            // 3. Use LLM (Slowest, creative tasks only)
+            // 3. LLM Path (Slowest, creative tasks only)
             if (!finalResponse) {
                 finalResponse = await getLLMResponse(userText); 
                 if (finalResponse) {
@@ -380,7 +361,7 @@
         }
 
 // ---------------------------
-// 3. DRAG & DROP (Unchanged)
+// 3. DRAG & DROP & UI UTILITIES
 // ---------------------------
 
         function setupDragAndDrop() {
@@ -425,14 +406,10 @@
                 // --- Smarter File Type Analysis ---
                 if (['exe', 'bat', 'sh', 'vbs', 'com', 'js', 'php'].includes(extension) || fileType.includes('script')) {
                     botResponse = `**SECURITY ALERT** 🚨: File **${fileName}** (${fileSize} MB) received. This is a potential **executable or script file**. I cannot execute or read this file for security reasons. File type: \`${fileType}\`.`;
-                } else if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'ico'].includes(extension) || fileType.startsWith('image/')) {
+                } else if (fileType.startsWith('image/')) {
                     botResponse = `File **${fileName}** (${fileSize} MB) received. This is a common **Image File**. Its MIME type is: \`${fileType}\`. I can identify it as a visual asset.`;
-                } else if (['pdf', 'doc', 'docx', 'xlsx', 'pptx', 'odt'].includes(extension) || fileType.includes('document')) {
+                } else if (fileType.includes('document') || fileType.includes('pdf')) {
                     botResponse = `File **${fileName}** (${fileSize} MB) received. This appears to be a common **Document or Spreadsheet File**. MIME type: \`${fileType}\`.`;
-                } else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(extension) || fileType.includes('compressed') || fileType.includes('archive')) {
-                    botResponse = `File **${fileName}** (${fileSize} MB) received. This is recognized as a **Compressed Archive**. MIME type: \`${fileType}\`.`;
-                } else if (['html', 'htm', 'css', 'json', 'xml'].includes(extension) || fileType.startsWith('text/')) {
-                    botResponse = `File **${fileName}** (${fileSize} MB) received. This looks like a common **Web/Text/Code File**. MIME type: \`${fileType}\`.`;
                 } else {
                     botResponse = `File **${fileName}** (${fileSize} MB) received. This is an **Unknown or Uncommon File Type** (\`${extension}\`). MIME type: \`${fileType}\`.`;
                 }
@@ -447,10 +424,6 @@
                 }, 500);
             }
         }
-
-// ---------------------------
-// 4. HISTORY & UTILITY FUNCTIONS (Unchanged)
-// ---------------------------
 
         function appendUserMessage(text) {
             const userMessageDiv = document.createElement('div');
@@ -481,6 +454,7 @@
                 lastResponse = text; 
             }
 
+            // Render KaTeX for math output
             if (window.renderMathInElement) {
                 try {
                     window.renderMathInElement(botMessageDiv, {
@@ -494,6 +468,10 @@
                 }
             }
         }
+
+// ---------------------------
+// 4. HISTORY MANAGEMENT
+// ---------------------------
 
         function userStorageKey() { return HISTORY_ROOT_KEY; }
 
@@ -538,7 +516,7 @@
         }
 
         function startNewChat() {
-            Object.keys(mathScope).forEach(k => delete mathScope[k]);
+            Object.keys(mathScope).forEach(k => delete mathScope[k]); // Clear Math.js state
             saveCurrentChat();
             currentSessionId = 'session_' + Date.now();
             lastResponse = '';
@@ -648,11 +626,14 @@
         }
 
 // ---------------------------
-// 5. INITIALIZATION (Unchanged)
+// 5. INITIALIZATION
 // ---------------------------
 
         function initializeChatbotUI() {
             const sendBtn = document.getElementById('sendBtn');
+            const newChatBtn = document.querySelector('.new-chat-btn');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+
             if (sendBtn) sendBtn.addEventListener('click', sendMessage);
             if (userInput) userInput.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') sendMessage();
