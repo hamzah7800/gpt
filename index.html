@@ -1,82 +1,590 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Improved App — iPad & PC Friendly</title>
-  <meta name="description" content="Responsive web app with Google Sign-In (Firebase) and PWA support, optimised for iPad and PC." />
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icon-192.jpg">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client-Side AI Simulator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-nK4wG4K23o/w4fB0g/m7rA9j6G/Y99/N4J59y4/54A==" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-y0Y7/qNqjA/L/jN8G7O98L7E7N5H4y2n9hY3g/C9/N9/A7O7F6A7N5E7N9N9N4N4" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-qGf1rL458L8E7N9N9N4N4N4N4N4N4N4N4N4N4N4N4N4" onload="renderMathInElement(document.body);" crossorigin="anonymous"></script>
+    
+    <style>
+        /* General Setup */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f7f9; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        
+        /* Login Styles */
+        #loginContainer { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; }
+        #loginContainer h1 { color: #1e88e5; margin-bottom: 30px; }
+        #loginContainer input[type="text"], #loginContainer input[type="password"] { width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        #loginContainer button { width: 100%; padding: 12px; background-color: #1e88e5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; transition: background-color 0.3s; }
+        #loginContainer button:hover { background-color: #1565c0; }
+        #error-message { color: #e53935; margin-top: 15px; font-weight: bold; }
+
+        /* Chatbot Styles */
+        .chatbot-container { display: none; /* Hidden until login */
+            background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); width: 90vw; max-width: 1000px; height: 90vh; max-height: 800px;
+            overflow: hidden; display: flex; transition: all 0.3s ease; }
+        .sidebar { width: 250px; background-color: #2c3e50; color: #ecf0f1; padding: 20px 0; border-right: 1px solid #34495e; display: flex; flex-direction: column; }
+        .sidebar h2 { padding: 0 20px; font-size: 1.2em; border-bottom: 1px solid #34495e; padding-bottom: 10px; margin-bottom: 15px; }
+        .new-chat-btn { margin: 0 20px 20px 20px; padding: 10px; background-color: #1e88e5; color: white; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.3s; }
+        .new-chat-btn:hover { background-color: #1565c0; }
+        .chat-list { list-style: none; padding: 0; margin: 0; flex-grow: 1; overflow-y: auto; }
+        .chat-item { padding: 12px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background-color 0.2s; }
+        .chat-item:hover, .chat-item.active { background-color: #34495e; }
+        .chat-title { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .delete-chat-btn { background: none; border: none; color: #e74c3c; cursor: pointer; margin-left: 10px; font-size: 14px; transition: color 0.2s; }
+        .delete-chat-btn:hover { color: #c0392b; }
+
+        /* Main Chat Interface */
+        .chat-interface { flex-grow: 1; display: flex; flex-direction: column; position: relative; }
+        .chat-header { background: #f4f7f9; padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        #sidebarToggle { background: none; border: none; font-size: 20px; cursor: pointer; color: #1e88e5; margin-right: 15px; display: none; } /* Show on smaller screens */
+        #chatBox { flex-grow: 1; padding: 20px; overflow-y: auto; background-color: #f9f9f9; }
+
+        /* Messages */
+        .message { padding: 10px 15px; margin-bottom: 15px; border-radius: 18px; max-width: 80%; line-height: 1.5; }
+        .user-message { background-color: #e3f2fd; color: #1e88e5; align-self: flex-end; margin-left: auto; border-bottom-right-radius: 4px; }
+        .bot-message { background-color: #f0f0f0; color: #333; margin-right: auto; border-bottom-left-radius: 4px; }
+        .thinking-message { background-color: #fff8e1; color: #ff9800; border: 1px solid #ffcc80; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
+        .dot { opacity: 0; animation: dot-fade 1s infinite; }
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes dot-fade { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+
+        /* Input Container */
+        .input-container { padding: 15px 20px; border-top: 1px solid #eee; display: flex; background: #fff; }
+        #userInput { flex-grow: 1; padding: 12px; border: 1px solid #ddd; border-radius: 20px; margin-right: 10px; font-size: 16px; }
+        #sendBtn { background-color: #1e88e5; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: background-color 0.3s; }
+        #sendBtn:hover { background-color: #1565c0; }
+
+        /* Drop Zone */
+        #dropZone { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(30, 136, 229, 0.8); color: white; display: none; justify-content: center; align-items: center; font-size: 1.5em; z-index: 10; pointer-events: none; }
+        #dropZone.hover { display: flex; }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .sidebar { position: absolute; z-index: 20; height: 100%; transform: translateX(-100%); transition: transform 0.3s ease; }
+            .chatbot-container.sidebar-visible .sidebar { transform: translateX(0); }
+            #sidebarToggle { display: block; }
+            .chat-header { justify-content: flex-start; }
+            .chat-interface { overflow: hidden; }
+        }
+        @media (max-width: 600px) {
+            .chatbot-container { width: 100vw; height: 100vh; border-radius: 0; }
+            #loginContainer { margin: 20px; padding: 20px; }
+        }
+    </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div class="brand">
-        <img src="icon-192.jpg" alt="app icon">
-        <h1>Improved App — iPad & PC</h1>
-      </div>
-      <nav aria-label="Main actions">
-        <button id="installBtn" class="signout-btn" style="display:none">Install PWA</button>
-      </nav>
-    </header>
 
-    <main>
-      <section class="card content" aria-labelledby="welcome">
-        <div class="hero" id="welcome">
-          <h2>Welcome!</h2>
-          <p>This web app is optimised for both iPad (touch) and desktop (keyboard & mouse). Use the Google sign-in on the right to sign in and sync your experience.</p>
+    <div id="loginContainer">
+        <h1>Welcome to the Client-Side AI</h1>
+        <p>Login to access the simulator.</p>
+        <input type="text" id="username" placeholder="Username (ryzen)">
+        <input type="password" id="password" placeholder="Password (4060)">
+        <button onclick="validateLogin()">Login</button>
+        <div id="error-message"></div>
+    </div>
+
+    <div id="gameSection" class="chatbot-container">
+        <div class="sidebar">
+            <h2>Chat History</h2>
+            <button class="new-chat-btn" onclick="startNewChat()">+ New Chat</button>
+            <ul class="chat-list">
+                </ul>
         </div>
-
-        <div class="card" aria-label="Features">
-          <h3>What I improved</h3>
-          <ul>
-            <li>Responsive layout with touch-first buttons and larger tap targets.</li>
-            <li>Keyboard-accessible controls and visible focus states for PC users.</li>
-            <li>Progressive Web App support & service worker registration.</li>
-            <li>Google Sign-In implemented via Firebase Authentication (client-side).</li>
-            <li>Accessibility & performance improvements.</li>
-          </ul>
-        </div>
-      </section>
-
-      <aside class="card auth" aria-labelledby="auth-heading">
-        <h3 id="auth-heading">Sign in</h3>
-        <div id="signedOut">
-          <button id="googleSignIn" class="signin-btn" aria-label="Sign in with Google">
-            <svg width="20" height="20" viewBox="0 0 533.5 544.3" aria-hidden="true">
-              <path fill="#4285f4" d="..." />
-            </svg>
-            Continue with Google
-          </button>
-          <p style="color:var(--muted);font-size:0.9rem;margin:0;">Signing in lets you save preferences and sync across devices.</p>
-        </div>
-
-        <div id="signedIn" style="display:none">
-          <div class="user">
-            <img id="avatar" src="" alt="user avatar">
-            <div class="meta">
-              <div id="displayName" style="font-weight:700"></div>
-              <small id="email"></small>
+        
+        <div class="chat-interface">
+            <div id="dropZone">Drop files to simulate upload (Client-side only)</div>
+            <div class="chat-header">
+                <button id="sidebarToggle" onclick="toggleSidebar()">&#9776;</button>
+                <h3>Client-Side JS Simulator</h3>
             </div>
-          </div>
-          <div style="display:flex;gap:10px;margin-top:8px">
-            <button id="signOutBtn" class="signout-btn">Sign out</button>
-            <button id="revokeBtn" class="signout-btn">Disconnect</button>
-          </div>
+            
+            <div id="chatBox">
+                </div>
+
+            <div class="input-container">
+                <input type="text" id="userInput" placeholder="Ask me about HTML, CSS, or a simple math problem (e.g., 5*2+3)..." autocomplete="off">
+                <button id="sendBtn" onclick="sendMessage()">&#9658;</button>
+            </div>
         </div>
+    </div>
 
-        <div style="margin-top:10px;color:var(--muted);font-size:0.9rem">Tip: Add this page to your home screen on iPad for an app-like experience.</div>
-      </aside>
-    </main>
+    <script>
+        // GLOBAL STATE VARIABLES (Replaced Firebase/Auth variables)
+        let lastResponse = '';
+        let currentSessionId = 'session_' + Date.now();
+        const HISTORY_ROOT_KEY = 'CLIENT_AI_CHAT_HISTORY';
+        const mathScope = {}; // To store math variables (e.g., a=5)
 
-    <footer style="width:100%;max-width:1100px;opacity:0.7;font-size:0.9rem">
-      <p>Built for touch & desktop · Replace the Firebase config in <code>script.js</code> with your project's config to enable Google Sign-In.</p>
-    </footer>
-  </div>
+        // UI Element References
+        const chatBox = document.getElementById('chatBox');
+        const userInput = document.getElementById('userInput');
+        const chatList = document.querySelector('.chat-list');
+        const newChatBtn = document.querySelector('.new-chat-btn');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const chatbotContainer = document.getElementById('gameSection'); // Renamed from chatbot-container for the login logic
 
-  <script type="module" src="script.js"></script>
+// ---------------------------
+// 1. LOGIN LOGIC (From Prompt)
+// ---------------------------
+
+        function validateLogin() {
+            const username = document.getElementById("username").value.trim();
+            const password = document.getElementById("password").value.trim();
+            const errorMessage = document.getElementById("error-message");
+
+            // Static, client-side credentials
+            if (username === "ryzen" && password === "4060") {
+                alert("Login successful!");
+                // Hide the login container and show the games/chatbot section
+                document.getElementById("loginContainer").style.display = "none";
+                document.getElementById("gameSection").style.display = "flex"; // Use flex to match CSS
+                
+                // Initialize the chatbot state after successful login
+                initializeChatbotUI();
+
+            } else {
+                errorMessage.textContent = "Invalid username or password. Try again.";
+            }
+        }
+
+// ---------------------------
+// 2. CHATBOT CORE LOGIC (From Prompt, simplified)
+// ---------------------------
+
+        // LOCAL KNOWLEDGE BASE (From Prompt)
+        const KNOWLEDGE_BASE = [
+            { keywords: ['hello', 'hi', 'hey', 'bonjour', 'salam'], response: "Hello! I am an advanced **client-side** simulator running entirely in your browser. I can answer local knowledge questions and perform **basic math**." },
+            { keywords: ['how are you', 'how r u'], response: "I don't have feelings, but I am operating perfectly using only your browser's processing power! Ready for your next query." },
+            { keywords: ['nice', 'cool', 'great answer', 'ok', 'thanks', 'thank you'], response: "You're very welcome! I'm glad I could assist. Feel free to ask another question." },
+            { keywords: ['html', 'what html', 'define html'], response: "HTML stands for **HyperText Markup Language**. It is the standard markup language for documents designed to be displayed in a web browser. (Local knowledge confirmed.)" },
+            { keywords: ['css', 'what css', 'define css', 'use css'], response: "CSS stands for **Cascading Style Sheets**. It is a style sheet language used for describing the presentation of a document written in HTML. (Local knowledge confirmed.)" },
+            { keywords: ['javascript', 'js', 'programming'], response: "JavaScript is a high-level, interpreted scripting language that is primarily used for **client-side web development**." },
+            { keywords: ['area of a circle', 'circle area formula'], response: "The area of a circle is calculated using the formula: $A = \\pi r^2$. Try a simple calculation like '2*5'." },
+            { keywords: ['gravity', 'define gravity'], response: "Gravity is a fundamental force that attracts any objects with mass or energy. The constant is approximately $9.8 \\text{ m/s}^2$ on Earth." },
+            { keywords: ['what model', 'model are you'], response: "I operate using a custom, **client-side JavaScript model** using keyword matching and hardcoded data." },
+        ];
+
+        /**
+         * Attempts to solve the user input as a mathematical expression using math.js.
+         * @param {string} input - The user's message.
+         * @returns {string|null} The formatted result or null if it's not a math expression.
+         */
+        function clientSideMath(input) {
+            // Regex to check if the input looks like a calculation (numbers, operators, common math words)
+            const mathRegex = /^[\d\s\.\,\*\+\-\/\(\)a-zA-Z\^\=\!\%\&\|\<\>\[\]\{\}\:]+$/;
+            
+            // Allow common non-math words, but try math first if it looks right
+            const looksLikeMath = mathRegex.test(input) && !getBotResponse(input);
+
+            if (!looksLikeMath) return null;
+
+            try {
+                // Use math.evaluate with the session scope to allow for variable storage (e.g., a = 5)
+                const result = math.evaluate(input, mathScope);
+                
+                // If the result is a function or undefined, it's not a direct numerical answer
+                if (typeof result === 'function' || typeof result === 'undefined') {
+                    // Check if the operation resulted in a variable assignment (which returns undefined)
+                    if (input.includes('=') && !input.includes('==') && !input.includes('!=')) {
+                        return `Variable assignment successful! Current scope: ${Object.keys(mathScope).join(', ')}`;
+                    }
+                    return null; // Not a math expression with a simple output
+                }
+                
+                let output = result.toString();
+                // Format large numbers
+                if (result.constructor.name === 'BigNumber') {
+                    output = result.toPrecision(10);
+                }
+                
+                return `**Math Result:** $${input.replace(/ /g, '')} = ${output}$`;
+
+            } catch (e) {
+                // Ignore math errors and fall through to keyword matching
+                return null;
+            }
+        }
+
+        // CHATBOT CORE UI & LOGIC (From Prompt)
+        async function sendMessage() {
+            const userText = userInput.value.trim();
+            if (!userText) return;
+
+            appendUserMessage(userText);
+            saveCurrentChat(userText, null); 
+
+            userInput.value = '';
+            userInput.disabled = true;
+
+            const thinkingDiv = appendBotThinking();
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Attempt math first
+            let finalResponse = clientSideMath(userText);
+
+            // Local knowledge fallback
+            if (!finalResponse) {
+                finalResponse = getBotResponse(userText.toLowerCase());
+            }
+
+            // Generic fallback
+            if (finalResponse.includes("I'm sorry, I can't process completely novel inputs")) {
+                 finalResponse = `I am running entirely **client-side** and cannot fetch new information for '${userText}'. Please try a question about **Web Technologies** or a simple **math calculation** instead.`;
+            }
+
+            // Simulate thinking then display
+            setTimeout(() => {
+                thinkingDiv.remove();
+
+                const botMessageDiv = document.createElement('div');
+                botMessageDiv.className = 'message bot-message';
+                botMessageDiv.innerHTML = finalResponse;
+                chatBox.appendChild(botMessageDiv);
+                chatBox.scrollTop = chatBox.scrollHeight;
+
+                lastResponse = finalResponse;
+                saveCurrentChat(null, finalResponse);
+
+                userInput.disabled = false;
+                userInput.focus();
+
+                // Render KaTeX for math in the new bot message
+                if (window.renderMathInElement) {
+                    try {
+                        window.renderMathInElement(botMessageDiv, {
+                            delimiters: [
+                                { left: '$$', right: '$$', display: true },
+                                { left: '$', right: '$', display: false }
+                            ]
+                        });
+                    } catch (e) {
+                        console.warn('KaTeX render failed:', e);
+                    }
+                }
+
+                renderSidebar(loadHistory());
+            }, 800);
+        }
+
+        function appendUserMessage(text) {
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.className = 'message user-message';
+            userMessageDiv.textContent = text;
+            chatBox.appendChild(userMessageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function appendBotThinking() {
+            const thinkingDiv = document.createElement('div');
+            thinkingDiv.className = 'message bot-message thinking-message';
+            thinkingDiv.innerHTML = '...Thinking and checking sources<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+            chatBox.appendChild(thinkingDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return thinkingDiv;
+        }
+
+        function getBotResponse(input) {
+            const isQuestioningFact = input.includes('u sure') || input.includes('are you sure') || input.includes('is that true') || input.includes('really');
+            if (isQuestioningFact) {
+                if (lastResponse.includes('client-side simulator') || lastResponse.includes('local knowledge')) {
+                    return "Yes, I am certain. The information I provided is based on accurate, hardcoded data from my internal knowledge base.";
+                } else {
+                    return "I can only confirm facts I've just stated. Could you repeat the specific piece of information you're questioning?";
+                }
+            }
+
+            for (const item of KNOWLEDGE_BASE) {
+                if (item.keywords.some(keyword => input.includes(keyword))) {
+                    return item.response;
+                }
+            }
+
+            return "I'm sorry, I can't process completely novel inputs like that or search the internet. I can answer questions about **Science, Math, Web Technologies, or my own simulated model**. Try asking: **'What is your model?'**";
+        }
+
+// ---------------------------
+// 3. HISTORY & UI MANAGEMENT
+// ---------------------------
+
+        // Simplified storage key (no need for user ID since there's no auth)
+        function userStorageKey() {
+            return HISTORY_ROOT_KEY;
+        }
+
+        function loadHistory() {
+            const key = userStorageKey();
+            const historyData = localStorage.getItem(key);
+            const sessions = historyData ? JSON.parse(historyData) : {};
+
+            if (!sessions[currentSessionId]) {
+                currentSessionId = 'session_' + Date.now();
+                sessions[currentSessionId] = [{
+                    type: 'bot',
+                    text: "Hello! I am an advanced JavaScript simulator with a vast knowledge base. Ask me anything."
+                }];
+                localStorage.setItem(key, JSON.stringify(sessions));
+            }
+
+            return sessions;
+        }
+
+        function saveHistory(sessions) {
+            const key = userStorageKey();
+            localStorage.setItem(key, JSON.stringify(sessions));
+            localStorage.setItem('currentSessionId', currentSessionId);
+        }
+
+        function renderChatBox(messages) {
+            if (!chatBox) return;
+            chatBox.innerHTML = '';
+            (messages || []).forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${msg.type}-message`;
+                messageDiv.innerHTML = msg.text;
+                chatBox.appendChild(messageDiv);
+
+                // Re-render KaTeX on loading history
+                if (msg.type === 'bot' && window.renderMathInElement) {
+                    try {
+                        window.renderMathInElement(messageDiv, {
+                            delimiters: [
+                                { left: '$$', right: '$$', display: true },
+                                { left: '$', right: '$', display: false }
+                            ]
+                        });
+                    } catch (e) { console.warn('KaTeX render error for history:', e); }
+                }
+            });
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function startNewChat() {
+            // Clear math scope for the new chat
+            Object.keys(mathScope).forEach(k => delete mathScope[k]);
+            saveCurrentChat(); 
+            currentSessionId = 'session_' + Date.now();
+            lastResponse = '';
+
+            const newSession = [{
+                type: 'bot',
+                text: "New conversation started! I am an advanced JavaScript simulator with a vast knowledge base. **Math variables have been cleared.** Ask me anything."
+            }];
+
+            const allSessions = loadHistory();
+            allSessions[currentSessionId] = newSession;
+            saveHistory(allSessions);
+
+            renderChatBox(newSession);
+            renderSidebar(allSessions);
+        }
+
+        function saveCurrentChat(userText, botResponse) {
+            const allSessions = loadHistory();
+            let currentSession = allSessions[currentSessionId] || [];
+
+            if (userText) {
+                currentSession.push({ type: 'user', text: userText });
+            }
+            if (botResponse) {
+                currentSession.push({ type: 'bot', text: botResponse });
+            }
+
+            if (currentSession.length > 0) {
+                allSessions[currentSessionId] = currentSession;
+                saveHistory(allSessions);
+                if (userText || botResponse) {
+                    renderSidebar(allSessions);
+                }
+            }
+        }
+
+        function renderSidebar(sessions) {
+            if (!chatList) return;
+            chatList.innerHTML = '';
+            const sessionKeys = Object.keys(sessions).reverse();
+
+            sessionKeys.forEach(id => {
+                const messages = sessions[id];
+                const firstUserMsg = messages.find(m => m.type === 'user');
+                const titleText = firstUserMsg ? (firstUserMsg.text.substring(0, 30) + (firstUserMsg.text.length > 30 ? '...' : '')) : 'New Chat (Simulated)';
+
+                const listItem = document.createElement('li');
+                listItem.className = 'chat-item';
+                if (id === currentSessionId) {
+                    listItem.classList.add('active');
+                }
+
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'chat-title';
+                titleSpan.textContent = titleText;
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-chat-btn';
+                deleteBtn.textContent = '🗑️';
+
+                titleSpan.addEventListener('click', () => switchChat(id, sessions));
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteChat(id);
+                });
+
+                listItem.dataset.sessionId = id;
+                listItem.appendChild(titleSpan);
+                listItem.appendChild(deleteBtn);
+
+                chatList.appendChild(listItem);
+            });
+
+            // Ensure active item is visible
+            const activeItemElement = chatList.querySelector('.chat-item.active');
+            if (activeItemElement) {
+                activeItemElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        function switchChat(sessionId, sessions) {
+            saveCurrentChat();
+            currentSessionId = sessionId;
+            const messages = sessions[sessionId];
+            renderChatBox(messages);
+
+            document.querySelectorAll('.chat-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.sessionId === sessionId) {
+                    item.classList.add('active');
+                }
+            });
+
+            lastResponse = messages[messages.length - 1]?.text || '';
+        }
+
+        function deleteChat(sessionIdToDelete) {
+            if (!confirm("Are you sure you want to delete this chat history?")) return;
+
+            const allSessions = loadHistory();
+            delete allSessions[sessionIdToDelete];
+            saveHistory(allSessions);
+
+            if (sessionIdToDelete === currentSessionId) {
+                const sessionKeys = Object.keys(allSessions).reverse();
+                if (sessionKeys.length > 0) {
+                    switchChat(sessionKeys[0], allSessions);
+                } else {
+                    startNewChat();
+                }
+            } else {
+                renderSidebar(allSessions);
+            }
+        }
+
+        function toggleSidebar() {
+            const container = document.getElementById('gameSection');
+            if (!container) return;
+            container.classList.toggle('sidebar-visible');
+        }
+
+        // DRAG & DROP (simplified from your provided code)
+        function setupDragAndDrop() {
+            const dropTarget = document.querySelector('.chat-interface');
+            const dropZone = document.getElementById('dropZone');
+            if (!dropTarget || !dropZone) return;
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropTarget.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            dropTarget.addEventListener('dragenter', (e) => {
+                if (e.target.closest('.chat-interface') && !e.target.closest('.input-container')) {
+                    dropZone.classList.add('hover');
+                }
+            }, false);
+
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('hover'), false);
+            dropTarget.addEventListener('drop', () => dropZone.classList.remove('hover'), false);
+
+            dropTarget.addEventListener('drop', handleDrop, false);
+
+            function handleDrop(e) {
+                let dt = e.dataTransfer;
+                let files = dt.files;
+                if (files.length === 0) return;
+
+                const fileName = files[0].name;
+                const fileSize = (files[0].size / 1024 / 1024).toFixed(2);
+
+                const userDropMessage = `Attempting to upload file: ${fileName}`;
+                let botDropResponse;
+
+                if (fileName.toLowerCase().endsWith('.bat') || fileName.toLowerCase().endsWith('.exe')) {
+                    botDropResponse = `**SECURITY ALERT:** File **${fileName}** (${fileSize} MB) received. As a client-side simulator, I cannot execute or read this file for security reasons. Try asking about **CSS** instead.`;
+                } else {
+                    botDropResponse = `File **${fileName}** (${fileSize} MB) received. As a client-side simulator, I cannot process the content, but the drag-and-drop feature works! Try a simple math question instead.`;
+                }
+
+                appendUserMessage(userDropMessage);
+                userInput.disabled = true;
+
+                setTimeout(() => {
+                    const botMessageDiv = document.createElement('div');
+                    botMessageDiv.className = 'message bot-message';
+                    botMessageDiv.innerHTML = botDropResponse;
+                    chatBox.appendChild(botMessageDiv);
+                    chatBox.scrollTop = chatBox.scrollHeight;
+
+                    saveCurrentChat(userDropMessage, botDropResponse);
+                    lastResponse = botDropResponse;
+
+                    userInput.disabled = false;
+                    userInput.focus();
+                }, 500);
+            }
+        }
+
+
+// ---------------------------
+// 4. INITIALIZATION
+// ---------------------------
+
+        function initializeChatbotUI() {
+            // Wire input send -> Enter key + send button if present
+            const sendBtn = document.getElementById('sendBtn');
+            if (sendBtn) {
+                sendBtn.addEventListener('click', sendMessage);
+            }
+            if (userInput) {
+                userInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') sendMessage();
+                });
+            }
+
+            if (newChatBtn) newChatBtn.addEventListener('click', startNewChat);
+            if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
+
+            // Setup drag & drop
+            setupDragAndDrop();
+
+            // Load initial state
+            const sessions = loadHistory();
+            const currentSession = sessions[currentSessionId];
+
+            // Render UI
+            renderSidebar(sessions);
+            renderChatBox(currentSession);
+        }
+
+        // Initial DOMContentLoaded is NOT needed because the login flow now calls initializeChatbotUI()
+        // after successful login.
+
+    </script>
 </body>
 </html>
