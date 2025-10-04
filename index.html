@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client-Side AI Simulator (iPad Optimized)</title>
+    <title>Client-Side AI Simulator (Optimized Hybrid)</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
     <script type="module">
@@ -87,7 +87,6 @@
         }
         
         /* --- iPad 10th Gen Optimization (768px-1180px) --- */
-        /* Targets common iPad widths (Portrait: 820px, Landscape: 1180px) */
         @media (min-width: 768px) and (max-width: 1180px) {
             body { 
                 padding: 10px; 
@@ -95,10 +94,10 @@
             #gameSection {
                 width: 98vw;
                 height: 98vh;
-                max-width: none; /* Allow it to fill the width */
+                max-width: none;
             }
             .sidebar {
-                width: 200px; /* A bit narrower in landscape for more chat space */
+                width: 200px;
             }
         }
     </style>
@@ -127,7 +126,7 @@
             <div class="chat-header">
                 <button id="sidebarToggle" onclick="toggleSidebar()">&#9776;</button>
                 <img src="icon-192.jpg" alt="AI Icon" class="header-icon">
-                <h3>Client-Side JS Simulator (Mistral 7B Fallback)</h3>
+                <h3>Client-Side JS Simulator (Optimized Hybrid AI)</h3>
             </div>
 
             <div id="chatBox">
@@ -143,11 +142,11 @@
     <script>
         // GLOBAL STATE VARIABLES
         let lastResponse = '';
-        let lastResponseType = 'none'; // <-- Tracks if last message was 'math', 'keyword', or 'llm'
+        let lastResponseType = 'none'; 
         let currentSessionId = 'session_' + Date.now();
         const HISTORY_ROOT_KEY = 'CLIENT_AI_CHAT_HISTORY';
         const mathScope = {}; 
-        let pipeline = null; // Global variable for the LLM pipeline
+        let pipeline = null; 
 
         // UI Element References
         const chatBox = document.getElementById('chatBox');
@@ -158,7 +157,7 @@
         const chatbotContainer = document.getElementById('gameSection');
 
 // ---------------------------
-// 1. LOGIN & LLM INITIALIZATION
+// 1. LOGIN & LLM INITIALIZATION (Updated Fallback Model)
 // ---------------------------
 
         function validateLogin() {
@@ -167,7 +166,7 @@
             const errorMessage = document.getElementById("error-message");
 
             if (username === "ryzen" && password === "4060") {
-                alert("Login successful! The Mistral 7B Instruct AI model will now attempt to download (~1.7 GB) and initialize. If it fails (due to 401/gating errors), a smaller, guaranteed model will load automatically.");
+                alert("Login successful! The smart model (Mistral 7B) will attempt to load. If it fails, a powerful, non-gated alternative (TinyLlama-1.1B) will load automatically.");
                 document.getElementById("loginContainer").style.display = "none";
                 document.getElementById("gameSection").style.display = "flex";
 
@@ -181,99 +180,82 @@
 
         async function initializeFallbackLLM() {
              try {
-                const thinkingDiv = appendBotThinking('Initializing Fallback AI Model (DistilGPT2 ~260 MB)...');
-                const modelName = 'Xenova/distilgpt2';
+                // CHANGED: TinyLlama is much better than DistilGPT2, making the fallback useful.
+                const modelName = 'Xenova/TinyLlama-1.1B-Chat-v1.0'; 
+                const thinkingDiv = appendBotThinking(`Initializing Fallback AI Model (**TinyLlama 1.1B** ~500 MB)...`);
+                
                 pipeline = await window.transformersPipeline('text-generation', modelName);
                 thinkingDiv.remove();
-                appendBotMessage(`⚠️ **Fallback Model Loaded (DistilGPT2).** The smarter model failed to download (likely a 401/gating error). Answers will be simple.`, false);
+                appendBotMessage(`⚠️ **Smarter Fallback Model Loaded!** The main model failed (401/gating error). I'm running **TinyLlama 1.1B**.`, false);
              } catch (e) {
                 console.error("Fallback LLM Failed:", e);
-                pipeline = 'FALLBACK';
+                // Last ditch effort if TinyLlama also fails (e.g., due to low memory on older devices)
+                const thinkingDiv = appendBotThinking(`TinyLlama failed. Loading basic **DistilGPT2** (~260 MB)...`);
+                try {
+                     pipeline = await window.transformersPipeline('text-generation', 'Xenova/distilgpt2');
+                     thinkingDiv.remove();
+                     appendBotMessage(`⚠️ **Basic Fallback Loaded (DistilGPT2).** Answers will be simple.`, false);
+                } catch (e2) {
+                    thinkingDiv.remove();
+                    appendBotMessage(`❌ **ERROR:** All AI models failed to load. Only Math and Keyword answers will work.`, false);
+                    pipeline = 'FALLBACK';
+                }
              }
         }
 
         async function initializeLLM() {
             try {
-                const thinkingDiv = appendBotThinking('Initializing AI Model (Downloading & Compiling Mistral 7B Instruct ~1.7 GB)... Final smart model attempt!');
+                const thinkingDiv = appendBotThinking('Initializing Primary AI Model (Downloading & Compiling Mistral 7B Instruct ~1.7 GB)...');
                 
                 if (typeof window.transformersPipeline === 'undefined') {
-                    throw new Error("transformersPipeline is undefined. Check console for module loading errors.");
+                    throw new Error("transformersPipeline is undefined.");
                 }
                 
-                // --- SWITCHING TO MISTRAL 7B: Best available public, capable model. ---
                 const modelName = 'Xenova/Mistral-7B-Instruct-v0.2'; 
-                
-                // Mistral is a decoder-only model, so the task is 'text-generation'
                 pipeline = await window.transformersPipeline('text-generation', modelName); 
                 
                 thinkingDiv.remove();
-                appendBotMessage(`🎉 **Mistral 7B Instruct Model Loaded!** This is the **most intelligent** model that should work client-side. Its answers will be much better than DistilGPT2.`, false);
+                appendBotMessage(`🎉 **Mistral 7B Instruct Model Loaded!** I'm using the best model for deep answers.`, false);
                 userInput.focus();
 
             } catch (error) {
                 console.error("LLM Initialization Failed:", error);
-                // Call the fallback function if the primary model fails.
                 await initializeFallbackLLM(); 
             }
         }
 
 
 // ---------------------------
-// 2. CORE CHATBOT LOGIC
+// 2. CORE CHATBOT LOGIC (Optimized Dispatcher)
 // ---------------------------
 
-        // LOCAL KNOWLEDGE BASE (Fallback for simple, guaranteed answers)
+        // LOCAL KNOWLEDGE BASE (Guaranteed answers)
         const KNOWLEDGE_BASE = [
-            { keywords: ['hello', 'hi', 'hey'], response: "Hello! I am an advanced **client-side** simulator running entirely in your browser. I can perform **math**, analyze **files**, and generate novel answers using an **LLM**." },
+            { keywords: ['hello', 'hi', 'hey'], response: "Hello! I am an advanced **client-side** simulator running entirely in your browser. I can perform **math**, analyze **files**, and generate novel answers using a **local LLM**." },
             { keywords: ['html', 'what html', 'define html'], response: "HTML stands for **HyperText Markup Language**. It forms the structure of web pages." },
-            { keywords: ['css', 'what css', 'define css'], response: "CSS stands for **Cascading Style Sheets**. It controls the presentation and style of web pages." },
-            { keywords: ['javascript', 'js'], response: "JavaScript is the programming language that enables interactive web content on the client-side." },
-            { keywords: ['area of a circle', 'circle area formula'], response: "The area of a circle is calculated using the formula: $A = \\pi r^2$." },
-            
-            // --- GUARANTEED FACTUAL ACCURACY ---
-            { keywords: ['what is the capital of peru', 'capital of peru', 'peru capital', 'capital of perú'], 
-              response: "The capital and largest city of Peru is **Lima**. (Local knowledge confirmed for speed and accuracy.)" 
-            },
-            
-            { keywords: ['what model', 'model are you'], response: "I use the highly optimized **Mistral 7B Instruct** model from the **Transformers.js** library for generative intelligence, all running on your browser's CPU. If I'm simple, the fallback **DistilGPT2** model is running." },
+            { keywords: ['capital of peru', 'peru capital'], response: "The capital and largest city of Peru is **Lima**. (Local knowledge confirmed for speed and accuracy.)" },
+            { keywords: ['what model', 'model are you'], response: "I use the highly optimized **Mistral 7B Instruct** model for generative intelligence. If I'm slower, I'm running the **TinyLlama 1.1B** fallback." },
         ];
 
         function getKeywordResponse(input) {
-            // This is the trigger check for verification questions
-            const isQuestioningFact = input.includes('u sure') || input.includes('are you sure') || input.includes('is that true') || input.includes('really');
+            // Contextual verification check
+            const isVerification = input.includes('u sure') || input.includes('are you sure') || input.includes('is that true');
             
-            if (isQuestioningFact) {
-                // --- CONTEXTUAL CHECK: Overrides static Lima response ---
-                if (lastResponseType === 'math') {
-                    // This means the last response was a math calculation (e.g., 266.5)
-                    
-                    const allSessions = loadHistory();
-                    const currentSession = allSessions[currentSessionId];
-                    // Find the original math query (it's the last user message before the math response)
-                    const lastUserQuery = currentSession.slice(-2).find(m => m.type === 'user')?.text || '';
-                    
-                    if (lastUserQuery) {
-                       // Re-run the math problem silently
-                       const verifiedResponse = clientSideMath(lastUserQuery);
-                       // Extract the clean result from the *output string*
-                       const mathResult = verifiedResponse.split('=')[1]?.trim() || 'the result.';
-                        
-                       // Provide a specific, correct verification for the calculation
-                       return `Yes, I am certain about the math. The expression \`${lastUserQuery.replace(/\*/g, '\\times').replace(/x/g, '\\times')}\` was solved by the **Math.js** library, which strictly adheres to the standard order of operations (PEMDAS/BODMAS), yielding **${mathResult}**.`;
-                    }
+            if (isVerification && lastResponseType === 'math') {
+                const allSessions = loadHistory();
+                const currentSession = allSessions[currentSessionId];
+                const lastUserQuery = currentSession.slice(-2).find(m => m.type === 'user')?.text || '';
+                if (lastUserQuery) {
+                   const verifiedResponse = clientSideMath(lastUserQuery);
+                   const mathResult = verifiedResponse.split('=')[1]?.trim() || 'the result.';
+                   return `Yes, the math is certain. The expression \`${lastUserQuery.replace(/\*/g, '\\times').replace(/x/g, '\\times')}\` was solved by the **Math.js** library, yielding **${mathResult}**.`;
                 }
-                
-                // --- Default Fallback Confirmation for Non-Math Queries ---
-                // We use the last response to determine context for hardcoded facts.
-                if (lastResponse.includes('Lima is the capital of Peru')) {
-                    return "Yes, I am completely certain. That specific fact is pulled directly from my **hardcoded knowledge base** for guaranteed accuracy, it is not an LLM hallucination.";
-                }
-                
-                // If the last response was LLM, let the LLM handle the 'are u sure' question in context.
-                return null; // Don't block the LLM if context is unclear
+            }
+            if (isVerification && lastResponse.includes('Lima is the capital of Peru')) {
+                return "Yes, I am completely certain. That specific fact is pulled directly from my **hardcoded knowledge base** for guaranteed accuracy.";
             }
 
-            // --- Normal Keyword Check ---
+            // Normal Keyword Check
             for (const item of KNOWLEDGE_BASE) {
                 if (item.keywords.some(keyword => input.includes(keyword))) {
                     return item.response;
@@ -283,89 +265,66 @@
         }
 
         async function getLLMResponse(userText) {
+            // CHANGED: Simplified "limted" messaging based on pipeline status
             if (pipeline === 'FALLBACK') {
-                return "The advanced AI model is in **FALLBACK mode** and cannot answer general knowledge questions. Try a math problem or ask about basic web dev (HTML, CSS).";
+                return "The current local AI model is small and cannot answer that. Try asking about a simple concept.";
             }
             if (!pipeline) {
-                return "The advanced AI model is still loading. Please wait for the 'Model Loaded!' message before asking a general question.";
+                return "The local AI model is still loading. Please wait a moment.";
             }
 
             const allSessions = loadHistory();
             const currentSession = allSessions[currentSessionId];
 
-            // Mistral requires a specific instruction-tuning format (INST) for best results.
-            const history = currentSession.slice(-5).map(msg => 
-                msg.type === 'user' ? msg.text : `[/INST] ${msg.text} `
+            // Build simplified context for the LLM
+            const history = currentSession.slice(-4).map(msg => 
+                msg.type === 'user' ? `[INST] ${msg.text} ` : `[/INST] ${msg.text} `
             ).join('');
             
-            const prompt = `<s>[INST] ${history} ${userText} [/INST]`;
-            
+            const prompt = `<s>${history} [INST] ${userText} [/INST]`;
+            const modelName = pipeline.model.includes('Mistral') ? 'Mistral 7B' : 'TinyLlama 1.1B';
 
             const output = await pipeline(prompt, {
-                max_new_tokens: 150, // Longer generation for better answers
+                max_new_tokens: 120, // SLIGHTLY OPTIMIZED: Shorter max tokens for faster output
                 do_sample: true,
                 temperature: 0.8,
             });
 
-            // Extract only the model's response
             let botText = output[0].generated_text.substring(prompt.length).trim();
-            
-            // Cleanup: Mistral often starts the response with a space or continues the next prompt
             botText = botText.split('</s>')[0].trim();
             botText = botText.split('[INST]')[0].trim();
 
 
-            return `**LLM Result (${pipeline.model.includes('Mistral') ? 'Mistral 7B' : 'DistilGPT2'}):** ${botText} (Generated by the client-side model.)`;
+            return `**Generated by ${modelName}:** ${botText}`;
         }
 
         function clientSideMath(input) {
             math.config({ implicit: 'auto' });
-            
             const mathPattern = /\d|[+\-x*/=^()]/i;
             if (!mathPattern.test(input)) return null;
 
-            // --- Pre-processing for improved accuracy ---
-            let processedInput = input.trim();
-            processedInput = processedInput.replace(/,/g, '.'); 
-            processedInput = processedInput.replace(/([0-9)])\s*\(/g, '$1*('); 
+            let processedInput = input.trim().replace(/,/g, '.').replace(/([0-9)])\s*\(/g, '$1*('); 
 
             try {
                 const result = math.evaluate(processedInput, mathScope);
-
-                // Handle variable assignment or functions
                 if (typeof result === 'function' || typeof result === 'undefined') {
                     if (input.includes('=') && !input.includes('==') && !input.includes('!=')) {
-                        return `Variable assignment successful! Current math scope includes: ${Object.keys(mathScope).join(', ')}`;
+                        return `Variable assignment successful! Math scope includes: ${Object.keys(mathScope).join(', ')}`;
                     }
                     return null;
                 }
                 
-                // Final calculation result handling
                 if (typeof result === 'number' || result.constructor.name === 'BigNumber' || result.constructor.name === 'Complex') {
                     let output = result.toString();
                     if (result.constructor.name === 'BigNumber') output = result.toPrecision(15); 
                     
-                    // Format output for KaTeX
-                    let finalInput = processedInput.replace(/\*/g, '\\times'); 
-                    finalInput = finalInput.replace(/x/g, '\\times'); 
-
-                    return `**Math Result:** $${finalInput.replace(/ /g, '')} = ${output}$`;
+                    let finalInput = processedInput.replace(/\*/g, '\\times').replace(/x/g, '\\times'); 
+                    return `**Calculation Result:** $${finalInput.replace(/ /g, '')} = ${output}$`;
                 }
                 
                 return null;
-
             } catch (e) {
-                // --- Smarter Error Fallback ---
-                const errorMessage = e.message.toLowerCase();
-                let specificTip = 'Please check the syntax or try a simpler operation.';
-
-                if (errorMessage.includes('undefined symbol') && errorMessage.match(/[a-z]/)) {
-                    specificTip = "That expression contains an unknown variable or function. Define your variable first (e.g., 'a=5').";
-                } else if (errorMessage.includes('unclosed parenthesis')) {
-                    specificTip = "You are missing a closing parenthesis ')' somewhere in your expression.";
-                } 
-                
-                return `**Calculation Error:** I couldn't solve that math problem. **Specific Tip:** ${specificTip} (Details: ${e.message})`;
+                return `**Calculation Error:** I couldn't solve that math problem. Check syntax.`;
             }
         }
 
@@ -374,44 +333,40 @@
             if (!userText) return;
 
             appendUserMessage(userText);
-            // Save initial user message before processing
             saveCurrentChat(userText, null); 
 
             userInput.value = '';
             userInput.disabled = true;
 
-            const thinkingDiv = appendBotThinking('Processing request...');
+            const thinkingDiv = appendBotThinking('Routing query for best result...');
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            // Reset type tracking for the new turn
             lastResponseType = 'none'; 
             
+            // 1. Check for Math (Fastest, most accurate)
             let finalResponse = clientSideMath(userText); 
             if (finalResponse) {
-                lastResponseType = 'math'; // Track Math Result
+                lastResponseType = 'math';
             }
 
+            // 2. Check for Keyword (Instant, accurate facts)
             if (!finalResponse) {
                 finalResponse = getKeywordResponse(userText.toLowerCase()); 
                 if (finalResponse) {
-                    // Check if the response was the math verification, which is a special keyword response
-                    if (finalResponse.includes("The expression")) {
-                        lastResponseType = 'math_verification';
-                    } else {
-                        lastResponseType = 'keyword'; // Track simple Keyword Fact
-                    }
+                    lastResponseType = finalResponse.includes("math is certain") ? 'math_verification' : 'keyword';
                 }
             }
             
+            // 3. Use LLM (Slowest, creative tasks only)
             if (!finalResponse) {
                 finalResponse = await getLLMResponse(userText); 
                 if (finalResponse) {
-                    lastResponseType = 'llm'; // Track LLM generated answer
+                    lastResponseType = 'llm';
                 }
             }
 
             if (!finalResponse) {
-                finalResponse = "I'm sorry, I cannot process completely novel inputs right now. Try a math problem or ask about web technology. (LLM Fallback Mode)";
+                finalResponse = "I'm sorry, I cannot process this request. Try a math problem or ask about web technology.";
                 lastResponseType = 'none';
             }
 
@@ -425,7 +380,7 @@
         }
 
 // ---------------------------
-// 3. DRAG & DROP
+// 3. DRAG & DROP (Unchanged)
 // ---------------------------
 
         function setupDragAndDrop() {
@@ -494,7 +449,7 @@
         }
 
 // ---------------------------
-// 4. HISTORY & UTILITY FUNCTIONS
+// 4. HISTORY & UTILITY FUNCTIONS (Unchanged)
 // ---------------------------
 
         function appendUserMessage(text) {
@@ -523,7 +478,7 @@
             
             if (saveToHistory) {
                 saveCurrentChat(null, text);
-                lastResponse = text; // Update lastResponse here
+                lastResponse = text; 
             }
 
             if (window.renderMathInElement) {
@@ -587,7 +542,7 @@
             saveCurrentChat();
             currentSessionId = 'session_' + Date.now();
             lastResponse = '';
-            lastResponseType = 'none'; // Reset type
+            lastResponseType = 'none'; 
 
             const newSession = [{
                 type: 'bot',
@@ -665,7 +620,7 @@
                 if (item.dataset.sessionId === sessionId) item.classList.add('active');
             });
             lastResponse = messages[messages.length - 1]?.text || '';
-            lastResponseType = 'none'; // Cannot reliably determine type on switch, reset
+            lastResponseType = 'none'; 
         }
 
         function deleteChat(sessionIdToDelete) {
@@ -693,7 +648,7 @@
         }
 
 // ---------------------------
-// 5. INITIALIZATION
+// 5. INITIALIZATION (Unchanged)
 // ---------------------------
 
         function initializeChatbotUI() {
