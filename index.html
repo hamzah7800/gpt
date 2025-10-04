@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client-Side AI Simulator (Microsoft Phi-2)</title>
+    <title>Client-Side AI Simulator (Mistral 7B Instruct)</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
     <script type="module">
@@ -111,7 +111,7 @@
             <div class="chat-header">
                 <button id="sidebarToggle" onclick="toggleSidebar()">&#9776;</button>
                 <img src="icon-192.jpg" alt="AI Icon" class="header-icon">
-                <h3>Client-Side JS Simulator (Microsoft Phi-2)</h3>
+                <h3>Client-Side JS Simulator (Mistral 7B Instruct)</h3>
             </div>
 
             <div id="chatBox">
@@ -150,7 +150,7 @@
             const errorMessage = document.getElementById("error-message");
 
             if (username === "ryzen" && password === "4060") {
-                alert("Login successful! The Microsoft Phi-2 AI model will now download (~1.6 GB) and initialize. This initial download and setup may take a few minutes depending on your connection/CPU.");
+                alert("Login successful! The Mistral 7B Instruct AI model will now download (~1.7 GB) and initialize. This initial download and setup may take a few minutes. If it fails, a smaller model will load automatically.");
                 document.getElementById("loginContainer").style.display = "none";
                 document.getElementById("gameSection").style.display = "flex";
 
@@ -162,30 +162,44 @@
             }
         }
 
+        async function initializeFallbackLLM() {
+             try {
+                const thinkingDiv = appendBotThinking('Initializing Fallback AI Model (DistilGPT2 ~260 MB)...');
+                const modelName = 'Xenova/distilgpt2';
+                pipeline = await window.transformersPipeline('text-generation', modelName);
+                thinkingDiv.remove();
+                appendBotMessage(`⚠️ **Fallback Model Loaded (DistilGPT2).** The smarter model failed to download (likely a 401/gating error). Answers will be simple.`, false);
+             } catch (e) {
+                console.error("Fallback LLM Failed:", e);
+                pipeline = 'FALLBACK';
+             }
+        }
+
         async function initializeLLM() {
             try {
-                const thinkingDiv = appendBotThinking('Initializing AI Model (Downloading & Compiling Microsoft Phi-2 ~1.6 GB)... This should be the last one!');
+                const thinkingDiv = appendBotThinking('Initializing AI Model (Downloading & Compiling Mistral 7B Instruct ~1.7 GB)... Final smart model attempt!');
                 
                 if (typeof window.transformersPipeline === 'undefined') {
                     throw new Error("transformersPipeline is undefined. Check console for module loading errors.");
                 }
                 
-                // --- SWITCHING TO PHI-2: A highly capable, PUBLICLY UNGATED model ---
-                const modelName = 'Xenova/phi-2'; 
+                // --- SWITCHING TO MISTRAL 7B: Best available public, capable model. ---
+                const modelName = 'Xenova/Mistral-7B-Instruct-v0.2'; 
                 
-                // Phi-2 is a decoder-only model, so the task is 'text-generation'
+                // Mistral is a decoder-only model, so the task is 'text-generation'
                 pipeline = await window.transformersPipeline('text-generation', modelName); 
                 
                 thinkingDiv.remove();
-                appendBotMessage(`🎉 **Microsoft Phi-2 Model Loaded!** This is one of the best models available for client-side use and is **publicly ungated**. It should handle general knowledge and simple logic well.`, false);
+                appendBotMessage(`🎉 **Mistral 7B Instruct Model Loaded!** This is the **most intelligent** model that should work client-side. Its answers will be much better than DistilGPT2.`, false);
                 userInput.focus();
 
             } catch (error) {
                 console.error("LLM Initialization Failed:", error);
-                appendBotMessage(`❌ LLM failed to load. Falling back to simple keyword mode. Error: ${error.message}. General knowledge questions will fail.`, false);
-                pipeline = 'FALLBACK'; 
+                // Call the fallback function if the primary model fails
+                await initializeFallbackLLM(); 
             }
         }
+
 
 // ---------------------------
 // 2. CORE CHATBOT LOGIC
@@ -204,7 +218,7 @@
               response: "The capital and largest city of Peru is **Lima**. (Local knowledge confirmed for speed and accuracy.)" 
             },
             
-            { keywords: ['what model', 'model are you'], response: "I use the highly capable **Microsoft Phi-2 model** from the **Transformers.js** library for generative intelligence, all running on your browser's CPU. This is the best available public client-side LLM." },
+            { keywords: ['what model', 'model are you'], response: "I use the highly optimized **Mistral 7B Instruct** model from the **Transformers.js** library for generative intelligence, all running on your browser's CPU. This is the smartest model we can run client-side. If I'm simple, the fallback **DistilGPT2** model is running." },
         ];
 
         function getKeywordResponse(input) {
@@ -234,29 +248,29 @@
             const allSessions = loadHistory();
             const currentSession = allSessions[currentSessionId];
 
-            // Build context from the last few messages for better coherence
-            // Phi-2 uses a simple prompt template
-            const context = currentSession.slice(-5).map(msg => 
-                msg.type === 'user' ? `User: ${msg.text}` : `Assistant: ${msg.text}`
-            ).join('\n');
+            // Mistral requires a specific instruction-tuning format (INST) for best results.
+            const history = currentSession.slice(-5).map(msg => 
+                msg.type === 'user' ? msg.text : `[/INST] ${msg.text} `
+            ).join('');
             
-            const prompt = `${context}\nUser: ${userText}\nAssistant:`;
+            const prompt = `<s>[INST] ${history} ${userText} [/INST]`;
+            
 
             const output = await pipeline(prompt, {
-                max_new_tokens: 100, // Longer generation for better answers
+                max_new_tokens: 150, // Longer generation for better answers
                 do_sample: true,
-                temperature: 0.9,
+                temperature: 0.8,
             });
 
             // Extract only the model's response
             let botText = output[0].generated_text.substring(prompt.length).trim();
             
-            // In case the model continues the conversation past its own turn
-            if (botText.startsWith('User:')) {
-                botText = botText.split('User:')[0].trim();
-            }
+            // Cleanup: Mistral often starts the response with a space or continues the next prompt
+            botText = botText.split('</s>')[0].trim();
+            botText = botText.split('[INST]')[0].trim();
 
-            return `**LLM Result (Microsoft Phi-2):** ${botText} (Generated by the client-side model.)`;
+
+            return `**LLM Result (${pipeline.model.includes('Mistral') ? 'Mistral 7B' : 'DistilGPT2'}):** ${botText} (Generated by the client-side model.)`;
         }
 
         function clientSideMath(input) {
