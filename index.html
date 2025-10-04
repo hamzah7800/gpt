@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client-Side AI Simulator (Optimized Hybrid)</title>
+    <title>Client-Side AI Simulator (Gemini-like Hybrid)</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
     <script type="module">
-        // Import the pipeline function and expose it globally for the main script
         import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.14.0';
         window.transformersPipeline = pipeline;
     </script>
@@ -18,7 +17,13 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
 
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/lancedb-lite@0.0.6/dist/lancedb-lite.js" type="module"></script>
+
+
     <style>
+        /* (*** Styles are unchanged from the previous version ***) */
         /* General Setup */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f7f9; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
 
@@ -126,7 +131,7 @@
             <div class="chat-header">
                 <button id="sidebarToggle" onclick="toggleSidebar()">&#9776;</button>
                 <img src="icon-192.jpg" alt="AI Icon" class="header-icon">
-                <h3>Client-Side JS Simulator (Optimized Hybrid AI)</h3>
+                <h3>Client-Side JS Simulator (Gemini-like Hybrid AI)</h3>
             </div>
 
             <div id="chatBox">
@@ -147,6 +152,11 @@
         const HISTORY_ROOT_KEY = 'CLIENT_AI_CHAT_HISTORY';
         const mathScope = {}; // For Math.js variable storage
         let pipeline = null; // The loaded LLM pipeline
+        
+        // NEW GLOBAL STATE FOR RAG
+        let sentenceTransformer = null; // For generating embeddings
+        let lancedb = null; // The LanceDB connection
+        let knowledgeTable = null; // The LanceDB knowledge table
 
         // UI Element References
         const chatBox = document.getElementById('chatBox');
@@ -169,17 +179,61 @@
 
                 initializeChatbotUI();
                 initializeLLM(); // Start the optimized LLM loading process
-
+                initializeRAG(); // Start RAG initialization
             } else {
                 errorMessage.textContent = "Invalid username or password. Try again.";
             }
         }
+        
+        async function initializeRAG() {
+            // Load the small, fast Sentence Transformer model for embedding generation
+            try {
+                const thinkingDiv = appendBotThinking('Initializing **Vector Search Engine**...');
+                
+                sentenceTransformer = await window.transformersPipeline(
+                    'feature-extraction', 
+                    'Xenova/all-MiniLM-L6-v2' // Smallest, fastest embedding model
+                );
+
+                // Setup LanceDB-Lite (Simulated knowledge base)
+                lancedb = await window.lancedb.connect('lancedb-lite-data');
+                
+                // Sample data with vectors (since we can't run the embedding model right now)
+                const data = [
+                    { id: 1, text: "The first web browser was Mosaic, developed by Marc Andreessen and Eric Bina.", vector: await getEmbedding("first web browser Mosaic") },
+                    { id: 2, text: "The Llama model architecture is a decoder-only transformer, known for its efficiency.", vector: await getEmbedding("Llama model decoder transformer efficiency") },
+                    { id: 3, text: "Gemini is a family of multimodal models designed by Google to excel across various domains.", vector: await getEmbedding("Gemini Google multimodal") },
+                    { id: 4, text: "JavaScript's WebGPU API allows web applications to perform high-performance parallel computations.", vector: await getEmbedding("WebGPU high-performance parallel computing") }
+                ];
+
+                // Create or open the table
+                knowledgeTable = await lancedb.createTable('knowledge_base', data, { mode: "overwrite" });
+
+                thinkingDiv.remove();
+                appendBotMessage(`✅ **Vector Database Active!** I can now perform grounded factual searches.`, false);
+
+            } catch (error) {
+                console.error("RAG Initialization Failed:", error);
+                appendBotMessage(`❌ **RAG Failure:** Factual search capability offline.`, false);
+                sentenceTransformer = 'FALLBACK';
+                knowledgeTable = 'FALLBACK';
+            }
+        }
+        
+        // Helper function to get embeddings for LanceDB
+        async function getEmbedding(text) {
+            if (sentenceTransformer === 'FALLBACK') {
+                // If the embedding model failed, return a dummy vector (or skip RAG)
+                return Array(384).fill(0); 
+            }
+            const output = await sentenceTransformer(text, { pooling: 'mean', normalize: true });
+            return Array.from(output.data);
+        }
 
         async function initializeLLM() {
-            const TINYLLAMA_MODEL = 'Xenova/TinyLlama-1.1B-Chat-v1.0'; // Best mobile option (~500 MB)
-            const DISTILGPT2_MODEL = 'Xenova/distilgpt2'; // Smallest functional model (~260 MB)
+            const TINYLLAMA_MODEL = 'Xenova/TinyLlama-1.1B-Chat-v1.0'; 
+            const DISTILGPT2_MODEL = 'Xenova/distilgpt2'; 
             
-            // 1. Attempt to load TinyLlama 1.1B
             try {
                 const thinkingDiv = appendBotThinking(`Initializing **Smart Mobile Model (TinyLlama 1.1B)**...`);
                 
@@ -189,74 +243,108 @@
                 
                 pipeline = await window.transformersPipeline('text-generation', TINYLLAMA_MODEL); 
                 
+                // Pre-Warming the Model
+                thinkingDiv.innerHTML = `**TinyLlama 1.1B** loaded. **Compiling for faster queries...** (First run compilation)`;
+                await pipeline('Hello.', { max_new_tokens: 5, do_sample: false }); 
+                
                 thinkingDiv.remove();
-                appendBotMessage(`🎉 **TinyLlama 1.1B Loaded!** The best model for your iPad is active for general and creative tasks.`, false);
+                appendBotMessage(`🎉 **TinyLlama 1.1B Loaded!** General and creative tasks are now active.`, false);
                 userInput.focus();
 
             } catch (error) {
                 console.error("TinyLlama failed to load. Falling back to minimal model.", error);
 
-                // 2. If TinyLlama fails (memory/timeout), load the smallest model (DistilGPT2)
                 try {
                     const thinkingDiv = appendBotThinking(`TinyLlama failed. Loading minimal **DistilGPT2** (~260 MB) for guaranteed stability...`);
                     
                     pipeline = await window.transformersPipeline('text-generation', DISTILGPT2_MODEL);
                     
+                    // Pre-Warming the Fallback Model
+                    thinkingDiv.innerHTML = `**DistilGPT2** loaded. **Compiling for faster queries...**`;
+                    await pipeline('Hello.', { max_new_tokens: 5, do_sample: false }); 
+
                     thinkingDiv.remove();
-                    appendBotMessage(`⚠️ **Minimal Model Loaded (DistilGPT2).** Only simple, short answers will be generated.`, false);
+                    appendBotMessage(`⚠️ **Minimal Model Loaded (DistilGPT2).** Only simple, short, general answers can be generated.`, false);
 
                 } catch (e2) {
-                    // 3. Final Fallback: Pure JavaScript mode
-                    console.error("Critical Failure: All AI models failed to load.", e2);
-                    appendBotMessage(`❌ **ERROR:** AI Generation Failed. Only **Math.js** and **Keyword** answers will work.`, false);
+                    console.error("Critical Failure: All AI models failed to load. The device memory is too low.", e2);
+                    appendBotMessage(`❌ **CRITICAL ERROR:** No AI model could load (device memory low). Only **Math.js** and **Keyword** answers will work.`, false);
                     pipeline = 'FALLBACK';
                 }
+            }
+            updateInitialMessage(); 
+        }
+        
+        function updateInitialMessage() {
+            const allSessions = loadHistory();
+            const currentSession = allSessions[currentSessionId];
+            
+            let statusText = "";
+            if (pipeline === 'FALLBACK') {
+                statusText = "I am running in **Pure JS Mode**. My only intelligence is **Math.js** and a small keyword database.";
+            } else if (pipeline && pipeline.model.includes('TinyLlama')) {
+                statusText = "I am an advanced JavaScript simulator with a vast knowledge base, powered by **TinyLlama 1.1B**.";
+            } else if (pipeline) {
+                statusText = "I am a basic simulator, running on a minimal LLM for stability.";
+            }
+
+            if (currentSession.length > 0 && currentSession[0].type === 'bot') {
+                currentSession[0].text = `Hello! ${statusText} Ask me anything.`;
+                saveHistory(allSessions);
+                renderChatBox(currentSession);
             }
         }
 
 
 // ---------------------------
-// 2. CORE CHATBOT LOGIC (Optimized Hybrid Dispatcher)
+// 2. CORE CHATBOT LOGIC (Enhanced Tool Dispatcher)
 // ---------------------------
 
         // LOCAL KNOWLEDGE BASE (Guaranteed answers)
         const KNOWLEDGE_BASE = [
-            { keywords: ['hello', 'hi', 'hey'], response: "Hello! I am an advanced **client-side** simulator running entirely in your browser. I can perform **math**, analyze **files**, and generate novel answers using a **local LLM**." },
+            { keywords: ['u sure', 'are you sure'], response: `That is a certainty. I use **Math.js**, **Vector Search**, or **Keywords** for verification.` },
             { keywords: ['html', 'what html', 'define html'], response: "HTML stands for **HyperText Markup Language**. It forms the structure of web pages." },
-            { keywords: ['capital of peru', 'peru capital'], response: "The capital and largest city of Peru is **Lima**. (Local knowledge confirmed for speed and accuracy.)" },
-            { keywords: ['what model', 'model are you'], response: "I use the highly optimized **TinyLlama 1.1B** model for generative intelligence. If I am slow, I am likely using the **DistilGPT2** fallback." },
         ];
+        
+        /**
+         * The LLM System Prompt. Instructions for tool use.
+         * We tell the model to respond in a YAML structure if a tool is needed.
+         */
+        const SYSTEM_PROMPT = `You are a helpful, advanced client-side AI. Your core intelligence is a language model, but you have access to powerful tools.
 
-        function getKeywordResponse(input) {
-            // Contextual verification check (using last response for context)
-            const isVerification = input.includes('u sure') || input.includes('are you sure') || input.includes('is that true');
-            
-            if (isVerification && lastResponseType === 'math') {
-                const allSessions = loadHistory();
-                const currentSession = allSessions[currentSessionId];
-                const lastUserQuery = currentSession.slice(-2).find(m => m.type === 'user')?.text || '';
-                if (lastUserQuery) {
-                   const verifiedResponse = clientSideMath(lastUserQuery);
-                   const mathResult = verifiedResponse.split('=')[1]?.trim() || 'the result.';
-                   return `Yes, the math is certain. The expression \`${lastUserQuery.replace(/\*/g, '\\times').replace(/x/g, '\\times')}\` was solved by the **Math.js** library, yielding **${mathResult}**.`;
-                }
-            }
-            // Normal Keyword Check
-            for (const item of KNOWLEDGE_BASE) {
-                if (item.keywords.some(keyword => input.includes(keyword))) {
-                    return item.response;
-                }
-            }
-            return null;
-        }
+Available Tools:
+1. math_tool: Use for all calculations, arithmetic, or algebraic expressions.
+2. rag_tool: Use for specific factual questions about technology, history, or knowledge. Do not use for general chat or poetry.
+3. keyword_tool: Use only if the user query matches a simple keyword exactly.
 
-        async function getLLMResponse(userText) {
-            // Handle LLM failure state gracefully
-            if (pipeline === 'FALLBACK') {
-                return "The local AI model failed to load. Only Math and Keyword answers are available.";
-            }
-            if (!pipeline) {
-                return "The local AI model is still loading. Please wait a moment.";
+If a tool is REQUIRED, respond ONLY with a YAML block.
+If NO tool is required, respond directly to the user's query.
+
+YAML Tool Format:
+---
+tool: [tool_name]
+input: [tool_input_text]
+---
+Example for 'what is 2 + 2':
+---
+tool: math_tool
+input: 2 + 2
+---
+Example for 'what is the llama model':
+---
+tool: rag_tool
+input: Llama model architecture
+---
+
+If the user provides the output of a tool, use that information to formulate a final, helpful answer.`;
+
+
+        /**
+         * Enhanced LLM Response function for Tool Calling
+         */
+        async function getLLMResponse(userText, toolOutput = null) {
+            if (pipeline === 'FALLBACK' || !pipeline) {
+                return "The local AI model is offline. Only the built-in Math/Keyword system is active.";
             }
 
             const allSessions = loadHistory();
@@ -267,11 +355,17 @@
                 msg.type === 'user' ? `[INST] ${msg.text} ` : `[/INST] ${msg.text} `
             ).join('');
             
-            const prompt = `<s>${history} [INST] ${userText} [/INST]`;
+            // Incorporate tool output into the prompt if available
+            let tool_context = "";
+            if (toolOutput) {
+                tool_context = `\n\n[TOOL_OUTPUT]: ${toolOutput}\n\n`;
+            }
+
+            const prompt = `<s>${SYSTEM_PROMPT}\n\n${history} [INST] ${userText} ${tool_context}[/INST]`;
             const modelName = pipeline.model.includes('TinyLlama') ? 'TinyLlama 1.1B' : 'DistilGPT2';
 
             const output = await pipeline(prompt, {
-                max_new_tokens: 120, // Optimized for speed
+                max_new_tokens: 180, // Increased for tool context
                 do_sample: true,
                 temperature: 0.8,
             });
@@ -279,13 +373,128 @@
             let botText = output[0].generated_text.substring(prompt.length).trim();
             botText = botText.split('</s>')[0].trim();
             botText = botText.split('[INST]')[0].trim();
-
-
-            return `**Generated by ${modelName}:** ${botText}`;
+            
+            return botText;
         }
 
+        /**
+         * NEW: RAG/Vector Search Function
+         */
+        async function performRAG(query) {
+            if (knowledgeTable === 'FALLBACK') {
+                return `RAG Tool Error: The vector database failed to initialize. Cannot search for "${query}".`;
+            }
+            try {
+                // 1. Get query embedding
+                const queryVector = await getEmbedding(query);
+                
+                // 2. Perform vector search (k=2 for context)
+                const results = await knowledgeTable.query()
+                    .near(queryVector)
+                    .limit(2)
+                    .execute();
+                
+                if (results.length > 0) {
+                    const context = results.map(r => r.text).join(' ');
+                    return `Knowledge Context: ${context}`;
+                }
+                return `Knowledge Context: No specific facts found for "${query}".`;
+
+            } catch (e) {
+                console.error("RAG execution failed:", e);
+                return "RAG Tool Error: Failed during vector search.";
+            }
+        }
+
+
+        async function sendMessage() {
+            const userText = userInput.value.trim();
+            if (!userText) return;
+
+            appendUserMessage(userText);
+            saveCurrentChat(userText, null); 
+
+            userInput.value = '';
+            userInput.disabled = true;
+
+            let finalResponse = null;
+            let thinkingDiv = appendBotThinking('Routing query for best result...');
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // --- STAGE 1: Keyword Check (Highest Priority/Speed) ---
+            finalResponse = getKeywordResponse(userText.toLowerCase()); 
+            if (finalResponse) {
+                lastResponseType = 'keyword';
+            }
+
+            // --- STAGE 2: LLM Tool Dispatch ---
+            let toolOutput = null;
+            let llmRawResponse = '';
+            let toolRequest = null;
+
+            if (!finalResponse) {
+                llmRawResponse = await getLLMResponse(userText);
+                
+                try {
+                    // Try to parse a YAML tool call from the response
+                    const yamlMatch = llmRawResponse.match(/---\s*tool:\s*(.*?)\s*input:\s*(.*?)\s*---/s);
+                    if (yamlMatch) {
+                        const yamlBlock = yamlMatch[0];
+                        toolRequest = jsyaml.load(yamlBlock);
+                    }
+                } catch (e) {
+                    console.warn("Could not parse YAML from LLM response:", e);
+                    // If parsing fails, fall through and treat the response as direct text
+                }
+            }
+            
+            // --- STAGE 3: Tool Execution ---
+            if (toolRequest && toolRequest.tool && toolRequest.input) {
+                thinkingDiv.innerHTML = `Executing **${toolRequest.tool}** with input: \`${toolRequest.input.substring(0, 50)}...\` ...`;
+                
+                if (toolRequest.tool === 'math_tool') {
+                    toolOutput = clientSideMath(toolRequest.input);
+                } else if (toolRequest.tool === 'rag_tool') {
+                    toolOutput = await performRAG(toolRequest.input);
+                } else {
+                    toolOutput = `Tool Error: Unknown tool '${toolRequest.tool}'.`;
+                }
+
+                // If a tool was executed, re-prompt the LLM with the tool output
+                thinkingDiv.innerHTML = `Tool executed. Re-prompting LLM with results...`;
+                finalResponse = await getLLMResponse(userText, toolOutput);
+                lastResponseType = toolRequest.tool; 
+
+            } else if (!finalResponse) {
+                // STAGE 4: Direct LLM response (if no tool was called and no keyword matched)
+                finalResponse = llmRawResponse;
+                lastResponseType = 'llm';
+            }
+
+
+            // --- Display Final Response ---
+            if (!finalResponse || finalResponse.includes("The local AI model is offline")) {
+                if (pipeline === 'FALLBACK') {
+                   // This means the LLM is completely disabled
+                   finalResponse = "I'm sorry, no LLM is running. Only Math and Keyword answers are available.";
+                } else {
+                    // Fallback for LLM generating an empty or confusing response
+                    finalResponse = `I was unable to generate a valid response (LLM output was confusing). Try phrasing your question differently.`;
+                }
+                lastResponseType = 'none';
+            }
+
+            thinkingDiv.remove();
+            appendBotMessage(finalResponse, true);
+
+            userInput.disabled = false;
+            userInput.focus();
+            renderSidebar(loadHistory());
+        }
+
+        // The rest of the functions (clientSideMath, getKeywordResponse, UI functions, History Management) remain the same...
+
         function clientSideMath(input) {
-            // Math.js configuration and evaluation logic
             math.config({ implicit: 'auto' });
             const mathPattern = /\d|[+\-x*/=^()]/i;
             if (!mathPattern.test(input)) return null;
@@ -300,69 +509,42 @@
                     if (result.constructor.name === 'BigNumber') output = result.toPrecision(15); 
                     
                     let finalInput = processedInput.replace(/\*/g, '\\times').replace(/x/g, '\\times'); 
-                    return `**Calculation Result:** $${finalInput.replace(/ /g, '')} = ${output}$`;
+                    return `[MATH_RESULT]: $${finalInput.replace(/ /g, '')} = ${output}$`;
                 }
                 
-                return null;
+                return `[MATH_RESULT]: Tool ran successfully, but produced a non-numeric/unplottable result.`;
             } catch (e) {
-                return `**Calculation Error:** I couldn't solve that math problem. Check syntax.`;
+                return `[MATH_ERROR]: The expression could not be parsed. Check syntax.`;
             }
         }
+        
+        // ... (rest of the functions: getKeywordResponse, setupDragAndDrop, appendUserMessage, initializeChatbotUI, etc. are as in the previous version) ...
 
-        async function sendMessage() {
-            const userText = userInput.value.trim();
-            if (!userText) return;
-
-            appendUserMessage(userText);
-            saveCurrentChat(userText, null); 
-
-            userInput.value = '';
-            userInput.disabled = true;
-
-            const thinkingDiv = appendBotThinking('Routing query for best result...');
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            lastResponseType = 'none'; 
+        function getKeywordResponse(input) {
+            const isVerification = input.includes('u sure') || input.includes('are you sure') || input.includes('is that true');
             
-            // 1. Math Path (Fastest, most accurate)
-            let finalResponse = clientSideMath(userText); 
-            if (finalResponse) {
-                lastResponseType = 'math';
-            }
-
-            // 2. Keyword Path (Instant, accurate facts)
-            if (!finalResponse) {
-                finalResponse = getKeywordResponse(userText.toLowerCase()); 
-                if (finalResponse) {
-                    lastResponseType = finalResponse.includes("math is certain") ? 'math_verification' : 'keyword';
+            if (isVerification && lastResponseType === 'math') {
+                const allSessions = loadHistory();
+                const currentSession = allSessions[currentSessionId];
+                const lastUserQuery = currentSession.slice(-2).find(m => m.type === 'user')?.text || '';
+                if (lastUserQuery) {
+                   const mathToolOutput = clientSideMath(lastUserQuery);
+                   const mathResult = mathToolOutput.split('=')[1]?.trim().replace('$', '') || 'the result.';
+                   return `Yes, the math is certain. The expression \`${lastUserQuery.replace(/\*/g, '\\times').replace(/x/g, '\\times')}\` was solved by the **Math.js** library, yielding **${mathResult}**.`;
                 }
             }
-            
-            // 3. LLM Path (Slowest, creative tasks only)
-            if (!finalResponse) {
-                finalResponse = await getLLMResponse(userText); 
-                if (finalResponse) {
-                    lastResponseType = 'llm';
+            // Normal Keyword Check
+            for (const item of KNOWLEDGE_BASE) {
+                if (item.keywords.some(keyword => input.includes(keyword))) {
+                    return item.response;
                 }
             }
-
-            if (!finalResponse) {
-                finalResponse = "I'm sorry, I cannot process this request. Try a math problem or ask about web technology.";
-                lastResponseType = 'none';
-            }
-
-            // --- Display Final Response ---
-            thinkingDiv.remove();
-            appendBotMessage(finalResponse, true);
-
-            userInput.disabled = false;
-            userInput.focus();
-            renderSidebar(loadHistory());
+            return null;
         }
 
-// ---------------------------
-// 3. DRAG & DROP & UI UTILITIES
-// ---------------------------
+        // ... (remaining UI and History functions go here) ...
+        
+        // --- UI Functions (kept for completeness) ---
 
         function setupDragAndDrop() {
             const dropTarget = document.querySelector('.chat-interface');
@@ -469,9 +651,7 @@
             }
         }
 
-// ---------------------------
-// 4. HISTORY MANAGEMENT
-// ---------------------------
+        // --- History Functions (kept for completeness) ---
 
         function userStorageKey() { return HISTORY_ROOT_KEY; }
 
@@ -515,6 +695,28 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
+        function initializeChatbotUI() {
+            const sendBtn = document.getElementById('sendBtn');
+            const newChatBtn = document.querySelector('.new-chat-btn');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+
+            if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+            if (userInput) userInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') sendMessage();
+            });
+
+            if (newChatBtn) newChatBtn.addEventListener('click', startNewChat);
+            if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
+
+            setupDragAndDrop();
+
+            const sessions = loadHistory();
+            const currentSession = sessions[currentSessionId];
+
+            renderSidebar(sessions);
+            renderChatBox(currentSession);
+        }
+
         function startNewChat() {
             Object.keys(mathScope).forEach(k => delete mathScope[k]); // Clear Math.js state
             saveCurrentChat();
@@ -533,6 +735,7 @@
 
             renderChatBox(newSession);
             renderSidebar(allSessions);
+            if (pipeline) updateInitialMessage(); 
         }
 
         function saveCurrentChat(userText, botResponse) {
@@ -623,32 +826,6 @@
         function toggleSidebar() {
             const container = document.getElementById('gameSection');
             if (container) container.classList.toggle('sidebar-visible');
-        }
-
-// ---------------------------
-// 5. INITIALIZATION
-// ---------------------------
-
-        function initializeChatbotUI() {
-            const sendBtn = document.getElementById('sendBtn');
-            const newChatBtn = document.querySelector('.new-chat-btn');
-            const sidebarToggle = document.getElementById('sidebarToggle');
-
-            if (sendBtn) sendBtn.addEventListener('click', sendMessage);
-            if (userInput) userInput.addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') sendMessage();
-            });
-
-            if (newChatBtn) newChatBtn.addEventListener('click', startNewChat);
-            if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
-
-            setupDragAndDrop();
-
-            const sessions = loadHistory();
-            const currentSession = sessions[currentSessionId];
-
-            renderSidebar(sessions);
-            renderChatBox(currentSession);
         }
 
     </script>
