@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client-Side AI Simulator</title>
+    <title>Client-Side AI Simulator (FULL FEATURE)</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
+
+    <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.14.0"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
 
@@ -25,9 +27,7 @@
         #error-message { color: #e53935; margin-top: 15px; font-weight: bold; }
 
         /* Chatbot Styles */
-        #gameSection { display: none; /* Hidden until login */
-            background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); width: 90vw; max-width: 1000px; height: 90vh; max-height: 800px;
-            overflow: hidden; transition: all 0.3s ease; }
+        #gameSection { display: none; background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); width: 90vw; max-width: 1000px; height: 90vh; max-height: 800px; overflow: hidden; transition: all 0.3s ease; display: flex; }
         .sidebar { width: 250px; background-color: #2c3e50; color: #ecf0f1; padding: 20px 0; border-right: 1px solid #34495e; display: flex; flex-direction: column; }
         .sidebar h2 { padding: 0 20px; font-size: 1.2em; border-bottom: 1px solid #34495e; padding-bottom: 10px; margin-bottom: 15px; }
         .new-chat-btn { margin: 0 20px 20px 20px; padding: 10px; background-color: #1e88e5; color: white; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.3s; }
@@ -44,14 +44,7 @@
         .chat-header { background: #f4f7f9; padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: flex-start; align-items: center; }
 
         /* Icon Style */
-        .header-icon {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-right: 15px;
-            border: 2px solid #1e88e5;
-        }
+        .header-icon { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 2px solid #1e88e5; }
 
         #sidebarToggle { background: none; border: none; font-size: 20px; cursor: pointer; color: #1e88e5; margin-right: 15px; display: none; }
         #chatBox { flex-grow: 1; padding: 20px; overflow-y: auto; background-color: #f9f9f9; }
@@ -114,14 +107,14 @@
             <div class="chat-header">
                 <button id="sidebarToggle" onclick="toggleSidebar()">&#9776;</button>
                 <img src="icon-192.jpg" alt="AI Icon" class="header-icon">
-                <h3>Client-Side JS Simulator</h3>
+                <h3>Client-Side JS Simulator (FULL)</h3>
             </div>
 
             <div id="chatBox">
                 </div>
 
             <div class="input-container">
-                <input type="text" id="userInput" placeholder="Ask me about HTML, CSS, or a simple math problem (e.g., 5*2+3 or 5x2+3)..." autocomplete="off">
+                <input type="text" id="userInput" placeholder="Ask a question, try math (e.g., 5*2x3), or drag a file..." autocomplete="off">
                 <button id="sendBtn" onclick="sendMessage()">&#9658;</button>
             </div>
         </div>
@@ -132,7 +125,8 @@
         let lastResponse = '';
         let currentSessionId = 'session_' + Date.now();
         const HISTORY_ROOT_KEY = 'CLIENT_AI_CHAT_HISTORY';
-        const mathScope = {}; // To store math variables (e.g., a=5)
+        const mathScope = {}; 
+        let pipeline = null; // Global variable for the LLM pipeline
 
         // UI Element References
         const chatBox = document.getElementById('chatBox');
@@ -143,7 +137,7 @@
         const chatbotContainer = document.getElementById('gameSection');
 
 // ---------------------------
-// 1. LOGIN LOGIC
+// 1. LOGIN & LLM INITIALIZATION
 // ---------------------------
 
         function validateLogin() {
@@ -151,54 +145,105 @@
             const password = document.getElementById("password").value.trim();
             const errorMessage = document.getElementById("error-message");
 
-            // Static, client-side credentials
             if (username === "ryzen" && password === "4060") {
-                alert("Login successful!");
+                alert("Login successful! The advanced AI model will now download (~300MB) and initialize. This first step may take a minute or two depending on your connection/CPU.");
                 document.getElementById("loginContainer").style.display = "none";
-                document.getElementById("gameSection").style.display = "flex"; // Use flex to match CSS
+                document.getElementById("gameSection").style.display = "flex";
 
                 initializeChatbotUI();
+                initializeLLM(); 
 
             } else {
                 errorMessage.textContent = "Invalid username or password. Try again.";
             }
         }
 
+        async function initializeLLM() {
+            try {
+                const thinkingDiv = appendBotThinking('Initializing AI Model (Downloading & Compiling)... This may take 30-120 seconds on first run.');
+                
+                // Using a small, efficient text generation model
+                pipeline = await (self.transformers).pipeline('text-generation', 'Xenova/distilgpt2');
+                
+                thinkingDiv.remove();
+                appendBotMessage("🚀 AI Model Loaded! You can now ask general knowledge questions (e.g., 'What is the capital of Peru?') or continue with math/web questions.", false);
+                userInput.focus();
+
+            } catch (error) {
+                console.error("LLM Initialization Failed:", error);
+                appendBotMessage("❌ LLM failed to load. Falling back to simple keyword mode. General knowledge questions will fail.", false);
+                pipeline = 'FALLBACK'; 
+            }
+        }
+
 // ---------------------------
-// 2. CHATBOT CORE LOGIC
+// 2. CORE CHATBOT LOGIC
 // ---------------------------
 
-        // LOCAL KNOWLEDGE BASE
+        // LOCAL KNOWLEDGE BASE (Fallback for simple, guaranteed answers)
         const KNOWLEDGE_BASE = [
-            { keywords: ['hello', 'hi', 'hey', 'bonjour', 'salam'], response: "Hello! I am an advanced **client-side** simulator running entirely in your browser. I can answer local knowledge questions and perform **basic math**." },
-            { keywords: ['how are you', 'how r u'], response: "I don't have feelings, but I am operating perfectly using only your browser's processing power! Ready for your next query." },
-            { keywords: ['nice', 'cool', 'great answer', 'ok', 'thanks', 'thank you'], response: "You're very welcome! I'm glad I could assist. Feel free to ask another question." },
-            { keywords: ['html', 'what html', 'define html'], response: "HTML stands for **HyperText Markup Language**. It is the standard markup language for documents designed to be displayed in a web browser. (Local knowledge confirmed.)" },
-            { keywords: ['css', 'what css', 'define css', 'use css'], response: "CSS stands for **Cascading Style Sheets**. It is a style sheet language used for describing the presentation of a document written in HTML. (Local knowledge confirmed.)" },
-            { keywords: ['javascript', 'js', 'programming'], response: "JavaScript is a high-level, interpreted scripting language that is primarily used for **client-side web development**." },
-            { keywords: ['area of a circle', 'circle area formula'], response: "The area of a circle is calculated using the formula: $A = \\pi r^2$. Try a simple calculation like '2*5'." },
-            { keywords: ['gravity', 'define gravity'], response: "Gravity is a fundamental force that attracts any objects with mass or energy. The constant is approximately $9.8 \\text{ m/s}^2$ on Earth." },
-            { keywords: ['what model', 'model are you'], response: "I operate using a custom, **client-side JavaScript model** using keyword matching and hardcoded data." },
+            { keywords: ['hello', 'hi', 'hey'], response: "Hello! I am an advanced **client-side** simulator running entirely in your browser. I can perform **math**, analyze **files**, and generate novel answers using an **LLM**." },
+            { keywords: ['html', 'what html', 'define html'], response: "HTML stands for **HyperText Markup Language**. It forms the structure of web pages." },
+            { keywords: ['css', 'what css', 'define css'], response: "CSS stands for **Cascading Style Sheets**. It controls the presentation and style of web pages." },
+            { keywords: ['javascript', 'js'], response: "JavaScript is the programming language that enables interactive web content on the client-side." },
+            { keywords: ['area of a circle', 'circle area formula'], response: "The area of a circle is calculated using the formula: $A = \\pi r^2$." },
+            { keywords: ['what model', 'model are you'], response: "I use a custom JavaScript architecture for utilities (math, file analysis) and the **DistilGPT2 model** from the **Transformers.js** library for generative intelligence, all running on your browser's CPU." },
         ];
 
-        /**
-         * 💡 Math Logic: Configures math.js to use implicit multiplication,
-         * allowing 'x' for multiplication and algebraic syntax like '5(2+1)'.
-         */
-        function clientSideMath(input) {
-            // Configure math.js to handle implicit multiplication (e.g., 2x, 5(6))
-            math.config({ implicit: 'auto' });
-            
-            // Check if the input contains at least one number or common math operator
-            const mathPattern = /\d|[+\-x*/=^()]/i;
-            if (!mathPattern.test(input)) {
-                return null;
+        function getKeywordResponse(input) {
+            for (const item of KNOWLEDGE_BASE) {
+                if (item.keywords.some(keyword => input.includes(keyword))) {
+                    return item.response;
+                }
+            }
+            return null;
+        }
+
+        async function getLLMResponse(userText) {
+            if (pipeline === 'FALLBACK') {
+                return "The advanced AI model is in **FALLBACK mode** and cannot answer general knowledge questions. Please ask about math or basic web dev.";
+            }
+            if (!pipeline) {
+                return "The advanced AI model is still loading. Please wait for the 'AI Model Loaded!' message before asking a general question.";
             }
 
-            try {
-                const result = math.evaluate(input, mathScope);
+            const allSessions = loadHistory();
+            const currentSession = allSessions[currentSessionId];
 
-                // Handle function or undefined results (like simple variable assignment)
+            // Build context from the last few messages
+            const context = currentSession.slice(-5).map(msg => 
+                msg.type === 'user' ? `User: ${msg.text}` : `Assistant: ${msg.text}`
+            ).join('\n');
+            
+            const prompt = context + `\nUser: ${userText}\nAssistant:`;
+
+            const output = await pipeline(prompt, {
+                max_new_tokens: 60, // Limit generation for faster response
+                do_sample: true,
+                temperature: 0.9,
+            });
+
+            let botText = output[0].generated_text.substring(prompt.length).trim();
+            botText = botText.split('\n')[0]; 
+
+            return `**LLM Result:** ${botText} (Generated by the client-side model.)`;
+        }
+
+        function clientSideMath(input) {
+            math.config({ implicit: 'auto' });
+            
+            const mathPattern = /\d|[+\-x*/=^()]/i;
+            if (!mathPattern.test(input)) return null;
+
+            // --- Pre-processing for improved accuracy ---
+            let processedInput = input.trim();
+            processedInput = processedInput.replace(/,/g, '.'); // Fix comma usage
+            processedInput = processedInput.replace(/([0-9)])\s*\(/g, '$1*('); // Implicit multiplication before parentheses
+
+            try {
+                const result = math.evaluate(processedInput, mathScope);
+
+                // Handle variable assignment or functions
                 if (typeof result === 'function' || typeof result === 'undefined') {
                     if (input.includes('=') && !input.includes('==') && !input.includes('!=')) {
                         return `Variable assignment successful! Current math scope includes: ${Object.keys(mathScope).join(', ')}`;
@@ -206,19 +251,14 @@
                     return null;
                 }
                 
-                // Final Check for a successful calculation result
+                // Final calculation result handling
                 if (typeof result === 'number' || result.constructor.name === 'BigNumber' || result.constructor.name === 'Complex') {
                     let output = result.toString();
-                    if (result.constructor.name === 'BigNumber') {
-                        // Display BigNumber precision
-                        output = result.toPrecision(15); 
-                    }
+                    if (result.constructor.name === 'BigNumber') output = result.toPrecision(15); 
                     
-                    // Format the input for display using KaTeX
-                    const displayInput = input.replace(/\*/g, '\\times');
-                    let finalInput = displayInput.replace(/([0-9])x([0-9])/g, '$1\\times$2'); // e.g., 2x3
-                    finalInput = finalInput.replace(/([0-9])\s*x\s*([0-9])/g, '$1\\times$2'); // e.g., 2 x 3
-                    finalInput = finalInput.replace(/x/g, '\\times'); // Any remaining 'x' assumed multiplication
+                    // Format output for KaTeX
+                    let finalInput = processedInput.replace(/\*/g, '\\times'); 
+                    finalInput = finalInput.replace(/x/g, '\\times'); 
 
                     return `**Math Result:** $${finalInput.replace(/ /g, '')} = ${output}$`;
                 }
@@ -226,8 +266,17 @@
                 return null;
 
             } catch (e) {
-                // Return a specific math failure message on error
-                return `**Calculation Error:** I couldn't solve that math problem. Please check the syntax or try a simpler operation. (Details: ${e.message})`;
+                // --- Smarter Error Fallback ---
+                const errorMessage = e.message.toLowerCase();
+                let specificTip = 'Please check the syntax or try a simpler operation.';
+
+                if (errorMessage.includes('undefined symbol') && errorMessage.match(/[a-z]/)) {
+                    specificTip = "That expression contains an unknown variable or function. Define your variable first (e.g., 'a=5').";
+                } else if (errorMessage.includes('unclosed parenthesis')) {
+                    specificTip = "You are missing a closing parenthesis ')' somewhere in your expression.";
+                } 
+                
+                return `**Calculation Error:** I couldn't solve that math problem. **Specific Tip:** ${specificTip} (Details: ${e.message})`;
             }
         }
 
@@ -241,52 +290,104 @@
             userInput.value = '';
             userInput.disabled = true;
 
-            const thinkingDiv = appendBotThinking();
+            const thinkingDiv = appendBotThinking('Processing request...');
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            let finalResponse = clientSideMath(userText);
+            let finalResponse = clientSideMath(userText); 
 
             if (!finalResponse) {
-                finalResponse = getBotResponse(userText.toLowerCase());
-
-                if (finalResponse.includes("I'm sorry, I can't process completely novel inputs")) {
-                    finalResponse = `I am running entirely **client-side** and cannot fetch new information for '${userText}'. Please try a question about **Web Technologies** or a simple **math calculation** instead.`;
-                }
+                finalResponse = getKeywordResponse(userText.toLowerCase()); 
+            }
+            
+            if (!finalResponse) {
+                finalResponse = await getLLMResponse(userText); 
             }
 
+            if (!finalResponse) {
+                finalResponse = "I'm sorry, I cannot process completely novel inputs right now. Try a math problem or ask about web technology.";
+            }
 
-            setTimeout(() => {
-                thinkingDiv.remove();
+            // --- Display Final Response ---
+            thinkingDiv.remove();
+            appendBotMessage(finalResponse, true);
 
-                const botMessageDiv = document.createElement('div');
-                botMessageDiv.className = 'message bot-message';
-                botMessageDiv.innerHTML = finalResponse;
-                chatBox.appendChild(botMessageDiv);
-                chatBox.scrollTop = chatBox.scrollHeight;
+            userInput.disabled = false;
+            userInput.focus();
+            renderSidebar(loadHistory());
+        }
 
-                lastResponse = finalResponse;
-                saveCurrentChat(null, finalResponse);
+// ---------------------------
+// 3. DRAG & DROP
+// ---------------------------
 
-                userInput.disabled = false;
-                userInput.focus();
+        function setupDragAndDrop() {
+            const dropTarget = document.querySelector('.chat-interface');
+            const dropZone = document.getElementById('dropZone');
+            if (!dropTarget || !dropZone) return;
 
-                // Render KaTeX for math in the new bot message
-                if (window.renderMathInElement) {
-                    try {
-                        window.renderMathInElement(botMessageDiv, {
-                            delimiters: [
-                                { left: '$$', right: '$$', display: true },
-                                { left: '$', right: '$', display: false }
-                            ]
-                        });
-                    } catch (e) {
-                        console.warn('KaTeX render failed:', e);
-                    }
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropTarget.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            dropTarget.addEventListener('dragenter', (e) => {
+                if (e.target.closest('.chat-interface') && !e.target.closest('.input-container')) {
+                    dropZone.classList.add('hover');
+                }
+            }, false);
+
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('hover'), false);
+            dropTarget.addEventListener('drop', () => dropZone.classList.remove('hover'), false);
+
+            dropTarget.addEventListener('drop', handleDrop, false);
+
+            function handleDrop(e) {
+                let dt = e.dataTransfer;
+                let files = dt.files;
+                if (files.length === 0) return;
+
+                const file = files[0];
+                const fileName = file.name;
+                const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                const fileType = file.type || 'application/octet-stream'; 
+                const extension = fileName.split('.').pop().toLowerCase();
+
+                const userDropMessage = `Attempting to analyze dropped file: **${fileName}**`;
+                let botResponse;
+
+                // --- Smarter File Type Analysis (Mimics file-type/Dropzone.js knowledge) ---
+                if (['exe', 'bat', 'sh', 'vbs', 'com', 'js', 'php'].includes(extension) || fileType.includes('script')) {
+                    botResponse = `**SECURITY ALERT** 🚨: File **${fileName}** (${fileSize} MB) received. This is a potential **executable or script file**. I cannot execute or read this file for security reasons. File type: \`${fileType}\`.`;
+                } else if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'ico'].includes(extension) || fileType.startsWith('image/')) {
+                    botResponse = `File **${fileName}** (${fileSize} MB) received. This is a common **Image File**. Its MIME type is: \`${fileType}\`. I can identify it as a visual asset.`;
+                } else if (['pdf', 'doc', 'docx', 'xlsx', 'pptx', 'odt'].includes(extension) || fileType.includes('document')) {
+                    botResponse = `File **${fileName}** (${fileSize} MB) received. This appears to be a common **Document or Spreadsheet File**. MIME type: \`${fileType}\`.`;
+                } else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(extension) || fileType.includes('compressed') || fileType.includes('archive')) {
+                    botResponse = `File **${fileName}** (${fileSize} MB) received. This is recognized as a **Compressed Archive**. MIME type: \`${fileType}\`.`;
+                } else if (['html', 'htm', 'css', 'json', 'xml'].includes(extension) || fileType.startsWith('text/')) {
+                    botResponse = `File **${fileName}** (${fileSize} MB) received. This looks like a common **Web/Text/Code File**. MIME type: \`${fileType}\`.`;
+                } else {
+                    botResponse = `File **${fileName}** (${fileSize} MB) received. This is an **Unknown or Uncommon File Type** (\`${extension}\`). MIME type: \`${fileType}\`.`;
                 }
 
-                renderSidebar(loadHistory());
-            }, 800);
+                appendUserMessage(userDropMessage);
+                userInput.disabled = true;
+
+                setTimeout(() => {
+                    appendBotMessage(botResponse, true);
+                    userInput.disabled = false;
+                    userInput.focus();
+                }, 500);
+            }
         }
+
+// ---------------------------
+// 4. HISTORY & UTILITY FUNCTIONS
+// ---------------------------
 
         function appendUserMessage(text) {
             const userMessageDiv = document.createElement('div');
@@ -296,41 +397,42 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        function appendBotThinking() {
+        function appendBotThinking(message) {
             const thinkingDiv = document.createElement('div');
             thinkingDiv.className = 'message bot-message thinking-message';
-            thinkingDiv.innerHTML = '...Thinking and checking sources<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+            thinkingDiv.innerHTML = message || '...Thinking and checking sources<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>'; 
             chatBox.appendChild(thinkingDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
             return thinkingDiv;
         }
 
-        function getBotResponse(input) {
-            const isQuestioningFact = input.includes('u sure') || input.includes('are you sure') || input.includes('is that true') || input.includes('really');
-            if (isQuestioningFact) {
-                if (lastResponse.includes('client-side simulator') || lastResponse.includes('local knowledge')) {
-                    return "Yes, I am certain. The information I provided is based on accurate, hardcoded data from my internal knowledge base.";
-                } else {
-                    return "I can only confirm facts I've just stated. Could you repeat the specific piece of information you're questioning?";
-                }
+        function appendBotMessage(text, saveToHistory = true) {
+            const botMessageDiv = document.createElement('div');
+            botMessageDiv.className = 'message bot-message';
+            botMessageDiv.innerHTML = text;
+            chatBox.appendChild(botMessageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            
+            if (saveToHistory) {
+                saveCurrentChat(null, text);
+                lastResponse = text;
             }
 
-            for (const item of KNOWLEDGE_BASE) {
-                if (item.keywords.some(keyword => input.includes(keyword))) {
-                    return item.response;
+            if (window.renderMathInElement) {
+                try {
+                    window.renderMathInElement(botMessageDiv, {
+                        delimiters: [
+                            { left: '$$', right: '$$', display: true },
+                            { left: '$', right: '$', display: false }
+                        ]
+                    });
+                } catch (e) {
+                    console.warn('KaTeX render failed:', e);
                 }
             }
-
-            return "I'm sorry, I can't process completely novel inputs like that or search the internet. I can answer questions about **Science, Math, Web Technologies, or my own simulated model**. Try asking: **'What is your model?'**";
         }
 
-// ---------------------------
-// 3. HISTORY & UI MANAGEMENT
-// ---------------------------
-
-        function userStorageKey() {
-            return HISTORY_ROOT_KEY;
-        }
+        function userStorageKey() { return HISTORY_ROOT_KEY; }
 
         function loadHistory() {
             const key = userStorageKey();
@@ -363,15 +465,9 @@
                 messageDiv.className = `message ${msg.type}-message`;
                 messageDiv.innerHTML = msg.text;
                 chatBox.appendChild(messageDiv);
-
                 if (msg.type === 'bot' && window.renderMathInElement) {
                     try {
-                        window.renderMathInElement(messageDiv, {
-                            delimiters: [
-                                { left: '$$', right: '$$', display: true },
-                                { left: '$', right: '$', display: false }
-                            ]
-                        });
+                        window.renderMathInElement(messageDiv);
                     } catch (e) { console.warn('KaTeX render error for history:', e); }
                 }
             });
@@ -386,7 +482,7 @@
 
             const newSession = [{
                 type: 'bot',
-                text: "New conversation started! I am an advanced JavaScript simulator with a vast knowledge base. **Math variables have been cleared.** Ask me anything."
+                text: "New conversation started! **Math variables have been cleared.** Ask me anything."
             }];
 
             const allSessions = loadHistory();
@@ -401,19 +497,13 @@
             const allSessions = loadHistory();
             let currentSession = allSessions[currentSessionId] || [];
 
-            if (userText) {
-                currentSession.push({ type: 'user', text: userText });
-            }
-            if (botResponse) {
-                currentSession.push({ type: 'bot', text: botResponse });
-            }
+            if (userText) currentSession.push({ type: 'user', text: userText });
+            if (botResponse) currentSession.push({ type: 'bot', text: botResponse });
 
             if (currentSession.length > 0) {
                 allSessions[currentSessionId] = currentSession;
                 saveHistory(allSessions);
-                if (userText || botResponse) {
-                    renderSidebar(allSessions);
-                }
+                if (userText || botResponse) renderSidebar(allSessions);
             }
         }
 
@@ -429,9 +519,7 @@
 
                 const listItem = document.createElement('li');
                 listItem.className = 'chat-item';
-                if (id === currentSessionId) {
-                    listItem.classList.add('active');
-                }
+                if (id === currentSessionId) listItem.classList.add('active');
 
                 const titleSpan = document.createElement('span');
                 titleSpan.className = 'chat-title';
@@ -453,11 +541,8 @@
 
                 chatList.appendChild(listItem);
             });
-
             const activeItemElement = chatList.querySelector('.chat-item.active');
-            if (activeItemElement) {
-                activeItemElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
+            if (activeItemElement) activeItemElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         function switchChat(sessionId, sessions) {
@@ -468,11 +553,8 @@
 
             document.querySelectorAll('.chat-item').forEach(item => {
                 item.classList.remove('active');
-                if (item.dataset.sessionId === sessionId) {
-                    item.classList.add('active');
-                }
+                if (item.dataset.sessionId === sessionId) item.classList.add('active');
             });
-
             lastResponse = messages[messages.length - 1]?.text || '';
         }
 
@@ -497,100 +579,19 @@
 
         function toggleSidebar() {
             const container = document.getElementById('gameSection');
-            if (!container) return;
-            container.classList.toggle('sidebar-visible');
+            if (container) container.classList.toggle('sidebar-visible');
         }
-
-        // DRAG & DROP
-        function setupDragAndDrop() {
-            const dropTarget = document.querySelector('.chat-interface');
-            const dropZone = document.getElementById('dropZone');
-            if (!dropTarget || !dropZone) return;
-
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropTarget.addEventListener(eventName, preventDefaults, false);
-            });
-
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-
-            dropTarget.addEventListener('dragenter', (e) => {
-                if (e.target.closest('.chat-interface') && !e.target.closest('.input-container')) {
-                    dropZone.classList.add('hover');
-                }
-            }, false);
-
-            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('hover'), false);
-            dropTarget.addEventListener('drop', () => dropZone.classList.remove('hover'), false);
-
-            dropTarget.addEventListener('drop', handleDrop, false);
-
-            // 💡 ENHANCED handleDrop function with better file classification
-            function handleDrop(e) {
-                let dt = e.dataTransfer;
-                let files = dt.files;
-                if (files.length === 0) return;
-
-                const file = files[0];
-                const fileName = file.name;
-                const fileSize = (file.size / 1024 / 1024).toFixed(2);
-                const fileType = file.type || 'application/octet-stream'; // Provide default if not set by browser
-                const extension = fileName.split('.').pop().toLowerCase();
-
-                const userDropMessage = `Attempting to analyze dropped file: **${fileName}**`;
-                let botDropResponse;
-
-                // 💡 Advanced File Type Analysis (Mimics 'file-type' knowledge)
-                if (['exe', 'bat', 'sh', 'vbs', 'com', 'js', 'php'].includes(extension) || fileType.includes('script')) {
-                    botDropResponse = `**SECURITY ALERT** 🚨: File **${fileName}** (${fileSize} MB) received. I recognize this as a potential **executable or script file**. As a client-side simulator, I cannot execute or read this file for security reasons. File type: \`${fileType}\`.`;
-                } else if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'ico'].includes(extension) || fileType.startsWith('image/')) {
-                    botResponse = `File **${fileName}** (${fileSize} MB) received. This is a common **Image File**. Its MIME type is: \`${fileType}\`. I can tell it's likely a visual asset.`;
-                } else if (['pdf', 'doc', 'docx', 'xlsx', 'pptx', 'odt'].includes(extension) || fileType.includes('document')) {
-                    botResponse = `File **${fileName}** (${fileSize} MB) received. This appears to be a common **Document or Spreadsheet File**. MIME type: \`${fileType}\`. While I can't read the content, I know its general format.`;
-                } else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(extension) || fileType.includes('compressed') || fileType.includes('archive')) {
-                    botResponse = `File **${fileName}** (${fileSize} MB) received. This is recognized as a **Compressed Archive**. MIME type: \`${fileType}\`. I cannot extract its contents.`;
-                } else if (['html', 'htm', 'css', 'json', 'xml'].includes(extension) || fileType.startsWith('text/')) {
-                    botResponse = `File **${fileName}** (${fileSize} MB) received. This looks like a common **Web/Text/Code File**. MIME type: \`${fileType}\`.`;
-                } else {
-                    botResponse = `File **${fileName}** (${fileSize} MB) received. This is an **Unknown or Uncommon File Type** (\`${extension}\`). I can only detect the browser-provided MIME type: \`${fileType}\`.`;
-                }
-
-                appendUserMessage(userDropMessage);
-                userInput.disabled = true;
-
-                setTimeout(() => {
-                    const botMessageDiv = document.createElement('div');
-                    botMessageDiv.className = 'message bot-message';
-                    botMessageDiv.innerHTML = botResponse;
-                    chatBox.appendChild(botMessageDiv);
-                    chatBox.scrollTop = chatBox.scrollHeight;
-
-                    saveCurrentChat(userDropMessage, botResponse);
-                    lastResponse = botResponse;
-
-                    userInput.disabled = false;
-                    userInput.focus();
-                }, 500);
-            }
-        }
-
 
 // ---------------------------
-// 4. INITIALIZATION
+// 5. INITIALIZATION
 // ---------------------------
 
         function initializeChatbotUI() {
             const sendBtn = document.getElementById('sendBtn');
-            if (sendBtn) {
-                sendBtn.addEventListener('click', sendMessage);
-            }
-            if (userInput) {
-                userInput.addEventListener('keypress', function (e) {
-                    if (e.key === 'Enter') sendMessage();
-                });
-            }
+            if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+            if (userInput) userInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') sendMessage();
+            });
 
             if (newChatBtn) newChatBtn.addEventListener('click', startNewChat);
             if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
