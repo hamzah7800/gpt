@@ -84,6 +84,26 @@
             #sidebarToggle { display: block !important; }
             .chat-interface { overflow: hidden; }
         }
+        
+        /* New D3.js Panel Styling */
+        .d3-panel-hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .d3-panel-visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .tooltip { /* D3 Tooltip CSS */
+            position: absolute;
+            text-align: center;
+            padding: 8px;
+            font: 10px sans-serif;
+            background: lightsteelblue;
+            border: 0px;
+            border-radius: 8px;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex justify-center items-center min-h-screen p-4">
@@ -113,6 +133,34 @@
             
             <div id="dropZone" tabindex="-1" class="absolute inset-0 bg-purple-600 bg-opacity-80 text-white hidden justify-center items-center text-2xl z-10 pointer-events-none">Drop Image for ML Classification (TensorFlow.js)</div>
 
+            <div id="dataPanel" class="d3-panel-hidden absolute inset-0 bg-white p-5 z-20 overflow-y-auto transition-opacity duration-300">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Client-Side Data Explorer (D3.js)</h3>
+                <button onclick="toggleDataPanel()" class="absolute top-5 right-5 p-2 bg-red-500 text-white rounded-full text-sm font-semibold hover:bg-red-600 z-30">
+                    &times; Close
+                </button>
+                
+                <div class="flex flex-col lg:flex-row gap-6">
+                    
+                    <div class="lg:w-1/2 bg-gray-50 p-4 rounded-lg shadow-inner">
+                        <h4 class="text-xl font-semibold mb-3">D3.js Scatter Plot: Feature Correlation</h4>
+                        <div id="d3ChartArea" style="width: 100%; height: 350px;">
+                            </div>
+                        <p class="text-sm text-gray-500 mt-2">Visualization rendered by D3.js on the client.</p>
+                    </div>
+
+                    <div class="lg:w-1/2">
+                        <h4 class="text-xl font-semibold mb-3">Raw Simulated Data (JSON)</h4>
+                        <div class="bg-gray-800 text-green-400 p-3 rounded-lg overflow-x-auto text-sm h-[400px]">
+                            <pre id="dataJsonView"></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <h4 class="text-xl font-semibold mb-3">Simulated Data Description</h4>
+                    <p class="text-gray-700">This panel demonstrates client-side data processing and visualization using **D3.js**. The data simulates performance metrics (**Latency** vs. **Throughput**) for a client-side ML model over time, with point color indicating **Accuracy**.</p>
+                </div>
+            </div>
             <div class="chat-header bg-gray-50 p-4 border-b border-gray-200 flex items-center">
                 <button id="sidebarToggle" onclick="toggleSidebar()" class="text-xl text-blue-600 mr-4 hidden">&#9776;</button>
                 <img src="icon-192.jpg" alt="AI Icon" class="header-icon w-8 h-8 rounded-full object-cover mr-4 border-2 border-500">
@@ -125,6 +173,7 @@
             <div class="input-container p-4 border-t border-gray-200 flex items-center bg-white">
                 <input type="text" id="userInput" placeholder="Ask a question, run code, or drag an image for ML..." autocomplete="off" class="flex-grow p-3 border border-gray-300 rounded-full mr-2 text-base focus:ring-blue-500 focus:border-blue-500">
                 
+                <button id="dataPanelToggle" class="input-btn bg-purple-600 text-white w-10 h-10 rounded-full text-xl flex justify-center items-center hover:bg-purple-700 transition ml-2" onclick="toggleDataPanel()" title="Open Data Explorer (D3.js)">📊</button>
                 <button id="voiceBtn" class="input-btn bg-blue-600 text-white w-10 h-10 rounded-full text-xl flex justify-center items-center hover:bg-blue-700 transition ml-2" onclick="toggleVoiceInput()">🎤</button>
                 <button id="sendBtn" class="input-btn bg-blue-600 text-white w-10 h-10 rounded-full text-xl flex justify-center items-center hover:bg-blue-700 transition ml-2" onclick="sendMessage()">&#9658;</button>
             </div>
@@ -319,7 +368,7 @@
 
         function startNewChat() {
             currentSessionId = 'session_' + Date.now();
-            const initialMessage = formatToolResponse(`Hello! I'm an **Ultimate Client-Side AI Simulator**. I can run **Math.js** calculations, **MobileNet** image classification, **Plotly** visualizations, and **Three.js/Cannon.js** physics simulations—all in your browser!`, 'generation_mock');
+            const initialMessage = formatToolResponse(`Hello! I'm an **Ultimate Client-Side AI Simulator**. I can run **Math.js** calculations, **MobileNet** image classification, **Plotly** visualizations, and **Three.js/Cannon.js** physics simulations—all in your browser! Use the **📊** button to check the new D3.js data panel!`, 'generation_mock');
             
             chatBox.innerHTML = '';
             appendBotMessage(initialMessage, true, 'history', false);
@@ -488,6 +537,7 @@
             userInput.disabled = true;
             sendBtn.disabled = true;
             voiceBtn.disabled = true;
+            document.getElementById('dataPanelToggle').disabled = true; // Disable new button too
 
             let finalResponse = null;
             let query = userText || (fileDetails ? `Analyze the image: ${fileDetails.name}` : '');
@@ -578,7 +628,7 @@
             thinkingDiv.remove();
             
             // Only render if it's a string response, non-rendered tools handle their own DOM/history update
-            if (finalResponse && typeof finalResponse === 'string' && finalResponse !== 'CHART_RENDERED' && finalResponse !== '3D_SIM_RENDERED') {
+            if (finalResponse && typeof finalResponse === 'string' && finalResponse !== 'CHART_RENDERED' && finalResponse !== '3D_SIM_RENDERED' && finalResponse !== 'ML_RENDERED') {
                 appendBotMessage(finalResponse, true, lastResponseType);
             }
             
@@ -586,6 +636,7 @@
             userInput.disabled = false;
             sendBtn.disabled = false;
             voiceBtn.disabled = false;
+            document.getElementById('dataPanelToggle').disabled = false; // Enable new button too
             userInput.focus();
             renderSidebar(loadHistory());
             NProgress.done();
@@ -1060,6 +1111,154 @@
                 }
             }
         }
+        
+// ---------------------------
+// 7. NEW D3.JS DATA EXPLORER LOGIC
+// ---------------------------
+
+        // New Global State
+        let isDataPanelVisible = false;
+        const dataPanel = document.getElementById('dataPanel');
+        const d3ChartArea = document.getElementById('d3ChartArea');
+        const dataJsonView = document.getElementById('dataJsonView');
+
+        // Data for D3 simulation
+        const simulatedData = Array.from({ length: 50 }, (_, i) => ({
+            id: i + 1,
+            latency: Math.floor(Math.random() * 50) + 10, // ms
+            throughput: (Math.random() * 20 + 30).toFixed(2), // ops/sec
+            accuracy: (Math.random() * 0.2 + 0.78).toFixed(3) // 78% to 98%
+        }));
+
+        function toggleDataPanel() {
+            isDataPanelVisible = !isDataPanelVisible;
+            if (isDataPanelVisible) {
+                dataPanel.classList.remove('d3-panel-hidden');
+                dataPanel.classList.add('d3-panel-visible');
+                renderD3Chart(simulatedData);
+                dataJsonView.textContent = JSON.stringify(simulatedData, null, 2);
+            } else {
+                dataPanel.classList.add('d3-panel-hidden');
+                dataPanel.classList.remove('d3-panel-visible');
+                // Clean up any D3 tooltips/extra elements when closing
+                d3.select("body").selectAll(".tooltip").remove(); 
+            }
+        }
+
+        function renderD3Chart(data) {
+            if (!window.d3) {
+                d3ChartArea.innerHTML = "<p class='text-red-500'>D3.js not loaded. Cannot render chart.</p>";
+                return;
+            }
+            
+            // Clear previous chart
+            d3.select("#d3ChartArea").selectAll("*").remove();
+            
+            const margin = { top: 10, right: 30, bottom: 40, left: 50 };
+            const containerWidth = d3ChartArea.getBoundingClientRect().width;
+            const width = containerWidth - margin.left - margin.right;
+            const height = 350 - margin.top - margin.bottom; // Fixed height
+
+            const svg = d3.select("#d3ChartArea")
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            // X axis (Latency)
+            const x = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.latency) * 1.1])
+                .range([0, width]);
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x));
+            
+            // X axis label
+            svg.append("text")
+                .attr("class", "x label")
+                .attr("text-anchor", "end")
+                .attr("x", width)
+                .attr("y", height + 35)
+                .style("font-size", "11px")
+                .style("fill", "#4b5563")
+                .text("Latency (ms)");
+
+
+            // Y axis (Throughput)
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(data, d => parseFloat(d.throughput)) * 1.1])
+                .range([height, 0]);
+            svg.append("g")
+                .call(d3.axisLeft(y));
+                
+            // Y axis label
+            svg.append("text")
+                .attr("class", "y label")
+                .attr("text-anchor", "end")
+                .attr("y", -35)
+                .attr("dy", ".75em")
+                .attr("transform", "rotate(-90)")
+                .style("font-size", "11px")
+                .style("fill", "#4b5563")
+                .text("Throughput (ops/sec)");
+
+            // Color scale for Accuracy
+            const color = d3.scaleSequential()
+                .domain(d3.extent(data, d => d.accuracy))
+                .interpolator(d3.interpolateViridis);
+
+            // Size scale for ID (to show some variability)
+            const size = d3.scaleLinear()
+                .domain([0, 50]) // Max ID
+                .range([4, 12]);
+
+            // Tooltip Setup (Attach to body so it overlays all elements)
+            const tooltip = d3.select("body").append("div")
+                .attr("class", "tooltip")
+                .style("opacity", 0)
+                .style("position", "absolute");
+
+
+            // Add dots
+            svg.append('g')
+                .selectAll("dot")
+                .data(data)
+                .enter()
+                .append("circle")
+                .attr("cx", d => x(d.latency))
+                .attr("cy", d => y(parseFloat(d.throughput)))
+                .attr("r", d => size(d.id))
+                .style("fill", d => color(d.accuracy))
+                .style("opacity", 0.8)
+                .attr("stroke", "white")
+                .on("mouseover", function(event, d) {
+                    d3.select(this).style("stroke", "black").style("opacity", 1);
+                    
+                    tooltip.transition()
+                        .duration(200)
+                        .style("opacity", 0.9);
+                    tooltip.html(`ID: ${d.id}<br>Latency: ${d.latency}ms<br>Throughput: ${d.throughput}<br>Accuracy: ${d.accuracy}`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mousemove", function(event) {
+                     tooltip.style("left", (event.pageX + 10) + "px")
+                            .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseleave", function(d) {
+                    d3.select(this).style("stroke", "white").style("opacity", 0.8);
+                    tooltip.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                });
+            
+            // Handle resizing (basic, single-render approach)
+            window.addEventListener('resize', () => {
+                if(isDataPanelVisible) renderD3Chart(data);
+            });
+        }
+        
         document.addEventListener('DOMContentLoaded', () => {
              // Initial check for login. If no login, the initializeChatbotUI() runs after successful login.
              // If the user already logged in (e.g., if this was a full page refresh and we skipped login), we'd call initialize here, but based on the code, we wait for validateLogin.
