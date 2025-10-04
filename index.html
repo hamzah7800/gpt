@@ -4,15 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Client-Side AI Simulator</title>
+    <link rel="icon" href="icon-192.jpg" type="image/jpeg">
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-nK4wG4K23o/w4fB0g/m7rA9j6G/Y99/N4J59y4/54A==" crossorigin="anonymous">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-y0Y7/qNqjA/L/jN8G7O98L7E7N5H4y2n9hY3g/C9/N9/A7O7F6A7N5E7N9N9N4N4" crossorigin="anonymous"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-qGf1rL458L8E7N9N9N4N4N4N4N4N4N4N4N4N4N4N4N4" onload="renderMathInElement(document.body);" crossorigin="anonymous"></script>
-    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-nK4wG4K23o/w4bB0g/m7rA9j6G/Y99/N4J59y4/54A==" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-y0Y7/qNqjA/L/jN8G7O98L7E7N9N9N4N4N4N4N4N4N4N4N4N4N4N4N4N4" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-qGf1rL458L8E7N9N9N4N4N4N4N4N4N4N4N4N4N4N4N4N4N4" onload="renderMathInElement(document.body);" crossorigin="anonymous"></script>
+
     <style>
         /* General Setup */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f7f9; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        
+
         /* Login Styles */
         #loginContainer { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; }
         #loginContainer h1 { color: #1e88e5; margin-bottom: 30px; }
@@ -22,9 +24,9 @@
         #error-message { color: #e53935; margin-top: 15px; font-weight: bold; }
 
         /* Chatbot Styles */
-        .chatbot-container { display: none; /* Hidden until login */
+        #gameSection { display: none; /* Hidden until login */
             background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); width: 90vw; max-width: 1000px; height: 90vh; max-height: 800px;
-            overflow: hidden; display: flex; transition: all 0.3s ease; }
+            overflow: hidden; transition: all 0.3s ease; }
         .sidebar { width: 250px; background-color: #2c3e50; color: #ecf0f1; padding: 20px 0; border-right: 1px solid #34495e; display: flex; flex-direction: column; }
         .sidebar h2 { padding: 0 20px; font-size: 1.2em; border-bottom: 1px solid #34495e; padding-bottom: 10px; margin-bottom: 15px; }
         .new-chat-btn { margin: 0 20px 20px 20px; padding: 10px; background-color: #1e88e5; color: white; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.3s; }
@@ -38,7 +40,18 @@
 
         /* Main Chat Interface */
         .chat-interface { flex-grow: 1; display: flex; flex-direction: column; position: relative; }
-        .chat-header { background: #f4f7f9; padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .chat-header { background: #f4f7f9; padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: flex-start; align-items: center; }
+
+        /* Icon Style */
+        .header-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 15px;
+            border: 2px solid #1e88e5;
+        }
+
         #sidebarToggle { background: none; border: none; font-size: 20px; cursor: pointer; color: #1e88e5; margin-right: 15px; display: none; } /* Show on smaller screens */
         #chatBox { flex-grow: 1; padding: 20px; overflow-y: auto; background-color: #f9f9f9; }
 
@@ -66,13 +79,12 @@
         /* Responsive Design */
         @media (max-width: 1200px) {
             .sidebar { position: absolute; z-index: 20; height: 100%; transform: translateX(-100%); transition: transform 0.3s ease; }
-            .chatbot-container.sidebar-visible .sidebar { transform: translateX(0); }
+            #gameSection.sidebar-visible .sidebar { transform: translateX(0); }
             #sidebarToggle { display: block; }
-            .chat-header { justify-content: flex-start; }
             .chat-interface { overflow: hidden; }
         }
         @media (max-width: 600px) {
-            .chatbot-container { width: 100vw; height: 100vh; border-radius: 0; }
+            #gameSection { width: 100vw; height: 100vh; border-radius: 0; }
             #loginContainer { margin: 20px; padding: 20px; }
         }
     </style>
@@ -95,14 +107,15 @@
             <ul class="chat-list">
                 </ul>
         </div>
-        
+
         <div class="chat-interface">
             <div id="dropZone">Drop files to simulate upload (Client-side only)</div>
             <div class="chat-header">
                 <button id="sidebarToggle" onclick="toggleSidebar()">&#9776;</button>
+                <img src="icon-192.jpg" alt="AI Icon" class="header-icon">
                 <h3>Client-Side JS Simulator</h3>
             </div>
-            
+
             <div id="chatBox">
                 </div>
 
@@ -114,7 +127,7 @@
     </div>
 
     <script>
-        // GLOBAL STATE VARIABLES (Replaced Firebase/Auth variables)
+        // GLOBAL STATE VARIABLES
         let lastResponse = '';
         let currentSessionId = 'session_' + Date.now();
         const HISTORY_ROOT_KEY = 'CLIENT_AI_CHAT_HISTORY';
@@ -126,10 +139,10 @@
         const chatList = document.querySelector('.chat-list');
         const newChatBtn = document.querySelector('.new-chat-btn');
         const sidebarToggle = document.getElementById('sidebarToggle');
-        const chatbotContainer = document.getElementById('gameSection'); // Renamed from chatbot-container for the login logic
+        const chatbotContainer = document.getElementById('gameSection');
 
 // ---------------------------
-// 1. LOGIN LOGIC (From Prompt)
+// 1. LOGIN LOGIC
 // ---------------------------
 
         function validateLogin() {
@@ -140,11 +153,9 @@
             // Static, client-side credentials
             if (username === "ryzen" && password === "4060") {
                 alert("Login successful!");
-                // Hide the login container and show the games/chatbot section
                 document.getElementById("loginContainer").style.display = "none";
                 document.getElementById("gameSection").style.display = "flex"; // Use flex to match CSS
-                
-                // Initialize the chatbot state after successful login
+
                 initializeChatbotUI();
 
             } else {
@@ -153,10 +164,10 @@
         }
 
 // ---------------------------
-// 2. CHATBOT CORE LOGIC (From Prompt, simplified)
+// 2. CHATBOT CORE LOGIC
 // ---------------------------
 
-        // LOCAL KNOWLEDGE BASE (From Prompt)
+        // LOCAL KNOWLEDGE BASE
         const KNOWLEDGE_BASE = [
             { keywords: ['hello', 'hi', 'hey', 'bonjour', 'salam'], response: "Hello! I am an advanced **client-side** simulator running entirely in your browser. I can answer local knowledge questions and perform **basic math**." },
             { keywords: ['how are you', 'how r u'], response: "I don't have feelings, but I am operating perfectly using only your browser's processing power! Ready for your next query." },
@@ -169,54 +180,40 @@
             { keywords: ['what model', 'model are you'], response: "I operate using a custom, **client-side JavaScript model** using keyword matching and hardcoded data." },
         ];
 
-        /**
-         * Attempts to solve the user input as a mathematical expression using math.js.
-         * @param {string} input - The user's message.
-         * @returns {string|null} The formatted result or null if it's not a math expression.
-         */
         function clientSideMath(input) {
-            // Regex to check if the input looks like a calculation (numbers, operators, common math words)
             const mathRegex = /^[\d\s\.\,\*\+\-\/\(\)a-zA-Z\^\=\!\%\&\|\<\>\[\]\{\}\:]+$/;
-            
-            // Allow common non-math words, but try math first if it looks right
             const looksLikeMath = mathRegex.test(input) && !getBotResponse(input);
 
             if (!looksLikeMath) return null;
 
             try {
-                // Use math.evaluate with the session scope to allow for variable storage (e.g., a = 5)
                 const result = math.evaluate(input, mathScope);
-                
-                // If the result is a function or undefined, it's not a direct numerical answer
+
                 if (typeof result === 'function' || typeof result === 'undefined') {
-                    // Check if the operation resulted in a variable assignment (which returns undefined)
                     if (input.includes('=') && !input.includes('==') && !input.includes('!=')) {
                         return `Variable assignment successful! Current scope: ${Object.keys(mathScope).join(', ')}`;
                     }
-                    return null; // Not a math expression with a simple output
+                    return null;
                 }
-                
+
                 let output = result.toString();
-                // Format large numbers
                 if (result.constructor.name === 'BigNumber') {
                     output = result.toPrecision(10);
                 }
-                
+
                 return `**Math Result:** $${input.replace(/ /g, '')} = ${output}$`;
 
             } catch (e) {
-                // Ignore math errors and fall through to keyword matching
                 return null;
             }
         }
 
-        // CHATBOT CORE UI & LOGIC (From Prompt)
         async function sendMessage() {
             const userText = userInput.value.trim();
             if (!userText) return;
 
             appendUserMessage(userText);
-            saveCurrentChat(userText, null); 
+            saveCurrentChat(userText, null);
 
             userInput.value = '';
             userInput.disabled = true;
@@ -224,20 +221,16 @@
             const thinkingDiv = appendBotThinking();
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            // Attempt math first
             let finalResponse = clientSideMath(userText);
 
-            // Local knowledge fallback
             if (!finalResponse) {
                 finalResponse = getBotResponse(userText.toLowerCase());
             }
 
-            // Generic fallback
             if (finalResponse.includes("I'm sorry, I can't process completely novel inputs")) {
                  finalResponse = `I am running entirely **client-side** and cannot fetch new information for '${userText}'. Please try a question about **Web Technologies** or a simple **math calculation** instead.`;
             }
 
-            // Simulate thinking then display
             setTimeout(() => {
                 thinkingDiv.remove();
 
@@ -311,7 +304,6 @@
 // 3. HISTORY & UI MANAGEMENT
 // ---------------------------
 
-        // Simplified storage key (no need for user ID since there's no auth)
         function userStorageKey() {
             return HISTORY_ROOT_KEY;
         }
@@ -348,7 +340,6 @@
                 messageDiv.innerHTML = msg.text;
                 chatBox.appendChild(messageDiv);
 
-                // Re-render KaTeX on loading history
                 if (msg.type === 'bot' && window.renderMathInElement) {
                     try {
                         window.renderMathInElement(messageDiv, {
@@ -364,9 +355,8 @@
         }
 
         function startNewChat() {
-            // Clear math scope for the new chat
             Object.keys(mathScope).forEach(k => delete mathScope[k]);
-            saveCurrentChat(); 
+            saveCurrentChat();
             currentSessionId = 'session_' + Date.now();
             lastResponse = '';
 
@@ -440,7 +430,6 @@
                 chatList.appendChild(listItem);
             });
 
-            // Ensure active item is visible
             const activeItemElement = chatList.querySelector('.chat-item.active');
             if (activeItemElement) {
                 activeItemElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -488,7 +477,7 @@
             container.classList.toggle('sidebar-visible');
         }
 
-        // DRAG & DROP (simplified from your provided code)
+        // DRAG & DROP
         function setupDragAndDrop() {
             const dropTarget = document.querySelector('.chat-interface');
             const dropZone = document.getElementById('dropZone');
@@ -556,7 +545,6 @@
 // ---------------------------
 
         function initializeChatbotUI() {
-            // Wire input send -> Enter key + send button if present
             const sendBtn = document.getElementById('sendBtn');
             if (sendBtn) {
                 sendBtn.addEventListener('click', sendMessage);
@@ -570,20 +558,14 @@
             if (newChatBtn) newChatBtn.addEventListener('click', startNewChat);
             if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
 
-            // Setup drag & drop
             setupDragAndDrop();
 
-            // Load initial state
             const sessions = loadHistory();
             const currentSession = sessions[currentSessionId];
 
-            // Render UI
             renderSidebar(sessions);
             renderChatBox(currentSession);
         }
-
-        // Initial DOMContentLoaded is NOT needed because the login flow now calls initializeChatbotUI()
-        // after successful login.
 
     </script>
 </body>
