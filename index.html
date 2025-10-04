@@ -127,7 +127,7 @@
     <script>
         // GLOBAL STATE VARIABLES
         let lastResponse = '';
-        let lastResponseType = 'none'; // <-- NEW: Tracks if last message was 'math', 'keyword', or 'llm'
+        let lastResponseType = 'none'; // <-- Tracks if last message was 'math', 'keyword', or 'llm'
         let currentSessionId = 'session_' + Date.now();
         const HISTORY_ROOT_KEY = 'CLIENT_AI_CHAT_HISTORY';
         const mathScope = {}; 
@@ -196,7 +196,7 @@
 
             } catch (error) {
                 console.error("LLM Initialization Failed:", error);
-                // Call the fallback function if the primary model fails. The console shows this will happen.
+                // Call the fallback function if the primary model fails.
                 await initializeFallbackLLM(); 
             }
         }
