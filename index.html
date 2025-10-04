@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI</title>
+    <title>Client-Side Simulator (Pure Tools Edition)</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
@@ -26,80 +26,18 @@
         .dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes dot-fade { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
         
-        /* Tool Card Styles (Retain colors for functional distinction) */
-        .tool-card { padding: 0.75rem; margin-bottom: 1rem; border-radius: 0.5rem; opacity: 0; transform: translateY(10px); animation: tool-card-flow 0.5s forwards; }
+        /* Tool Card Styles */
+        /* Note: Colors kept to functionally distinguish the tool results */
+        .tool-card { padding: 0.75rem; margin-bottom: 0rem; border-radius: 0.5rem; }
         .tool-card-math { background-color: #e0f7fa; border: 1px solid #00bcd4; color: #006064; }
         .tool-card-rag { background-color: #e8f5e9; border: 1px solid #4caf50; color: #1b5e20; }
-        .tool-card-fallback { background-color: #ffebee; border: 1px solid #f44336; color: #b71c1c; }
         .tool-card-vision { background-color: #fce4ec; border: 1px solid #e91e63; color: #880e4f; }
+        .tool-card-fallback { background-color: #ffebee; border: 1px solid #f44336; color: #b71c1c; }
 
-        @keyframes tool-card-flow {
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        /* --- System Boot 3D Transition Styles --- */
-        .boot-container {
-            position: relative;
-            perspective: 1000px;
-            transition: opacity 0.5s ease-in-out;
-        }
+        .response-content { margin-top: 0.5rem; } /* Separator for tool card content */
 
-        #loginContainer {
-            transition: transform 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.5s ease;
-            transform: translateZ(0) rotateY(0deg) scale(1);
-        }
-
-        .boot-active #loginContainer {
-            transform: translateZ(-1000px) rotateY(360deg) scale(0.1);
-            opacity: 0;
-        }
-        
-        /* --- Clean System Indicator --- */
-        #bootAnimation {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 100px;
-            height: 100px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 0;
-            background-color: #3b82f6;
-            border: 4px solid #1d4ed8;
-            border-radius: 50%;
-            transition: transform 1.5s ease;
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
-            z-index: 10;
-        }
-        
-        .boot-active #bootAnimation {
-            animation: boot-spin 1.5s infinite linear, pulse-glow 1s infinite alternate;
-        }
-
-        @keyframes boot-spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
-        @keyframes pulse-glow {
-            from { box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
-            to { box-shadow: 0 0 20px rgba(59, 130, 246, 1); }
-        }
-
-        /* Blackout Layer for system initialization */
-        #blackoutOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #1f2937;
-            opacity: 0;
-            z-index: 999;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
-        }
+        .voice-recording { background-color: #ef4444; animation: voice-pulse 1s infinite alternate; }
+        @keyframes voice-pulse { from { opacity: 1; } to { opacity: 0.7; } }
 
         @media (max-width: 1200px) {
             .sidebar { position: absolute; z-index: 20; height: 100%; transform: translateX(-100%); transition: transform 0.3s ease; }
@@ -111,30 +49,19 @@
 </head>
 <body class="bg-gray-100 flex justify-center items-center min-h-screen p-4">
 
-    <div id="blackoutOverlay"></div>
-
-    <div class="boot-container w-full max-w-md">
-        <div id="loginContainer" class="bg-white p-10 rounded-xl shadow-2xl w-full text-center relative overflow-hidden">
-            
-            <div id="bootAnimation"></div> 
-
-            <h1 class="text-3xl text-blue-600 font-bold mb-4 border-b pb-2 border-gray-300">Client-Side AI Simulator</h1>
-            <h2 class="text-xl text-gray-700 font-semibold mb-6">System Access Required: Initiate Boot Sequence.</h2>
-            <p class="text-gray-600 mb-4">Enter credentials for authentication.</p>
-            
-            <input type="text" id="username" placeholder="System ID (ryzen)" class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring-blue-600 focus:border-blue-600">
-            <input type="password" id="password" placeholder="Key (4060)" class="w-full p-3 mb-6 border border-gray-300 rounded-lg focus:ring-blue-600 focus:border-blue-600">
-            
-            <button onclick="validateLogin()" class="w-full p-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition duration-200 shadow-lg">Authenticate & Boot System</button>
-            <div id="error-message" class="text-red-600 font-bold mt-4"></div>
-        </div>
+    <div id="loginContainer" class="bg-white p-10 rounded-xl shadow-2xl w-full max-w-sm text-center">
+        <h1 class="text-3xl text-blue-600 font-bold mb-6">Welcome to the Client-Side AI</h1>
+        <p class="text-gray-600 mb-4">Login to access the simulator.</p>
+        <input type="text" id="username" placeholder="Username (ryzen)" class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+        <input type="password" id="password" placeholder="Key (4060)" class="w-full p-3 mb-6 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+        <button onclick="validateLogin()" class="w-full p-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition duration-200">Login</button>
+        <div id="error-message" class="text-red-600 font-bold mt-4"></div>
     </div>
 
-    <div id="gameSection" class="hidden bg-white rounded-xl shadow-2xl w-full max-w-7xl h-[95vh] max-h-[800px] overflow-hidden flex transition-all duration-300 opacity-0">
+    <div id="gameSection" class="hidden bg-white rounded-xl shadow-2xl w-full max-w-7xl h-[95vh] max-h-[800px] overflow-hidden flex transition-all duration-300">
         
         <div class="sidebar bg-gray-800 text-white w-64 flex flex-col border-r border-gray-700">
             <h2 class="px-5 pt-5 text-lg font-semibold border-b border-gray-700 pb-3 mb-4">Chat History</h2>
-            <div id="mathScopeStatus" class="px-5 text-sm text-yellow-400 mb-4">Math Scope: **0** variables loaded</div>
             <button class="new-chat-btn mx-5 mb-4 p-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition" onclick="startNewChat()">+ New Chat</button>
             <ul class="chat-list list-none p-0 m-0 flex-grow overflow-y-auto">
                 </ul>
@@ -147,7 +74,7 @@
             <div class="chat-header bg-gray-50 p-4 border-b border-gray-200 flex items-center">
                 <button id="sidebarToggle" onclick="toggleSidebar()" class="text-xl text-blue-600 mr-4 hidden">&#9776;</button>
                 <img src="icon-192.jpg" alt="AI Icon" class="header-icon w-8 h-8 rounded-full object-cover mr-4 border-2 border-blue-500">
-                <h3 class="text-lg font-semibold text-gray-800">Client-Side JS Simulator (Tool Edition)</h3>
+                <h3 class="text-lg font-semibold text-gray-800">Client-Side JS Simulator (Pure Tools Edition)</h3>
             </div>
 
             <div id="chatBox" class="flex-grow p-5 overflow-y-auto bg-gray-50 flex flex-col">
@@ -168,8 +95,10 @@
         let lastResponseType = 'none'; 
         let currentSessionId = 'session_' + Date.now();
         const HISTORY_ROOT_KEY = 'CLIENT_AI_CHAT_HISTORY';
-        const MATH_SCOPE_KEY = 'CLIENT_AI_MATH_SCOPE'; 
-        let mathScope = {}; 
+        let chatContext = []; // Array to store last few user messages for RAG context
+
+        // Math scope removed as requested. Math.js will run without persistent variables.
+        const mathScope = {}; 
         
         let isVoiceRecording = false;
         let recognition = null; 
@@ -180,12 +109,6 @@
         const chatList = document.querySelector('.chat-list');
         const voiceBtn = document.getElementById('voiceBtn');
         const sendBtn = document.getElementById('sendBtn');
-        const bootAnimation = document.getElementById('bootAnimation');
-        const mathScopeStatus = document.getElementById('mathScopeStatus');
-        const blackout = document.getElementById('blackoutOverlay');
-        const loginContainer = document.querySelector('.boot-container');
-        
-        let chatContext = []; 
 
 
 // ---------------------------
@@ -198,40 +121,23 @@
             const errorMessage = document.getElementById("error-message");
 
             if (username === "ryzen" && password === "4060") {
-                bootAnimation.classList.add('boot-active');
-                
+                document.getElementById("loginContainer").style.display = "none";
+                const gameSection = document.getElementById("gameSection");
+                gameSection.classList.remove('hidden');
+                gameSection.classList.add('flex');
+
                 NProgress.start();
-                errorMessage.textContent = "Authentication successful! Initiating system boot...";
-
+                // Simulate model initialization time
                 setTimeout(() => {
-                    loginContainer.classList.add('boot-active');
-                    blackout.style.opacity = 1;
+                    NProgress.done();
+                    initializeChatbotUI();
                 }, 500);
-
-                setTimeout(() => {
-                    blackout.style.opacity = 0;
-                    loginContainer.style.display = "none";
-                    
-                    const gameSection = document.getElementById("gameSection");
-                    gameSection.classList.remove('hidden');
-                    gameSection.classList.add('flex');
-                    
-                    setTimeout(() => {
-                        gameSection.style.opacity = 1;
-                        NProgress.done();
-                        initializeChatbotUI();
-                    }, 200);
-
-                }, 2000); 
             } else {
-                errorMessage.textContent = "Authentication failed. Check System ID and Key.";
-                bootAnimation.classList.remove('boot-active');
+                errorMessage.textContent = "Invalid username or password. Try again.";
             }
         }
         
         function initializeChatbotUI() {
-            loadMathScope(); 
-            updateMathScopeStatus(); 
             if (sendBtn) sendBtn.addEventListener('click', () => sendMessage());
             if (userInput) userInput.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') sendMessage();
@@ -245,40 +151,27 @@
             userInput.focus();
         }
 
-        function loadMathScope() {
-            const scopeData = localStorage.getItem(MATH_SCOPE_KEY);
-            mathScope = scopeData ? JSON.parse(scopeData) : {};
-        }
-
-        function saveMathScope() {
-            localStorage.setItem(MATH_SCOPE_KEY, JSON.stringify(mathScope));
-            updateMathScopeStatus(); 
-        }
-        
-        function updateMathScopeStatus() {
-            const count = Object.keys(mathScope).length;
-            mathScopeStatus.innerHTML = `Math Scope: **${count}** variables loaded`;
-        }
-
 
 // ---------------------------
-// 2. CORE CHATBOT LOGIC (Tool Dispatch)
+// 2. CORE CHATBOT LOGIC (Pure JS Tool Dispatch)
 // ---------------------------
 
         const KNOWLEDGE_BASE = [
-            { keywords: ['html', 'hypertext markup language', 'define html', 'html stands for'], response: "**HTML** (HyperText Markup Language) forms the **structure** of web pages." },
-            { keywords: ['javascript', 'js', 'programming language', 'interactive web'], response: "**JavaScript** is the programming language that enables **interactive web pages**." },
-            { keywords: ['webgpu', 'gpu', 'parallel computations'], response: "**WebGPU** is a new web standard for high-performance **parallel computations** using the GPU from a web browser." },
-            { keywords: ['llm', 'large language model', 'what is llm'], response: "**LLM** (Large Language Model) is a type of AI that can understand and generate human-like text." },
-            { keywords: ['browser', 'first browser', 'marc andreessen'], response: "The first popular graphical web browser was **Mosaic**." },
+            // RAG/Knowledge base is a simple list of facts
+            { keywords: ['html', 'what html', 'define html', 'html stands for'], response: "**HTML** (HyperText Markup Language) forms the **structure** of web pages." },
+            { keywords: ['javascript', 'what is javascript', 'js'], response: "**JavaScript** is the programming language that enables **interactive web pages**." },
+            { keywords: ['webgpu', 'define webgpu', 'gpu'], response: "**WebGPU** is a new web standard for high-performance **parallel computations** using the GPU from a web browser." },
+            { keywords: ['llm', 'what is llm', 'large language model'], response: "**LLM** (Large Language Model) is a type of AI that can understand and generate human-like text." },
+            { keywords: ['browser', 'first browser', 'mosaic'], response: "The first popular graphical web browser was **Mosaic**, developed by Marc Andreessen and Eric Bina." },
         ];
-
+        
         async function sendMessage(imageCaption = null) {
             const userText = userInput.value.trim();
             if (!userText && !imageCaption) return;
 
+            // 1. Append User Message
             if (userText) appendUserMessage(userText); 
-            if (imageCaption) appendUserMessage(`[Vision Tool Active] ${userText || 'Analyze the image.'}`);
+            if (imageCaption) appendUserMessage(`[Vision Prompt] ${userText || 'Analyze the image.'}`);
 
             userInput.value = '';
             userInput.disabled = true;
@@ -288,19 +181,24 @@
             let finalResponse = null;
             let query = userText || (imageCaption ? `Analyze the image showing: ${imageCaption}` : '');
             
+            // Update chat context for RAG
             if (userText) {
                 chatContext.push(userText);
-                if (chatContext.length > 3) chatContext.shift(); 
+                if (chatContext.length > 3) chatContext.shift(); // Keep only the last 3 user inputs
             }
             
             const thinkingDiv = appendBotThinking('Processing query with pure JS tools...');
             
+            // 2. Tool Execution Logic
+            
+            // Try Math Tool first
             const mathResult = clientSideMath(query);
             if (mathResult) {
                 finalResponse = mathResult;
                 lastResponseType = 'math';
             }
             
+            // Try Keyword/RAG Tool 
             if (!finalResponse) {
                 finalResponse = getKeywordResponse(query.toLowerCase(), chatContext); 
                 if (finalResponse) {
@@ -308,6 +206,7 @@
                 }
             }
 
+            // Handle Image Input (Simulated)
             if (imageCaption && !finalResponse) {
                  finalResponse = formatToolResponse(
                     `**SIMULATED VISION RESPONSE:** Image analysis result: **${imageCaption}**.`, 
@@ -316,18 +215,21 @@
                  lastResponseType = 'vision_mock';
             }
 
+            // Fallback
             if (!finalResponse) {
                 finalResponse = getFallbackResponse(query);
                 lastResponseType = 'fallback';
             }
 
-            await new Promise(r => setTimeout(r, 1200)); 
+            // 3. Render Final Response
+            await new Promise(r => setTimeout(r, 800)); 
             thinkingDiv.remove();
 
             if (finalResponse && typeof finalResponse === 'string') {
                 appendBotMessage(finalResponse, true); 
             }
             
+            // 4. Cleanup
             userInput.disabled = false;
             sendBtn.disabled = false;
             voiceBtn.disabled = false;
@@ -348,12 +250,12 @@
                     break;
                 case 'rag':
                     icon = '📜';
-                    title = 'RAG TOOL (Ninja Info Scroll)'; // Themed Title
+                    title = 'RAG TOOL (Knowledge Base)';
                     cssClass = 'tool-card-rag';
                     break;
                 case 'vision':
                     icon = '👁️';
-                    title = 'VISION TOOL (Mangekyō Analysis)'; // Themed Title
+                    title = 'VISION TOOL (Simulated Analysis)';
                     cssClass = 'tool-card-vision';
                     break;
                 default:
@@ -373,18 +275,16 @@
         function getFallbackResponse(query) {
             const lowQuery = query.toLowerCase();
             if (lowQuery.includes('hello') || lowQuery.includes('hi')) {
-                // KAKASHI THEMED RESPONSE
-                return formatToolResponse("Hey. I'm the **Copy Ninja's Simulator**. I use my **Sharigan Tools** for calculations and my **Ninja Info Scrolls** for facts. Try a jutsu (math problem)!", 'fallback');
+                return formatToolResponse("Hello there! I'm the **Client-Side JS Simulator**. I use **Math.js** for calculations and a **Knowledge Base** for facts. Ask me anything!", 'fallback');
             }
             if (lowQuery.includes('how are you') || lowQuery.includes('what are you')) {
-                // KAKASHI THEMED RESPONSE
-                return formatToolResponse("I am a simple **Jutsu System**, powered by JavaScript, Math.js, and a Knowledge Scroll database. I'm usually late.", 'fallback');
+                return formatToolResponse("I am a simple JavaScript program. I use Math.js, a keyword list, and my internal logic to respond. I do not have a full LLM.", 'fallback');
             }
-            // KAKASHI THEMED RESPONSE
-            return formatToolResponse(`I'm sorry, I couldn't find a direct or fuzzy match for **"${query}"** in my current **Ninja Scrolls**. Try a simple math problem (jutsu) or a technical term like 'WebGPU'.`, 'fallback');
+            return formatToolResponse(`I'm sorry, I couldn't find a direct keyword match or a mathematical expression for **"${query}"** in my current knowledge base. Try a simple math problem (e.g., '10 * 5') or a technical term like 'WebGPU'.`, 'fallback');
         }
 
         function processBotResponse(text) {
+             // Function is now just responsible for KaTeX rendering and speaking
              const messageDiv = chatBox.lastElementChild;
              if (messageDiv && messageDiv.classList.contains('bot-message')) {
                 const contentDiv = messageDiv.querySelector('.response-content') || messageDiv; 
@@ -404,38 +304,42 @@
 
 
 // ---------------------------
-// 3. TOOL IMPLEMENTATIONS 
+// 3. TOOL IMPLEMENTATIONS (Math, RAG/Keyword, Vision Mock)
 // ---------------------------
 
         function clientSideMath(input) {
+            // Check for explicit math commands or high probability math symbols
             const mathPattern = /^\s*(\d|\(|\-|\+)/; 
             if (!mathPattern.test(input) && !input.includes('calculate') && !input.includes('solve') && !input.includes('=')) {
                  return null;
             }
             
+            // Simplify input for math.js: remove 'calculate', 'what is', replace x with *
             let processedInput = input.trim().replace(/calculate|what is|solve|the result of/i, '')
                                              .replace(/x/g, '*');
             
             math.config({ implicit: 'auto' });
             try {
+                // IMPORTANT: mathScope is passed but empty, enforcing no variable persistence.
                 const result = math.evaluate(processedInput, mathScope);
                 
-                saveMathScope(); 
-
                 if (typeof result === 'number' || result.constructor.name === 'BigNumber' || result.constructor.name === 'Complex' || result.isMatrix) {
                     let output = result.toString();
                     if (result.constructor.name === 'BigNumber') output = result.toPrecision(15); 
                     
+                    // Format output with KaTeX
                     let finalInput = processedInput.replace(/\*/g, '\\times').replace(/ /g, ''); 
                     
                     return formatToolResponse(`I used **Math.js** to solve the expression. The result is: $$${finalInput} = ${output}$$`, 'math');
                 }
+                // Handle variable assignment (without saving to scope, since it's removed)
                 if (input.includes('=')) {
-                     return formatToolResponse(`Variable assignment successful! The variable **\`${input.trim()}\`** is now stored in my memory scope.`, 'math');
+                     return formatToolResponse(`Variable assignment executed in Math.js (e.g. \`a = 5\`), but **variables are NOT saved** in my memory scope. Try using it in the same query: \`a=5; a*2\`.`, 'math');
                 }
 
                 return formatToolResponse(`I used **Math.js**, but the result was a complex object I cannot display.`, 'math');
             } catch (e) {
+                // If the math parser fails, it's probably not a calculation
                 return null; 
             }
         }
@@ -470,10 +374,12 @@
             return union === 0 ? 0 : intersection / union;
         }
 
+
         function getKeywordResponse(input, context) {
             let bestMatch = null;
-            let maxConfidence = 0.35; 
+            let maxConfidence = 0.35; // Threshold for a match
 
+            // Combine current input with context for better RAG matching
             const fullQuery = [...context, input].join(' ').toLowerCase();
 
             for (const item of KNOWLEDGE_BASE) {
@@ -504,6 +410,7 @@
 
             function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
 
+            // Visual feedback
             dropTarget.addEventListener('dragenter', (e) => {
                 if (e.target.closest('.chat-interface') && !e.target.closest('.input-container')) {
                     dropZone.classList.remove('hidden');
@@ -533,7 +440,8 @@
                 const fileType = file.type || 'application/octet-stream'; 
                 
                 if (fileType.startsWith('image/')) {
-                    const mockCaption = `A simulated caption for '${fileName}'. It looks like a ${Math.random() > 0.5 ? 'a server rack' : 'a data center floor'}.`;
+                    // MOCKING the Image Analysis
+                    const mockCaption = `A simulated caption for '${fileName}' generated locally. It looks like a ${Math.random() > 0.5 ? 'server rack' : 'data center floor'}.`;
                     sendMessage(mockCaption);
 
                 } else {
@@ -542,6 +450,7 @@
                 }
             }
         }
+
 
 // ---------------------------
 // 4. UI/HELPER FUNCTIONS (History, Speech, Rendering)
@@ -605,6 +514,7 @@
         }
         
         function speakResponse(text) {
+            // Remove HTML/Markdown/KaTeX delimiters for clean speech
             const speechText = text.replace(/<[^>]*>?/gm, '') 
                                  .replace(/\*\*|#|```|\\(times|cdot)/g, ''); 
             
@@ -636,7 +546,11 @@
 
         function appendBotMessage(text, saveToHistory = true) {
             const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'message bot-message bg-gray-200 text-gray-800 self-start rounded-xl p-1 mb-4 max-w-xl rounded-bl-none shadow-md'; 
+            // The bot message container only takes full padding if it's NOT a tool card response
+            const isToolCard = text.includes('tool-card'); 
+            const paddingClass = isToolCard ? 'p-1' : 'p-3'; 
+
+            botMessageDiv.className = `message bot-message bg-gray-200 text-gray-800 self-start rounded-xl ${paddingClass} mb-4 max-w-xl rounded-bl-none shadow-md`; 
             botMessageDiv.innerHTML = text;
             chatBox.appendChild(botMessageDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
@@ -658,8 +572,7 @@
                 currentSessionId = 'session_' + Date.now();
                 sessions[currentSessionId] = [{
                     type: 'bot',
-                    // KAKASHI THEMED INITIAL WELCOME MESSAGE
-                    text: formatToolResponse("Hello! Welcome, you've successfully bypassed the System Check. I am the **Copy Ninja's AI Simulator**. My **Sharigan Tools** handle calculations, and my **Ninja Info Scrolls** hold all the facts. Ask me anything!", 'fallback')
+                    text: formatToolResponse("Hello! I am a **Pure JavaScript Simulator**. I use **Math.js** for calculations and a **Knowledge Base** for facts. Ask me anything!", 'fallback')
                 }];
                 localStorage.setItem(key, JSON.stringify(sessions));
             }
@@ -677,13 +590,15 @@
             chatBox.innerHTML = '';
             (messages || []).forEach(msg => {
                 const messageDiv = document.createElement('div');
+                const isToolCard = msg.text.includes('tool-card');
+                const paddingClass = isToolCard ? 'p-1' : 'p-3';
+
                 if (msg.type === 'user') {
                      messageDiv.className = 'message user-message bg-blue-600 text-white self-end rounded-xl p-3 mb-4 max-w-xl rounded-br-none shadow-md';
-                     messageDiv.textContent = msg.text;
                 } else {
-                    messageDiv.className = 'message bot-message bg-gray-200 text-gray-800 self-start rounded-xl p-1 mb-4 max-w-xl rounded-bl-none shadow-md';
-                    messageDiv.innerHTML = msg.text;
+                    messageDiv.className = `message bot-message bg-gray-200 text-gray-800 self-start rounded-xl ${paddingClass} mb-4 max-w-xl rounded-bl-none shadow-md`;
                 }
+                messageDiv.innerHTML = msg.text;
                 chatBox.appendChild(messageDiv);
                 if (msg.type === 'bot' && window.renderMathInElement) {
                     try { processBotResponse(msg.text); } catch (e) { console.warn('KaTeX render error for history:', e); }
@@ -693,16 +608,15 @@
         }
 
         function startNewChat() {
-            mathScope = {}; 
-            saveMathScope(); 
-            chatContext = []; 
+            // Math scope removal enforced:
+            Object.keys(mathScope).forEach(k => delete mathScope[k]);
+            chatContext = []; // Clear RAG context
             
             currentSessionId = 'session_' + Date.now();
             lastResponse = '';
             lastResponseType = 'none'; 
             
-            // KAKASHI THEMED NEW CHAT MESSAGE
-            const newSession = [{ type: 'bot', text: formatToolResponse("New conversation started! **Chakra variables and context have been cleared.** Ask me anything.", 'fallback') }];
+            const newSession = [{ type: 'bot', text: formatToolResponse("New conversation started! Context and temporary memory have been cleared.", 'fallback') }];
             const allSessions = loadHistory();
             allSessions[currentSessionId] = newSession;
             saveHistory(allSessions);
@@ -728,7 +642,7 @@
             sessionKeys.forEach(id => {
                 const messages = sessions[id];
                 const firstUserMsg = messages.find(m => m.type === 'user');
-                const titleText = firstUserMsg ? (firstUserMsg.text.substring(0, 30) + (firstUserMsg.text.length > 30 ? '...' : '')) : 'New Chat';
+                const titleText = firstUserMsg ? (firstUserMsg.text.substring(0, 30) + (firstUserMsg.text.length > 30 ? '...' : '')) : 'New Chat (Pure JS)';
 
                 const listItem = document.createElement('li');
                 listItem.className = 'chat-item px-5 py-3 cursor-pointer flex justify-between items-center transition duration-200 hover:bg-gray-700';
@@ -766,6 +680,7 @@
             });
             lastResponse = messages[messages.length - 1]?.text || '';
             lastResponseType = 'none'; 
+            // Rebuild context on switch
             chatContext = messages.filter(m => m.type === 'user').slice(-3).map(m => m.text); 
         }
 
