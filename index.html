@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pure Tools Simulator (Clean Edition)</title>
+    <title>kakashi hatake ai</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
@@ -26,19 +26,18 @@
         .dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes dot-fade { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
         
-        /* Tool Card Styles (Retain colors for functional distinction) */
-        .tool-card { padding: 0.75rem; margin-bottom: 1rem; border-radius: 0.5rem; opacity: 0; transform: translateY(10px); animation: chakra-flow 0.5s forwards; }
-        .tool-card-math { background-color: #e0f7fa; border: 1px solid #00bcd4; color: #006064; } /* Blue/Cyan */
-        .tool-card-rag { background-color: #e8f5e9; border: 1px solid #4caf50; color: #1b5e20; } /* Green */
-        .tool-card-fallback { background-color: #ffebee; border: 1px solid #f44336; color: #b71c1c; } /* Red */
+        /* Tool Card Styles */
+        .tool-card { padding: 0.75rem; margin-bottom: 1rem; border-radius: 0.5rem; opacity: 0; transform: translateY(10px); animation: tool-card-flow 0.5s forwards; }
+        .tool-card-math { background-color: #e0f7fa; border: 1px solid #00bcd4; color: #006064; }
+        .tool-card-rag { background-color: #e8f5e9; border: 1px solid #4caf50; color: #1b5e20; }
+        .tool-card-fallback { background-color: #ffebee; border: 1px solid #f44336; color: #b71c1c; }
         .tool-card-vision { background-color: #fce4ec; border: 1px solid #e91e63; color: #880e4f; }
 
-        /* Animation for tool card appearance (now just a smooth fade-in) */
-        @keyframes chakra-flow {
+        @keyframes tool-card-flow {
             to { opacity: 1; transform: translateY(0); }
         }
         
-        /* --- System Boot 3D Transition Styles (Replaces Genjutsu) --- */
+        /* --- System Boot 3D Transition Styles --- */
         .boot-container {
             position: relative;
             perspective: 1000px;
@@ -51,33 +50,31 @@
         }
 
         .boot-active #loginContainer {
-            /* Pulls the box back, spins it fast, and scales it down to simulate a "system load" effect */
             transform: translateZ(-1000px) rotateY(360deg) scale(0.1);
             opacity: 0;
         }
         
-        /* --- Clean Login UI (Replaces Kakashi Elements) --- */
+        /* --- Clean System Indicator (No Emoji) --- */
         #bootAnimation {
             position: absolute;
             top: 20px;
             right: 20px;
-            width: 150px;
-            height: 150px;
+            width: 100px; /* Smaller and cleaner */
+            height: 100px;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 80px;
-            color: #1d4ed8; /* Blue */
-            border: 8px solid #3b82f6;
+            font-size: 0; /* Ensures no content shows */
+            background-color: #3b82f6;
+            border: 4px solid #1d4ed8;
             border-radius: 50%;
             transition: transform 1.5s ease;
-            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); /* Subtle blue glow */
             z-index: 10;
-            overflow: hidden;
         }
         
         .boot-active #bootAnimation {
-            animation: boot-spin 1.5s infinite linear;
+            animation: boot-spin 1.5s infinite linear, pulse-glow 1s infinite alternate;
         }
 
         @keyframes boot-spin {
@@ -85,6 +82,11 @@
             to { transform: rotate(360deg); }
         }
         
+        @keyframes pulse-glow {
+            from { box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+            to { box-shadow: 0 0 20px rgba(59, 130, 246, 1); }
+        }
+
         /* Blackout Layer for system initialization */
         #blackoutOverlay {
             position: fixed;
@@ -92,7 +94,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: #1f2937; /* Dark gray for a system terminal look */
+            background-color: #1f2937;
             opacity: 0;
             z-index: 999;
             pointer-events: none;
@@ -114,7 +116,7 @@
     <div class="boot-container w-full max-w-md">
         <div id="loginContainer" class="bg-white p-10 rounded-xl shadow-2xl w-full text-center relative overflow-hidden">
             
-            <div id="bootAnimation">🤖</div> 
+            <div id="bootAnimation"></div> 
 
             <h1 class="text-3xl text-blue-600 font-bold mb-4 border-b pb-2 border-gray-300">Client-Side AI Simulator</h1>
             <h2 class="text-xl text-gray-700 font-semibold mb-6">System Access Required: Initiate Boot Sequence.</h2>
@@ -161,7 +163,7 @@
     </div>
 
     <script>
-        // GLOBAL STATE VARIABLES (All functional enhancements retained)
+        // GLOBAL STATE VARIABLES (Functionality retained)
         let lastResponse = '';
         let lastResponseType = 'none'; 
         let currentSessionId = 'session_' + Date.now();
@@ -178,10 +180,10 @@
         const chatList = document.querySelector('.chat-list');
         const voiceBtn = document.getElementById('voiceBtn');
         const sendBtn = document.getElementById('sendBtn');
-        const bootAnimation = document.getElementById('bootAnimation'); // Renamed element
+        const bootAnimation = document.getElementById('bootAnimation');
         const mathScopeStatus = document.getElementById('mathScopeStatus');
         const blackout = document.getElementById('blackoutOverlay');
-        const loginContainer = document.querySelector('.boot-container'); // Renamed container
+        const loginContainer = document.querySelector('.boot-container');
         
         let chatContext = []; 
 
@@ -196,35 +198,31 @@
             const errorMessage = document.getElementById("error-message");
 
             if (username === "ryzen" && password === "4060") {
-                // Step 1: Start boot animation
                 bootAnimation.classList.add('boot-active');
                 
                 NProgress.start();
                 errorMessage.textContent = "Authentication successful! Initiating system boot...";
 
-                // Step 2: Trigger 3D Boot Transition
                 setTimeout(() => {
                     loginContainer.classList.add('boot-active');
-                    blackout.style.opacity = 1; // Blackout for "teleport" effect
+                    blackout.style.opacity = 1;
                 }, 500);
 
-                // Step 3: End Boot, Transition to main UI
                 setTimeout(() => {
-                    blackout.style.opacity = 0; // Fade out blackout
+                    blackout.style.opacity = 0;
                     loginContainer.style.display = "none";
                     
                     const gameSection = document.getElementById("gameSection");
                     gameSection.classList.remove('hidden');
                     gameSection.classList.add('flex');
                     
-                    // Smoothly fade in the main interface
                     setTimeout(() => {
                         gameSection.style.opacity = 1;
                         NProgress.done();
                         initializeChatbotUI();
                     }, 200);
 
-                }, 2000); // Total transition time
+                }, 2000); 
             } else {
                 errorMessage.textContent = "Authentication failed. Check System ID and Key.";
                 bootAnimation.classList.remove('boot-active');
