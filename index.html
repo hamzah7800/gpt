@@ -166,7 +166,6 @@
             try {
                 const thinkingDiv = appendBotThinking('Initializing AI Model (Downloading & Compiling)... This may take 30-120 seconds on first run.');
                 
-                // --- FIX APPLIED HERE: Use the globally exposed 'transformersPipeline' function ---
                 if (typeof window.transformersPipeline === 'undefined') {
                     throw new Error("transformersPipeline is undefined. Check console for module loading errors.");
                 }
@@ -179,7 +178,6 @@
 
             } catch (error) {
                 console.error("LLM Initialization Failed:", error);
-                // Fallback message is now clearer
                 appendBotMessage(`❌ LLM failed to load. Falling back to simple keyword mode. Error: ${error.message}. General knowledge questions will fail.`, false);
                 pipeline = 'FALLBACK'; 
             }
@@ -196,6 +194,12 @@
             { keywords: ['css', 'what css', 'define css'], response: "CSS stands for **Cascading Style Sheets**. It controls the presentation and style of web pages." },
             { keywords: ['javascript', 'js'], response: "JavaScript is the programming language that enables interactive web content on the client-side." },
             { keywords: ['area of a circle', 'circle area formula'], response: "The area of a circle is calculated using the formula: $A = \\pi r^2$." },
+            
+            // --- FIX FOR FACTUAL ACCURACY ---
+            { keywords: ['what is the capital of peru', 'capital of peru', 'peru capital', 'capital of perú'], 
+              response: "The capital and largest city of Peru is **Lima**. (Local knowledge confirmed for speed and accuracy.)" 
+            },
+            
             { keywords: ['what model', 'model are you'], response: "I use a custom JavaScript architecture for utilities (math, file analysis) and the **DistilGPT2 model** from the **Transformers.js** library for generative intelligence, all running on your browser's CPU." },
         ];
 
