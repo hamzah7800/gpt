@@ -10,19 +10,21 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.js"></script>
-    
+    <script src="https://cdn.tailwindcss.com"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
     <script src="https://unpkg.com/ml5@0.12.2/dist/ml5.min.js"></script>
-    <script src="https://docs.opencv.org/4.x/opencv.js" async></script>
-
+    <script src="https://docs.opencv.org/4.x/opencv.js" async onload="window.cv=cv"></script> 
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.31.1.min.js"></script>
-
-    <script src="https://cdn.tailwindcss.com"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script> 
+    
     <style>
         /* --- General Styling --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -44,9 +46,11 @@
         .tool-card-code { background-color: #f3e5f5; border: 1px solid #9c27b0; color: #4a148c; }
         .tool-card-api { background-color: #fffde7; border: 1px solid #ffeb3b; color: #f57f17; }
         .tool-card-imagegen { background-color: #e1f5fe; border: 1px solid #03a9f4; color: #01579b; }
-        .tool-card-ml { background-color: #f3e8ff; border: 1px solid #9333ea; color: #5b21b6; } /* NEW ML Tool Card */
-        .tool-card-vis { background-color: #fff3e0; border: 1px solid #ff9800; color: #e65100; } /* Visualization Tool Card */
+        .tool-card-ml { background-color: #f3e8ff; border: 1px solid #9333ea; color: #5b21b6; } 
+        .tool-card-vis { background-color: #fff3e0; border: 1px solid #ff9800; color: #e65100; } 
         .tool-card-fallback { background-color: #ffebee; border: 1px solid #f44336; color: #b71c1c; }
+        .tool-card-3d { background-color: #f0fdf4; border: 1px solid #10b981; color: #065f46; } /* NEW 3D/Physics Tool Card */
+
 
         .response-content { margin-top: 0.5rem; } 
 
@@ -88,7 +92,7 @@
             <div class="chat-header bg-gray-50 p-4 border-b border-gray-200 flex items-center">
                 <button id="sidebarToggle" onclick="toggleSidebar()" class="text-xl text-blue-600 mr-4 hidden">&#9776;</button>
                 <img src="icon-192.jpg" alt="AI Icon" class="header-icon w-8 h-8 rounded-full object-cover mr-4 border-2 border-blue-500">
-                <h3 class="text-lg font-semibold text-gray-800">Ultimate JS Simulator (ML, Vision, & Viz Tools Active)</h3>
+                <h3 class="text-lg font-semibold text-gray-800">Ultimate JS Simulator (ML, Vision, Viz, & Physics Tools Active)</h3>
             </div>
 
             <div id="chatBox" class="flex-grow p-5 overflow-y-auto bg-gray-50 flex flex-col">
@@ -171,7 +175,8 @@
             if (window.d3) console.log("D3.js Loaded for advanced visualization.");
             if (window.Plotly) console.log("Plotly.js Loaded for scientific charts.");
             if (window.ml5) console.log("ml5.js Loaded for easy ML access.");
-            // Note: OpenCV.js loads asynchronously via 'onload' event
+            if (window.THREE) console.log("Three.js Loaded for 3D rendering.");
+            if (window.CANNON) console.log("Cannon.js Loaded for 3D physics.");
 
             if (sendBtn) sendBtn.addEventListener('click', () => sendMessage());
             if (userInput) userInput.addEventListener('keypress', function (e) {
@@ -232,36 +237,41 @@
                  finalResponse = await clientSideML(fileDataUrl, fileDetails);
                  lastResponseType = 'ml_real';
             }
-            // 2b. Visualization Tool - NOW WITH REAL PLOTLY
+            // 2b. 3D/Physics Simulation Tool
+            else if (!finalResponse) {
+                finalResponse = await clientSide3DSimulation(query);
+                if (finalResponse) lastResponseType = '3d_real';
+            }
+            // 2c. Visualization Tool - NOW WITH REAL PLOTLY
             else if (!finalResponse) {
                 finalResponse = await clientSideVisualization(query); // Await for Plotly rendering
                 if (finalResponse) lastResponseType = 'vis_real';
             }
-            // 2c. Vision Tool Mock (Fallback for ML if model not loaded or error)
+            // 2d. Vision Tool Mock (Fallback for ML if model not loaded or error)
             else if (fileDetails) {
                  finalResponse = clientSideVisionMock(fileDetails);
                  lastResponseType = 'vision_mock';
             }
 
-            // 2d. Code Execution Mock
+            // 2e. Code Execution Mock
             if (!finalResponse) {
                 finalResponse = clientSideCodeExecutionMock(query);
                 if (finalResponse) lastResponseType = 'code_mock';
             }
 
-            // 2e. Image Generation Mock 
+            // 2f. Image Generation Mock 
             if (!finalResponse) {
                 finalResponse = clientSideImageGenerationMock(query);
                 if (finalResponse) lastResponseType = 'image_gen_mock';
             }
 
-            // 2f. API/Live Search Mock 
+            // 2g. API/Live Search Mock 
             if (!finalResponse) {
                 finalResponse = clientSideAPIMock(query);
                 if (finalResponse) lastResponseType = 'api_mock';
             }
 
-            // 2g. Math Tool 
+            // 2h. Math Tool 
             if (!finalResponse) {
                 const mathResult = clientSideMath(query);
                 if (mathResult) {
@@ -270,7 +280,7 @@
                 }
             }
             
-            // 2h. Simulated Text Generation Tool (General complex queries)
+            // 2i. Simulated Text Generation Tool (General complex queries)
             if (!finalResponse) {
                 const essayResult = clientSideEssayGenerator(query);
                 if (essayResult) {
@@ -279,7 +289,7 @@
                 }
             }
 
-            // 2i. Keyword/RAG Tool (Factual lookups)
+            // 2j. Keyword/RAG Tool (Factual lookups)
             if (!finalResponse) {
                 finalResponse = getKeywordResponse(query.toLowerCase(), chatContext); 
                 if (finalResponse) lastResponseType = 'rag'; 
@@ -295,7 +305,7 @@
             await new Promise(r => setTimeout(r, 800)); 
             thinkingDiv.remove();
 
-            if (finalResponse && typeof finalResponse === 'string') {
+            if (finalResponse && typeof finalResponse === 'string' && finalResponse !== 'CHART_RENDERED' && finalResponse !== '3D_SIM_RENDERED') {
                 appendBotMessage(finalResponse, true, lastResponseType); 
             }
             
@@ -321,7 +331,8 @@
                 case 'api_mock': icon = '🌐'; title = 'API CALL MOCK (Real-Time Search)'; cssClass = 'tool-card-api'; break;
                 case 'image_gen_mock': icon = '🎨'; title = 'IMAGE GENERATION MOCK (Multi-Modality)'; cssClass = 'tool-card-imagegen'; break;
                 case 'ml_real': icon = '🧠'; title = 'ML TOOL (TensorFlow.js Classification)'; cssClass = 'tool-card-ml'; break;
-                case 'vis_real': icon = '📈'; title = 'VISUALIZATION TOOL (Plotly.js)'; cssClass = 'tool-card-vis'; break; // Updated for real Plotly
+                case 'vis_real': icon = '📈'; title = 'VISUALIZATION TOOL (Plotly.js)'; cssClass = 'tool-card-vis'; break;
+                case '3d_real': icon = '🧊'; title = '3D & PHYSICS SIMULATOR (Three.js/Cannon.js)'; cssClass = 'tool-card-3d'; break;
                 default: icon = '❓'; title = 'GENERAL FALLBACK'; break;
             }
 
@@ -334,26 +345,171 @@
         }
 
 
+// **-- Real 3D Physics Simulation Tool (Three.js/Cannon.js) --**
+
+        async function create3DSimulation(simId, setupType) {
+            if (!window.THREE || !window.CANNON) {
+                console.error("Three.js or Cannon.js not loaded.");
+                return;
+            }
+
+            const container = document.getElementById(simId);
+            if (!container) return;
+
+            // Basic Three.js setup
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            // Basic Cannon.js setup
+            const world = new CANNON.World();
+            world.gravity.set(0, -9.82, 0); 
+            world.broadphase = new CANNON.NaiveBroadphase();
+            const timeStep = 1 / 60;
+
+            // Shared materials
+            const groundMaterial = new CANNON.Material("groundMaterial");
+            const sphereMaterial = new CANNON.Material("sphereMaterial");
+            const groundSphereContact = new CANNON.ContactMaterial(
+                groundMaterial,
+                sphereMaterial,
+                { friction: 0.4, restitution: 0.8 } 
+            );
+            world.addContactMaterial(groundSphereContact);
+
+            // 1. Create Ground
+            const groundShape = new CANNON.Plane();
+            const groundBody = new CANNON.Body({ mass: 0, material: groundMaterial });
+            groundBody.addShape(groundShape);
+            groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2); // Rotate to horizontal
+            world.addBody(groundBody);
+
+            const groundMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(50, 50, 1, 1),
+                new THREE.MeshLambertMaterial({ color: 0x444444, side: THREE.DoubleSide })
+            );
+            groundMesh.rotation.x = -Math.PI / 2;
+            scene.add(groundMesh);
+
+            // 2. Lighting and Camera
+            scene.add(new THREE.AmbientLight(0x404040));
+            const light = new THREE.DirectionalLight(0xffffff, 1.0);
+            light.position.set(5, 5, 5);
+            scene.add(light);
+            camera.position.set(0, 5, 10);
+            camera.lookAt(0, 0, 0);
+
+            let meshes = [];
+            let bodies = [];
+
+            // 3. Add Objects based on setupType
+            if (setupType === 'blocks') {
+                for (let i = 0; i < 5; i++) {
+                    const size = 1 + Math.random();
+                    const boxShape = new CANNON.Box(new CANNON.Vec3(size / 2, size / 2, size / 2));
+                    const boxBody = new CANNON.Body({ mass: size, position: new CANNON.Vec3(Math.random() * 4 - 2, 10 + i * 2, Math.random() * 4 - 2) });
+                    boxBody.addShape(boxShape);
+                    world.addBody(boxBody);
+                    bodies.push(boxBody);
+
+                    const boxMesh = new THREE.Mesh(
+                        new THREE.BoxGeometry(size, size, size),
+                        new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff })
+                    );
+                    scene.add(boxMesh);
+                    meshes.push(boxMesh);
+                }
+            } else { // 'spheres' or default
+                for (let i = 0; i < 10; i++) {
+                    const radius = 0.5 + Math.random() * 0.5;
+                    const sphereShape = new CANNON.Sphere(radius);
+                    const sphereBody = new CANNON.Body({ mass: radius, position: new CANNON.Vec3(Math.random() * 4 - 2, 5 + i * 1, Math.random() * 4 - 2), material: sphereMaterial });
+                    world.addBody(sphereBody);
+                    bodies.push(sphereBody);
+
+                    const sphereMesh = new THREE.Mesh(
+                        new THREE.SphereGeometry(radius, 16, 16),
+                        new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff })
+                    );
+                    scene.add(sphereMesh);
+                    meshes.push(sphereMesh);
+                }
+            }
+            
+            // 4. Animation Loop
+            let lastTime = 0;
+            function animate(time) {
+                requestAnimationFrame(animate);
+                
+                // Calculate delta time
+                const dt = (time - lastTime) / 1000;
+                if (dt < 1 / 60) {
+                     // Prevent excessive updates when tab is hidden
+                    lastTime = time;
+                    return;
+                }
+                world.step(timeStep, dt);
+
+                // Update three.js meshes
+                for (let i = 0; i < meshes.length; i++) {
+                    meshes[i].position.copy(bodies[i].position);
+                    meshes[i].quaternion.copy(bodies[i].quaternion);
+                }
+                
+                renderer.render(scene, camera);
+                lastTime = time;
+            }
+
+            animate(0);
+        }
+
+        async function clientSide3DSimulation(input) {
+            const lowQuery = input.toLowerCase();
+            const simKeywords = ['create a 3d simulation', 'simulate physics', 'three.js', 'cannon.js', 'drop cubes', 'drop spheres', '3d environment'];
+            if (!simKeywords.some(keyword => lowQuery.includes(keyword))) return null;
+
+            if (!window.THREE || !window.CANNON) {
+                return formatToolResponse(`**3D Simulation Error:** Three.js or Cannon.js not loaded. Cannot run client-side physics.`, '3d_real');
+            }
+
+            const simId = `physics-sim-${Date.now()}`;
+            let setupType = lowQuery.includes('blocks') || lowQuery.includes('cubes') ? 'blocks' : 'spheres';
+
+            const responseHtml = `
+                ### **Live 3D Physics Simulation (Three.js + Cannon.js)**
+                **Simulation Type:** <code>${setupType.toUpperCase()} Drop Test</code>
+                **Engine:** <code>Three.js (Renderer) & Cannon.js (Physics)</code>
+                **Output:**
+                <div id="${simId}" style="height: 350px; width: 100%; background-color: #add8e6;" class="rounded-lg shadow-md mt-2"></div>
+                **Note:** This interactive 3D simulation runs entirely in your browser. Objects are generated and follow real-time physics (gravity, collision, restitution).
+            `;
+            
+            // Append the message first so the div exists
+            appendBotMessage(formatToolResponse(responseHtml, '3d_real'), false); 
+            
+            // Render the 3D scene after the div is in the DOM
+            // Use a slight delay to ensure browser has painted the div
+            await new Promise(resolve => setTimeout(resolve, 50)); 
+            await create3DSimulation(simId, setupType);
+
+            // Save to history after rendering
+            saveCurrentChat(null, formatToolResponse(responseHtml, '3d_real'));
+            lastResponse = formatToolResponse(responseHtml, '3d_real');
+            
+            return '3D_SIM_RENDERED'; // Indicate that a simulation was rendered
+        }
+
+
 // **-- Real Plotly.js Visualization Tool --**
         /**
          * Dynamically creates and plots a chart using Plotly.js.
-         * @param {string} chartId - The ID for the div where the chart will be rendered.
-         * @param {Array<Object>} data - Plotly data array.
-         * @param {Object} layout - Plotly layout object.
          */
         async function createPlotlyChart(chartId, data, layout) {
-            if (!window.Plotly) {
-                console.error("Plotly.js not loaded.");
-                return;
-            }
-            
-            // Ensure the div exists before plotting
+            if (!window.Plotly) return;
             let chartDiv = document.getElementById(chartId);
-            if (!chartDiv) {
-                // This scenario should ideally not happen if appendBotMessage handles it
-                console.error(`Chart div with ID ${chartId} not found.`);
-                return;
-            }
+            if (!chartDiv) return;
             await Plotly.newPlot(chartId, data, layout);
         }
 
@@ -363,7 +519,7 @@
             if (!vizKeywords.some(keyword => lowQuery.includes(keyword))) return null;
 
             if (!window.Plotly) {
-                return formatToolResponse(`Plotly.js not fully loaded yet. Please try again in a moment.`, 'vis_mock');
+                return formatToolResponse(`Plotly.js not fully loaded yet. Please try again in a moment.`, 'vis_real');
             }
 
             const chartId = `plotly-chart-${Date.now()}`;
@@ -593,412 +749,434 @@
         }
         
         function clientSideMath(input) {
-            const mathPattern = /^\s*(\d|\(|\-|\+|calculate|solve)/i; 
-            if (!mathPattern.test(input) && !input.includes('=')) { return null; }
-            let processedInput = input.trim().replace(/calculate|what is|solve|the result of/i, '').replace(/the square root of/gi, 'sqrt(').replace(/x/g, '*').trim();
-            if (processedInput.toLowerCase().startsWith('sqrt') && !processedInput.includes(')')) processedInput += ')'; 
-            math.config({ implicit: 'auto' });
+            const lowQuery = input.toLowerCase();
+            const mathPattern = /(calculate|solve|what is|compute|evaluate|result of)\s+([\s\S]+)/i;
+            const match = lowQuery.match(mathPattern);
+
+            if (!match) return null;
+
+            let expression = match[2].trim().replace(/\?/g, '');
+            let result;
+
             try {
-                const result = math.evaluate(processedInput, mathScope);
-                if (typeof result === 'number' || result.constructor.name === 'BigNumber' || result.constructor.name === 'Complex' || result.isMatrix) {
-                    let output = result.toString();
-                    if (result.constructor.name === 'BigNumber') output = result.toPrecision(15); 
-                    let finalInput = processedInput.replace(/\*/g, '\\times').replace(/ /g, ''); 
-                    return formatToolResponse(`I used **Math.js** to solve the expression. The result is: $$${finalInput} = ${output}$$`, 'math');
+                // Remove common preamble from the expression
+                expression = expression
+                    .replace(/the equation/g, '')
+                    .replace(/the expression/g, '')
+                    .replace(/the sum of/g, '')
+                    .trim();
+
+                // Basic validation and security check before evaluation
+                if (!/^[a-z0-9\s\+\-\*\/\^\(\)\.\,\!\=\<\>]+$/i.test(expression)) {
+                    throw new Error("Invalid characters detected in expression.");
                 }
-                if (input.includes('=')) return formatToolResponse(`Variable assignment executed in Math.js (e.g. \`a = 5\`), but **variables are NOT saved** in my memory scope. Try using it in the same query: \`a=5; a*2\`.`, 'math');
-                return formatToolResponse(`I used **Math.js**, but the result was a complex object I cannot display.`, 'math');
-            } catch (e) { return null; }
+                
+                result = math.evaluate(expression, mathScope);
+                
+                // Check if result is a function or undefined
+                if (typeof result === 'function' || result === undefined || (typeof result === 'object' && result.isNode)) {
+                    return null; // Don't process non-scalar or incomplete math results
+                }
+
+                const latexResult = katex.renderToString(math.parse(expression).toLatex() + ' = ' + math.format(result, {precision: 5}), { displayMode: true, throwOnError: false });
+                
+                // Store/update variable in scope if assignment was detected (e.g., a = 5)
+                const assignmentMatch = expression.match(/([a-zA-Z]+)\s*=\s*([\s\S]+)/);
+                if (assignmentMatch) {
+                    const varName = assignmentMatch[1].trim();
+                    mathScope[varName] = result;
+                    return formatToolResponse(`**Assignment:** Variable \`${varName}\` set to \`${math.format(result)}\`.<br>**Result:** ${latexResult}`, 'math');
+                }
+
+                return formatToolResponse(`**Expression:** ${latexResult}`, 'math');
+
+            } catch (error) {
+                console.warn("Math error:", error.message);
+                // Only return an error if the user explicitly asked for a calculation
+                if (mathPattern.test(lowQuery)) {
+                    return formatToolResponse(`**Math Error:** Could not evaluate expression. **Error:** <code>${error.message}</code>. Try simplifying the query or ensuring it's a valid mathematical expression.`, 'math');
+                }
+                return null;
+            }
         }
 
         function clientSideCodeExecutionMock(input) {
-            const codePattern = /(run this code|execute|debug|solve this in code):?\s*[\n`].*/i;
-            if (!codePattern.test(input)) return null;
-            let codeSnippet = input.match(/```(js|javascript|python)?\s*([\s\S]*?)```/i);
-            if (!codeSnippet) codeSnippet = input.match(/(run this code|execute|debug|solve this in code):\s*(.*)/i);
-            let code = codeSnippet ? (codeSnippet[2] || codeSnippet[4]).trim() : null;
-            if (!code) return formatToolResponse(`I see a code request, but I couldn't find a clear \`\`\`code\`\`\` block or snippet to execute.`, 'code_mock');
-            let mockOutput;
-            if (code.includes('2+2') || code.includes('5*8') || code.includes('+') || code.includes('-')) mockOutput = "<code>42</code> // Simulated result of a simple calculation.";
-            else if (code.includes('for (') || code.includes('while (') || code.includes('function') || code.includes('def ')) mockOutput = "Code executed successfully. No syntax errors found. The primary function appears to be an iteration or definition. Output: <code>[Simulated Loop Output]</code>";
-            else if (code.includes('import ') || code.includes('require(') || code.includes('console.log')) mockOutput = "Dependency import simulated. Code analysis suggests a utility function is being defined. Output: <code>'Hello from simulated code!'</code>";
-            else mockOutput = "Simulation complete. Output: <code>'Code is functional but requires further context to assess efficiency.'</code>";
-            const response = `### **Code Execution Report**\n**Input Code (Simulated Run):**\n\`\`\`javascript\n${code}\n\`\`\`\n**Simulated Output:**\n\`\`\`\n${mockOutput}\n\`\`\`\n**Verdict:** This tool suggests the code is structurally sound and executed without crashing.`;
+            const lowQuery = input.toLowerCase();
+            const codeKeywords = ['write a function', 'in javascript', 'in python', 'show me the code for', 'generate a script'];
+            if (!codeKeywords.some(keyword => lowQuery.includes(keyword))) return null;
+
+            const language = lowQuery.includes('python') ? 'python' : 'javascript';
+            const subject = input.replace(/.*code for|write a function for/i, '').trim() || 'an algorithm';
+            
+            let mockCode = '';
+            if (language === 'javascript') {
+                mockCode = `
+// JavaScript function to calculate the ${subject}
+function calculate${subject.replace(/\s+/g, '')}() {
+  // Logic generated by Code Tool
+  const inputData = [10, 20, 30];
+  let result = inputData.reduce((a, b) => a + b, 0) / inputData.length;
+  console.log('Processed result:', result);
+  return result;
+}
+
+// Execution:
+calculate${subject.replace(/\s+/g, '')}(); 
+`;
+            } else {
+                mockCode = `
+# Python script to calculate the ${subject}
+def calculate_${subject.replace(/\s+/g, '_')}():
+    # Logic generated by Code Tool
+    input_data = [10, 20, 30]
+    result = sum(input_data) / len(input_data)
+    print(f"Processed result: {result}")
+    return result
+
+# Execution:
+calculate_${subject.replace(/\s+/g, '_')}()
+`;
+            }
+
+            const response = `
+                ### **Simulated Code Generation**
+                **Query:** <code>${input}</code>
+                **Language:** <code>${language}</code>
+                **Engine:** <code>Simulated Copilot/Gemini-Code Tool</code>
+                <pre class="bg-gray-800 text-white p-3 rounded-md text-sm overflow-x-auto mt-2"><code>${mockCode.trim()}</code></pre>
+                **Status:** **MOCK SUCCESS:** Code generated and simulated execution result logged to the console.
+            `;
             return formatToolResponse(response, 'code_mock');
         }
 
-        function clientSideAPIMock(input) {
-            const apiKeywords = ['current time', 'today', 'latest news', 'stock price', 'weather', 'api search'];
+        function clientSideImageGenerationMock(input) {
             const lowQuery = input.toLowerCase();
+            const genKeywords = ['generate an image of', 'create a picture of', 'draw', 'dalle', 'stable diffusion'];
+            if (!genKeywords.some(keyword => lowQuery.includes(keyword))) return null;
+
+            const prompt = input.replace(/.*(generate an image of|create a picture of|draw)\s+a/i, '').trim();
+            const imageUrl = "https://picsum.photos/400/200?random=" + Date.now();
+            
+            const response = `
+                ### **Simulated Image Generation (Multi-Modality Mock)**
+                **Prompt:** <code>**${prompt}**</code>
+                **Engine:** <code>Simulated Diffusion Model (DALL-E/Imagen)</code>
+                <div class="mt-2 text-center">
+                    <img src="${imageUrl}" alt="Simulated generated image of ${prompt}" class="w-full max-w-sm rounded-lg shadow-xl mx-auto border-4 border-blue-200">
+                    <p class="text-xs text-gray-500 mt-1"><em>Simulated result using Placeholder Image API.</em></p>
+                </div>
+                **Status:** **MOCK SUCCESS:** Image successfully generated based on your text prompt.
+            `;
+            return formatToolResponse(response, 'image_gen_mock');
+        }
+
+        function clientSideAPIMock(input) {
+            const lowQuery = input.toLowerCase();
+            const apiKeywords = ['latest news', 'what is the current price of', 'stock price', 'weather in', 'live search'];
             if (!apiKeywords.some(keyword => lowQuery.includes(keyword))) return null;
-            const current = new Date();
-            let mockData = '';
-            let subject = '';
-            if (lowQuery.includes('time') || lowQuery.includes('today')) { mockData = current.toLocaleTimeString() + ' on ' + current.toLocaleDateString(); subject = 'Current Time & Date'; }
-            else if (lowQuery.includes('stock')) { mockData = `The simulated **JS-SIM** stock is up 1.5% at **$420.69** (Data pulled: ${current.toLocaleTimeString()}).`; subject = 'Financial Data'; }
-            else { mockData = `Search result: A new web framework (SimulaJS) has been released this week, emphasizing client-side processing.`; subject = 'Current Event/News'; }
-            const response = `### **API Call Report (Simulated External Data)**\n**External Source:** <code>Google Search API / Browsing Tool (Mock)</code>\n**Query Subject:** <code>${subject}</code>\n**Result (Live Data Mock):**\n> ${mockData}\n**Note:** This mock represents the LLM calling an external tool for information that is too current or specialized for its knowledge base.`;
+
+            let topic = '';
+            let resultText = '';
+
+            if (lowQuery.includes('news')) {
+                topic = 'Global Markets';
+                resultText = 'Major indices are up slightly, driven by positive earnings reports from tech firms. Volatility remains low.';
+            } else if (lowQuery.includes('stock price') || lowQuery.includes('price of')) {
+                topic = 'TSLA Stock Price';
+                resultText = '$285.50 at market close on 2025-10-04. (Simulated Real-Time Data)';
+            } else if (lowQuery.includes('weather')) {
+                topic = 'Weather';
+                resultText = 'Cloudy with a high of 15°C in Birmingham, UK. Chance of rain 30%. (Simulated API Call)';
+            } else {
+                topic = 'General Real-Time Information';
+                resultText = 'The current time is 10:09 PM BST on Saturday, October 4, 2025. This information was retrieved via a simulated Google Search API call.';
+            }
+
+            const response = `
+                ### **Simulated Real-Time API Call**
+                **API Target:** <code>${topic}</code>
+                **Query:** <code>${input}</code>
+                **Result:** **${resultText}**
+                **Engine:** <code>Simulated Live Search/API Connector</code>
+            `;
             return formatToolResponse(response, 'api_mock');
         }
 
-        function clientSideImageGenerationMock(input) {
-            const imageGenKeywords = ['generate an image of', 'create a photo of', 'draw me a picture of', 'generate an image', 'create a photo'];
-            const lowQuery = input.toLowerCase();
-            if (!imageGenKeywords.some(keyword => lowQuery.includes(keyword))) return null;
-            let prompt = lowQuery.replace(/^(generate an image of|create a photo of|draw me a picture of|generate an image|create a photo)\s*/, '').trim();
-            prompt = prompt.charAt(0).toUpperCase() + prompt.slice(1);
-            if (!prompt || prompt.length < 5) prompt = 'A futuristic cat driving a unicycle';
-            const styles = ['Digital Art', 'Photorealistic', 'Abstract Watercolor', 'Low-Poly', 'Anime Style'];
-            const mockStyle = styles[Math.floor(Math.random() * styles.length)];
-            const response = `### **Simulated Image Generation Result**
-**Prompt:** <code>*${prompt}*</code>
-**Result:** A unique image has been successfully generated locally.
-<div class="mt-2 text-center">
-    <img src="https://via.placeholder.com/256x256/2563eb/ffffff?text=Generated+Image" alt="Generated Image Placeholder" class="inline-block rounded-lg shadow-md max-w-full h-auto">
-</div>
-**Metadata:**
-* **Resolution:** <code>1024x1024</code> (Simulated)
-* **Style:** <code>${mockStyle}</code>
-* **Engine:** <code>Client-Side Diffusion Mock v2.1</code>
-
-**Note:** The actual image rendering is done via a browser-side placeholder tag, but the process of interpreting the prompt and setting parameters is complete.`;
-            return formatToolResponse(response, 'image_gen_mock');
-        }
-        
         function clientSideEssayGenerator(input) {
             const lowQuery = input.toLowerCase();
-            const generationKeywords = ['write an essay on', 'explain in detail', 'describe the importance of', 'compare and contrast', 'generate an article about'];
-            if (!generationKeywords.some(keyword => lowQuery.includes(keyword))) return null;
-            let subject = lowQuery.replace(/^(write an essay on|explain in detail|describe the importance of|compare and contrast|generate an article about)\s*/, '').trim();
-            subject = subject.replace(/^(the|a)\s*/, '');
-            subject = subject.charAt(0).toUpperCase() + subject.slice(1);
-            if (!subject || subject.length < 5) subject = 'The Role of Decentralized Computing'; 
-            const templateData = { subject: subject, isComparison: lowQuery.includes('compare and contrast'), coreConcept: subject.split(' ')[0], adjective: ['critical', 'fundamental', 'transformative', 'disruptive'][Math.floor(Math.random() * 4)] };
-            let template = `## **Essay Draft: The ${templateData.adjective} Role of ${templateData.subject}**
-*(Generated using Simulated Templating Engine)*
-**1. Introduction**
-The widespread acceptance of **${templateData.subject}** marks a ${templateData.adjective} inflection point in the technological sector. This paper argues that the efficacy of modern digital ecosystems hinges upon a robust understanding and integration of **${templateData.coreConcept}**. We will analyze its foundational necessity and its systemic impact across multiple domains.
-**2. Foundational Principles**
-At its core, ${templateData.subject} operates on the principle of distributed autonomy, ensuring that processing is shifted to the user's local machine, thereby minimizing latency and reliance on centralized server infrastructure. This architecture facilitates high-fidelity, real-time interactivity—a requirement for all next-generation applications. 
-${templateData.isComparison ? `**3. Comparative Analysis (A Simulated 'Compare & Contrast' Section)**
-While traditional methods often rely on sequential, server-bound execution, ${templateData.subject} utilizes parallel execution paths. For instance, comparing the approach to **synchronous** processes reveals a distinct advantage in throughput, particularly for graphics and large data computations. The shift is from a 'request-wait' model to an **asynchronous, parallelized processing** model.` : `**3. Practical Application & Impact**
-The practical implications of ${templateData.subject} are vast. It enables resource-intensive tasks, such as real-time **machine learning inference** and complex data visualization, to be executed seamlessly on commodity hardware. This capability democratizes access to powerful computing resources, moving processing closer to the user for efficiency.`}
-**4. Conclusion**
-In closing, the adoption of **${templateData.subject}** is not merely an option but a strategic imperative. It underpins the entire shift toward ${templateData.adjective} and performant web development. Future advancements will focus on optimizing resource delegation and ensuring seamless integration with other specialized tools (like RAG and Vision).`;
-            return formatToolResponse(template, 'generation_mock');
+            const genKeywords = ['write a paragraph about', 'explain the concept of', 'generate an essay on', 'in depth analysis of'];
+            if (!genKeywords.some(keyword => lowQuery.includes(keyword))) return null;
+
+            const topic = input.replace(/.*(write a paragraph about|explain the concept of|generate an essay on|in depth analysis of)/i, '').trim() || 'Generative AI';
+            const wordCount = lowQuery.includes('essay') ? '300 words' : '50 words';
+            
+            const generatedText = `
+                ### **Simulated Text Generation**
+                **Topic:** <code>**${topic}**</code>
+                **Length:** <code>${wordCount}</code>
+                **Engine:** <code>Simulated LLM (GPT-4)</code>
+                <p class="mt-2 p-2 bg-gray-50 rounded-md">
+                    The concept of **${topic}** represents a paradigm shift in computing, moving from traditional deterministic code to probabilistic, large-scale model inference. These models, often trained on massive datasets, excel at pattern recognition and content creation across text, image, and code modalities. The client-side deployment of such models, utilizing libraries like **TensorFlow.js** and **WebAssembly**, is crucial for enhancing user privacy and achieving low-latency, real-time performance directly within the user's browser, bypassing the need for constant server communication. This distributed intelligence is the future of interactive web applications.
+                </p>
+                **Status:** **MOCK SUCCESS:** Long-form content generated.
+            `;
+            return formatToolResponse(generatedText, 'generation_mock');
         }
 
         function getFallbackResponse(query) {
-            const lowQuery = query.toLowerCase();
-            if (lowQuery.includes('hello') || lowQuery.includes('hi')) {
-                return formatToolResponse("Hello there! I'm the **Ultimate Client-Side JS Simulator**. Try dropping an image, or asking me to 'plot a bar chart'!", 'fallback');
-            }
-            if (lowQuery.includes('how are you') || lowQuery.includes('what are you')) {
-                return formatToolResponse("I am an advanced JavaScript program, running entirely in your browser. I now feature **D3.js**, **Plotly.js** (for real charts!), and **OpenCV.js** for visualization and vision processing.", 'fallback');
-            }
-            return formatToolResponse(`I'm sorry, I couldn't find a direct tool match for **"${query}"**. Try asking me to 'write an essay', 'generate an image of...', 'run this code: 2+2', or 'plot a line chart of sales data'.`, 'fallback');
-        }
-        
-        function processBotResponse(text) {
-             const messageDiv = chatBox.lastElementChild;
-             if (messageDiv && messageDiv.classList.contains('bot-message')) {
-                const contentDiv = messageDiv.querySelector('.response-content') || messageDiv; 
-                if (window.renderMathInElement) {
-                    try {
-                        window.renderMathInElement(contentDiv, {
-                            delimiters: [
-                                { left: '$$', right: '$$', display: true },
-                                { left: '$', right: '$', display: false }
-                            ]
-                        });
-                    } catch (e) { console.warn('KaTeX render failed:', e); }
-                }
-             }
-        }
-        
-        function toggleVoiceInput() {
-             if (isVoiceRecording) {
-                recognition.stop();
-                isVoiceRecording = false;
-                voiceBtn.classList.remove('voice-recording');
-                voiceBtn.innerHTML = '🎤';
-                return;
-            }
-            if (!('webkitSpeechRecognition' in window)) {
-                alert("Voice input is not supported in this browser. Try Chrome or Edge.");
-                return;
-            }
-            if (!recognition) {
-                recognition = new webkitSpeechRecognition();
-                recognition.continuous = false;
-                recognition.interimResults = false;
-                recognition.lang = 'en-US';
-                recognition.onstart = () => {
-                    isVoiceRecording = true;
-                    voiceBtn.classList.add('voice-recording');
-                    voiceBtn.innerHTML = '🔴';
-                    userInput.placeholder = '...Listening (Speak Now)';
-                };
-                recognition.onresult = (event) => {
-                    const transcript = event.results[0][0].transcript;
-                    userInput.value = transcript;
-                    sendMessage();
-                };
-                recognition.onerror = (event) => {
-                    console.error('Speech Recognition Error:', event.error);
-                    appendBotMessage(formatToolResponse(`⚠️ Voice Error: ${event.error}. Try typing instead.`, 'fallback'));
-                };
-                recognition.onend = () => {
-                    isVoiceRecording = false;
-                    voiceBtn.classList.remove('voice-recording');
-                    voiceBtn.innerHTML = '🎤';
-                    userInput.placeholder = 'Ask a question, run code, or drag an image...';
-                };
-            }
-            try {
-                recognition.start();
-            } catch (e) {
-                if (e.message.includes('already started')) { recognition.stop(); } else { console.error(e); }
-            }
-        }
-        
-        function speakResponse(text) {
-            const speechText = text.replace(/<[^>]*>?/gm, '').replace(/\*\*|#|```|\\(times|cdot)/g, ''); 
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(speechText);
-                utterance.pitch = 1.0;
-                utterance.rate = 1.1;
-                window.speechSynthesis.speak(utterance);
-            }
+            const advice = "I couldn't match your query to any active client-side tools (Math, ML, Viz, or Physics) or my knowledge base. Try asking a question about a JavaScript library, a math equation, or prompting for a visualization.";
+            return formatToolResponse(`**Query:** "${query}"<br><br>${advice}`, 'fallback');
         }
 
-        function appendUserMessage(text) {
-            const userMessageDiv = document.createElement('div');
-            userMessageDiv.className = 'message user-message bg-blue-600 text-white self-end rounded-xl p-3 mb-4 max-w-xl rounded-br-none shadow-md';
-            userMessageDiv.textContent = text;
-            chatBox.appendChild(userMessageDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
-            saveCurrentChat(text, null); 
-        }
+
+// ---------------------------
+// 3. UI RENDERING & STORAGE
+// ---------------------------
 
         function appendBotThinking(message) {
             const thinkingDiv = document.createElement('div');
-            thinkingDiv.className = 'message bot-message thinking-message self-start rounded-xl p-3 mb-4 max-w-xl rounded-bl-none shadow-md';
-            thinkingDiv.innerHTML = message || '...Thinking and checking sources<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>'; 
+            thinkingDiv.className = 'message bot-message thinking-message max-w-lg p-3 rounded-lg self-start mb-4 shadow-md';
+            thinkingDiv.innerHTML = `${message} <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>`;
             chatBox.appendChild(thinkingDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
             return thinkingDiv;
         }
 
-        function appendBotMessage(text, saveToHistory = true, responseType = 'none') {
-            const botMessageDiv = document.createElement('div');
-            const isToolCard = text.includes('tool-card'); 
-            const paddingClass = isToolCard ? 'p-1' : 'p-3'; 
-            botMessageDiv.className = `message bot-message bg-gray-200 text-gray-800 self-start rounded-xl ${paddingClass} mb-4 max-w-xl rounded-bl-none shadow-md`; 
-            botMessageDiv.innerHTML = text;
-            chatBox.appendChild(botMessageDiv);
+        function appendUserMessage(text) {
+            const userDiv = document.createElement('div');
+            userDiv.className = 'message user-message bg-blue-500 text-white max-w-xl p-3 rounded-xl rounded-br-none self-end mb-4 shadow-md';
+            userDiv.innerHTML = `<p>${text}</p>`;
+            chatBox.appendChild(userDiv);
+            saveCurrentChat(text, null);
             chatBox.scrollTop = chatBox.scrollHeight;
-            
-            if (saveToHistory) {
-                saveCurrentChat(null, text);
-                lastResponse = text; 
-                processBotResponse(text); // Process for MathJax
-            }
         }
 
-        function setupDragAndDrop() {
-            const dropTarget = document.querySelector('.chat-interface');
+        function appendBotMessage(text, save = true, toolType = 'fallback') {
+            const botDiv = document.createElement('div');
+            botDiv.className = 'message bot-message bg-white text-gray-800 max-w-3xl p-3 rounded-xl rounded-tl-none self-start mb-4 shadow-xl';
+            botDiv.innerHTML = text;
+            chatBox.appendChild(botDiv);
             
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropTarget.addEventListener(eventName, preventDefaults, false);
-            });
-
-            function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
-
-            // Visual feedback
-            dropTarget.addEventListener('dragenter', (e) => {
-                if (e.target.closest('.chat-interface') && !e.target.closest('.input-container')) {
-                    dropZone.classList.remove('hidden');
-                    dropZone.classList.add('flex');
-                }
-            }, false);
-
-            dropTarget.addEventListener('dragleave', (e) => {
-                if (!e.relatedTarget || !e.relatedTarget.closest('.chat-interface')) {
-                    dropZone.classList.add('hidden');
-                    dropZone.classList.remove('flex');
-                }
-            }, false);
-
-            dropTarget.addEventListener('drop', (e) => {
-                dropZone.classList.add('hidden');
-                dropZone.classList.remove('flex');
-                handleDrop(e);
-            }, false);
-
-            function handleDrop(e) {
-                let files = e.dataTransfer.files;
-                if (files.length === 0) return;
-
-                const file = files[0];
-                const fileType = file.type || 'application/octet-stream'; 
-                
-                if (fileType.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        const fileDataUrl = event.target.result;
-                        const fileDetails = {
-                            name: file.name,
-                            size: file.size, 
-                            type: file.type
-                        };
-                        sendMessage(fileDataUrl, fileDetails);
-                    };
-                    reader.readAsDataURL(file);
-
-                } else {
-                    appendUserMessage(`Dropped file: ${file.name}`);
-                    appendBotMessage(formatToolResponse(`I only process image files for visual analysis/ML. Other file types are rejected.`, 'fallback'), true);
-                }
+            // Re-render math content if present
+            if (window.renderMathInElement) {
+                renderMathInElement(botDiv);
             }
-        }
 
-        function userStorageKey() { return HISTORY_ROOT_KEY; }
+            if (save) {
+                saveCurrentChat(null, text, toolType);
+            }
+            chatBox.scrollTop = chatBox.scrollHeight;
+            lastResponse = text;
+        }
 
         function loadHistory() {
-            const key = userStorageKey();
-            const historyData = localStorage.getItem(key);
-            const sessions = historyData ? JSON.parse(historyData) : {};
-            if (!sessions[currentSessionId]) {
-                currentSessionId = 'session_' + Date.now();
-                sessions[currentSessionId] = [{
-                    type: 'bot',
-                    text: formatToolResponse("Welcome! The simulator now has **D3.js**, **Plotly.js** (for real charts!), **OpenCV.js**, and **ml5.js** loaded. Try asking me to 'plot a graph'!", 'fallback')
-                }];
-                localStorage.setItem(key, JSON.stringify(sessions));
+            try {
+                const history = localStorage.getItem(HISTORY_ROOT_KEY);
+                return history ? JSON.parse(history) : { [currentSessionId]: { title: 'New Chat', messages: [] } };
+            } catch (e) {
+                console.error("Could not load chat history:", e);
+                return { [currentSessionId]: { title: 'New Chat', messages: [] } };
             }
-            return sessions;
         }
 
-        function saveHistory(sessions) {
-            const key = userStorageKey();
-            localStorage.setItem(key, JSON.stringify(sessions));
-            localStorage.setItem('currentSessionId', currentSessionId);
-        }
-
-        function renderChatBox(messages) {
-            if (!chatBox) return;
-            chatBox.innerHTML = '';
-            (messages || []).forEach(msg => {
-                const messageDiv = document.createElement('div');
-                const isToolCard = msg.text.includes('tool-card');
-                const paddingClass = isToolCard ? 'p-1' : 'p-3';
-
-                if (msg.type === 'user') {
-                     messageDiv.className = 'message user-message bg-blue-600 text-white self-end rounded-xl p-3 mb-4 max-w-xl rounded-br-none shadow-md';
-                } else {
-                    messageDiv.className = `message bot-message bg-gray-200 text-gray-800 self-start rounded-xl ${paddingClass} mb-4 max-w-xl rounded-bl-none shadow-md`;
-                }
-                messageDiv.innerHTML = msg.text;
-                chatBox.appendChild(messageDiv);
-                if (msg.type === 'bot' && window.renderMathInElement) {
-                    try { processBotResponse(msg.text); } catch (e) { console.warn('KaTeX render error for history:', e); }
-                }
-            });
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        function startNewChat() {
-            Object.keys(mathScope).forEach(k => delete mathScope[k]);
-            chatContext = []; 
-            
-            currentSessionId = 'session_' + Date.now();
-            lastResponse = '';
-            lastResponseType = 'none'; 
-            
-            const newSession = [{ type: 'bot', text: formatToolResponse("New conversation started! Context and memory have been cleared. Try dropping an image for **real ML classification** or 'plot a bar chart'!", 'fallback') }];
-            const allSessions = loadHistory();
-            allSessions[currentSessionId] = newSession;
-            saveHistory(allSessions);
-            renderChatBox(newSession);
-            renderSidebar(allSessions);
-        }
-
-        function saveCurrentChat(userText, botResponse) {
-            const allSessions = loadHistory();
-            let currentSession = allSessions[currentSessionId] || [];
-            if (userText) currentSession.push({ type: 'user', text: userText });
-            if (botResponse) currentSession.push({ type: 'bot', text: botResponse });
-            if (currentSession.length > 0) {
-                allSessions[currentSessionId] = currentSession;
-                saveHistory(allSessions);
+        function saveHistory(history) {
+            try {
+                localStorage.setItem(HISTORY_ROOT_KEY, JSON.stringify(history));
+            } catch (e) {
+                console.error("Could not save chat history:", e);
             }
+        }
+
+        function saveCurrentChat(userText, botText, toolType) {
+            let history = loadHistory();
+            if (!history[currentSessionId]) {
+                history[currentSessionId] = { title: 'New Chat', messages: [] };
+            }
+
+            if (userText) {
+                history[currentSessionId].messages.push({ sender: 'user', text: userText });
+                if (history[currentSessionId].messages.length === 1 && userText.length > 5) {
+                    history[currentSessionId].title = userText.substring(0, 20) + '...';
+                }
+            }
+            
+            if (botText) {
+                // Only save the full HTML response for the bot
+                history[currentSessionId].messages.push({ sender: 'bot', text: botText, tool: toolType });
+            }
+            
+            saveHistory(history);
         }
 
         function renderSidebar(sessions) {
-            if (!chatList) return;
             chatList.innerHTML = '';
-            const sessionKeys = Object.keys(sessions).reverse();
-            sessionKeys.forEach(id => {
-                const messages = sessions[id];
-                const firstUserMsg = messages.find(m => m.type === 'user');
-                const titleText = firstUserMsg ? (firstUserMsg.text.substring(0, 30) + (firstUserMsg.text.length > 30 ? '...' : '')) : 'New Chat (Ultimate)';
+            const sessionIds = Object.keys(sessions).sort((a, b) => {
+                // Sort by most recent message first
+                const aTime = sessions[a].messages.length > 0 ? sessions[a].messages[sessions[a].messages.length - 1].timestamp || 0 : 0;
+                const bTime = sessions[b].messages.length > 0 ? sessions[b].messages[sessions[b].messages.length - 1].timestamp || 0 : 0;
+                return bTime - aTime;
+            });
 
+            sessionIds.forEach(id => {
+                const session = sessions[id];
                 const listItem = document.createElement('li');
-                listItem.className = 'chat-item px-5 py-3 cursor-pointer flex justify-between items-center transition duration-200 hover:bg-gray-700';
-                if (id === currentSessionId) listItem.classList.add('bg-gray-700', 'active');
-
-                const titleSpan = document.createElement('span');
-                titleSpan.className = 'chat-title flex-grow whitespace-nowrap overflow-hidden text-ellipsis';
-                titleSpan.textContent = titleText;
-
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'delete-chat-btn bg-transparent border-none text-red-400 cursor-pointer ml-3 text-lg hover:text-red-500 transition';
-                deleteBtn.textContent = '🗑️';
-
-                titleSpan.addEventListener('click', () => switchChat(id, sessions));
-                deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); deleteChat(id); });
-
-                listItem.dataset.sessionId = id;
-                listItem.appendChild(titleSpan);
-                listItem.appendChild(deleteBtn);
-
+                listItem.className = `p-3 mx-3 mb-2 rounded-lg cursor-pointer transition ${id === currentSessionId ? 'bg-blue-600 font-semibold' : 'hover:bg-gray-700'}`;
+                listItem.textContent = session.title || id;
+                listItem.onclick = () => switchChatSession(id);
                 chatList.appendChild(listItem);
             });
-            const activeItemElement = chatList.querySelector('.chat-item.active');
-            if (activeItemElement) activeItemElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
-        function switchChat(sessionId, sessions) {
-            currentSessionId = sessionId;
-            const messages = sessions[sessionId];
-            renderChatBox(messages);
-
-            document.querySelectorAll('.chat-item').forEach(item => {
-                item.classList.remove('bg-gray-700', 'active');
-                if (item.dataset.sessionId === sessionId) item.classList.add('bg-gray-700', 'active');
-            });
-            lastResponse = messages[messages.length - 1]?.text || '';
-            lastResponseType = 'none'; 
-            chatContext = messages.filter(m => m.type === 'user').slice(-3).map(m => m.text); 
+        function renderChatBox(session) {
+            chatBox.innerHTML = '';
+            if (session && session.messages) {
+                session.messages.forEach(msg => {
+                    if (msg.sender === 'user') {
+                        appendUserMessage(msg.text);
+                    } else if (msg.sender === 'bot') {
+                        appendBotMessage(msg.text, false, msg.tool); // Do not save again when rendering from history
+                    }
+                });
+            } else {
+                 appendBotMessage(formatToolResponse("Welcome! I am the **Ultimate Client-Side AI Simulator**. I use various **JavaScript Libraries** (TensorFlow.js, Plotly.js, Three.js, etc.) to process your requests directly in the browser. Try asking me to: <ul><li><code>calculate sin(pi/4)</code></li><li><code>create a line chart of trends</code></li><li><code>generate an image of a unicorn in the sun</code></li><li><code>create a 3d simulation of dropping spheres</code></li><li>**Drag and drop an image** for real-time ML analysis!</ul>", 'rag'), false);
+            }
+             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        function deleteChat(sessionIdToDelete) {
-            if (!confirm("Are you sure you want to delete this chat history?")) return;
-            const allSessions = loadHistory();
-            delete allSessions[sessionIdToDelete];
-            saveHistory(allSessions);
-            if (sessionIdToDelete === currentSessionId) {
-                const sessionKeys = Object.keys(allSessions).reverse();
-                if (sessionKeys.length > 0) { switchChat(sessionKeys[0], allSessions); } else { startNewChat(); }
-            } else { renderSidebar(allSessions); }
+        function startNewChat() {
+            currentSessionId = 'session_' + Date.now();
+            chatContext = [];
+            mathScope = {};
+            renderSidebar(loadHistory());
+            renderChatBox(null);
+            if (document.getElementById("gameSection").classList.contains('sidebar-visible')) {
+                toggleSidebar(); // Hide sidebar on mobile after new chat
+            }
+        }
+
+        function switchChatSession(id) {
+            currentSessionId = id;
+            chatContext = [];
+            mathScope = {}; // Reset scope for each session
+            const sessions = loadHistory();
+            renderSidebar(sessions);
+            renderChatBox(sessions[currentSessionId]);
+            if (document.getElementById("gameSection").classList.contains('sidebar-visible')) {
+                toggleSidebar(); // Hide sidebar on mobile after switching
+            }
         }
 
         function toggleSidebar() {
-            const container = document.getElementById('gameSection');
-            if (container) container.classList.toggle('sidebar-visible');
+            document.getElementById("gameSection").classList.toggle('sidebar-visible');
+            document.querySelector('.sidebar').classList.toggle('hidden');
         }
 
+
+// ---------------------------
+// 4. VOICE & FILE INPUT HANDLERS
+// ---------------------------
+
+        function toggleVoiceInput() {
+            if (!('webkitSpeechRecognition' in window)) {
+                alert("Voice input not supported in this browser. Please use Chrome.");
+                return;
+            }
+
+            if (isVoiceRecording) {
+                recognition.stop();
+                isVoiceRecording = false;
+                voiceBtn.classList.remove('voice-recording', 'bg-red-600');
+                voiceBtn.classList.add('bg-blue-600');
+                voiceBtn.innerHTML = '🎤';
+            } else {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+
+                recognition.onstart = function() {
+                    isVoiceRecording = true;
+                    voiceBtn.classList.add('voice-recording', 'bg-red-600');
+                    voiceBtn.classList.remove('bg-blue-600');
+                    voiceBtn.innerHTML = '🔴';
+                };
+
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    userInput.value = transcript;
+                    sendMessage();
+                };
+
+                recognition.onerror = function(event) {
+                    console.error('Speech recognition error:', event.error);
+                    voiceBtn.classList.remove('voice-recording', 'bg-red-600');
+                    voiceBtn.classList.add('bg-blue-600');
+                    voiceBtn.innerHTML = '🎤';
+                    alert(`Voice Error: ${event.error}`);
+                };
+
+                recognition.onend = function() {
+                    isVoiceRecording = false;
+                    voiceBtn.classList.remove('voice-recording', 'bg-red-600');
+                    voiceBtn.classList.add('bg-blue-600');
+                    voiceBtn.innerHTML = '🎤';
+                };
+
+                recognition.start();
+            }
+        }
+
+
+        function setupDragAndDrop() {
+            const preventDefaults = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            };
+
+            const highlight = () => {
+                dropZone.classList.remove('hidden');
+                dropZone.classList.add('flex');
+            };
+
+            const unhighlight = () => {
+                dropZone.classList.add('hidden');
+                dropZone.classList.remove('flex');
+            };
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                document.addEventListener(eventName, preventDefaults, false);
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                document.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                document.addEventListener(eventName, unhighlight, false);
+            });
+
+            document.addEventListener('drop', handleDrop, false);
+
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function(event) {
+                            const fileDataUrl = event.target.result;
+                            const fileDetails = { name: file.name, size: file.size, type: file.type };
+                            sendMessage(fileDataUrl, fileDetails);
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        alert("Only image files are supported for ML analysis.");
+                    }
+                }
+            }
+        }
     </script>
 </body>
 </html>
