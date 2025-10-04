@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client-Side AI Simulator (Gemini-like Hybrid)</title>
+    <title>Client-Side AI Simulator (Ultimate Hybrid)</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
     <script type="module">
@@ -20,22 +20,19 @@
     <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/lancedb-lite@0.0.6/dist/lancedb-lite.js" type="module"></script>
-
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.js"></script>
 
     <style>
-        /* (*** Styles are unchanged from the previous version ***) */
-        /* General Setup */
+        /* (*** STYLES: unchanged from previous version, with one addition for the voice button ***) */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f7f9; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-
-        /* Login Styles */
         #loginContainer { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 350px; text-align: center; }
         #loginContainer h1 { color: #1e88e5; margin-bottom: 30px; }
         #loginContainer input[type="text"], #loginContainer input[type="password"] { width: 100%; padding: 12px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
         #loginContainer button { width: 100%; padding: 12px; background-color: #1e88e5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; transition: background-color 0.3s; }
         #loginContainer button:hover { background-color: #1565c0; }
         #error-message { color: #e53935; margin-top: 15px; font-weight: bold; }
-
-        /* Chatbot Styles */
         #gameSection { display: none; background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); width: 90vw; max-width: 1000px; height: 90vh; max-height: 800px; overflow: hidden; transition: all 0.3s ease; display: flex; }
         .sidebar { width: 250px; background-color: #2c3e50; color: #ecf0f1; padding: 20px 0; border-right: 1px solid #34495e; display: flex; flex-direction: column; }
         .sidebar h2 { padding: 0 20px; font-size: 1.2em; border-bottom: 1px solid #34495e; padding-bottom: 10px; margin-bottom: 15px; }
@@ -47,18 +44,11 @@
         .chat-title { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .delete-chat-btn { background: none; border: none; color: #e74c3c; cursor: pointer; margin-left: 10px; font-size: 14px; transition: color 0.2s; }
         .delete-chat-btn:hover { color: #c0392b; }
-
-        /* Main Chat Interface */
         .chat-interface { flex-grow: 1; display: flex; flex-direction: column; position: relative; }
         .chat-header { background: #f4f7f9; padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: flex-start; align-items: center; }
-
-        /* Icon Style */
         .header-icon { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; margin-right: 15px; border: 2px solid #1e88e5; }
-
         #sidebarToggle { background: none; border: none; font-size: 20px; cursor: pointer; color: #1e88e5; margin-right: 15px; display: none; }
         #chatBox { flex-grow: 1; padding: 20px; overflow-y: auto; background-color: #f9f9f9; }
-
-        /* Messages */
         .message { padding: 10px 15px; margin-bottom: 15px; border-radius: 18px; max-width: 80%; line-height: 1.5; }
         .user-message { background-color: #e3f2fd; color: #1e88e5; align-self: flex-end; margin-left: auto; border-bottom-right-radius: 4px; }
         .bot-message { background-color: #f0f0f0; color: #333; margin-right: auto; border-bottom-left-radius: 4px; }
@@ -68,18 +58,14 @@
         .dot:nth-child(2) { animation-delay: 0.2s; }
         .dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes dot-fade { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
-
-        /* Input Container */
         .input-container { padding: 15px 20px; border-top: 1px solid #eee; display: flex; background: #fff; }
         #userInput { flex-grow: 1; padding: 12px; border: 1px solid #ddd; border-radius: 20px; margin-right: 10px; font-size: 16px; }
-        #sendBtn { background-color: #1e88e5; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: background-color 0.3s; }
-        #sendBtn:hover { background-color: #1565c0; }
-
-        /* Drop Zone */
+        .input-btn { background-color: #1e88e5; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: background-color 0.3s; margin-left: 5px;}
+        .input-btn:hover { background-color: #1565c0; }
+        .voice-recording { background-color: #e53935; animation: voice-pulse 1s infinite alternate; }
+        @keyframes voice-pulse { from { opacity: 1; } to { opacity: 0.7; } }
         #dropZone { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(30, 136, 229, 0.8); color: white; display: none; justify-content: center; align-items: center; font-size: 1.5em; z-index: 10; pointer-events: none; }
         #dropZone.hover { display: flex; }
-
-        /* Responsive Design */
         @media (max-width: 1200px) {
             .sidebar { position: absolute; z-index: 20; height: 100%; transform: translateX(-100%); transition: transform 0.3s ease; }
             #gameSection.sidebar-visible .sidebar { transform: translateX(0); }
@@ -90,20 +76,10 @@
             #gameSection { width: 100vw; height: 100vh; border-radius: 0; }
             #loginContainer { margin: 20px; padding: 20px; }
         }
-        
-        /* iPad Optimization */
         @media (min-width: 768px) and (max-width: 1180px) {
-            body { 
-                padding: 10px; 
-            }
-            #gameSection {
-                width: 98vw;
-                height: 98vh;
-                max-width: none;
-            }
-            .sidebar {
-                width: 200px;
-            }
+            body { padding: 10px; }
+            #gameSection { width: 98vw; height: 98vh; max-width: none; }
+            .sidebar { width: 200px; }
         }
     </style>
 </head>
@@ -131,15 +107,16 @@
             <div class="chat-header">
                 <button id="sidebarToggle" onclick="toggleSidebar()">&#9776;</button>
                 <img src="icon-192.jpg" alt="AI Icon" class="header-icon">
-                <h3>Client-Side JS Simulator (Gemini-like Hybrid AI)</h3>
+                <h3>Client-Side JS Simulator (Ultimate Hybrid AI)</h3>
             </div>
 
             <div id="chatBox">
                 </div>
 
             <div class="input-container">
-                <input type="text" id="userInput" placeholder="Ask a question, try math (e.g., 5*2x3), or drag a file..." autocomplete="off">
-                <button id="sendBtn" onclick="sendMessage()">&#9658;</button>
+                <input type="text" id="userInput" placeholder="Ask a question, try math, or drag an image..." autocomplete="off">
+                <button id="voiceBtn" class="input-btn" onclick="toggleVoiceInput()">🎤</button>
+                <button id="sendBtn" class="input-btn" onclick="sendMessage()">&#9658;</button>
             </div>
         </div>
     </div>
@@ -150,21 +127,25 @@
         let lastResponseType = 'none'; 
         let currentSessionId = 'session_' + Date.now();
         const HISTORY_ROOT_KEY = 'CLIENT_AI_CHAT_HISTORY';
-        const mathScope = {}; // For Math.js variable storage
-        let pipeline = null; // The loaded LLM pipeline
+        const mathScope = {}; 
+        let pipeline = null; 
+        let imageCaptioner = null; // New model for multimodality
+        let sentenceTransformer = null; 
+        let lancedb = null; 
+        let knowledgeTable = null; 
+        let isVoiceRecording = false;
+        let recognition = null; // Web Speech API
         
-        // NEW GLOBAL STATE FOR RAG
-        let sentenceTransformer = null; // For generating embeddings
-        let lancedb = null; // The LanceDB connection
-        let knowledgeTable = null; // The LanceDB knowledge table
-
         // UI Element References
         const chatBox = document.getElementById('chatBox');
         const userInput = document.getElementById('userInput');
         const chatList = document.querySelector('.chat-list');
+        const voiceBtn = document.getElementById('voiceBtn');
+        const sendBtn = document.getElementById('sendBtn');
+
 
 // ---------------------------
-// 1. LOGIN & LLM INITIALIZATION (Optimized for iPad Stability)
+// 1. INITIALIZATION (with NProgress)
 // ---------------------------
 
         function validateLogin() {
@@ -173,32 +154,65 @@
             const errorMessage = document.getElementById("error-message");
 
             if (username === "ryzen" && password === "4060") {
-                alert("Login successful! Loading AI models optimized for client-side stability.");
                 document.getElementById("loginContainer").style.display = "none";
                 document.getElementById("gameSection").style.display = "flex";
 
                 initializeChatbotUI();
-                initializeLLM(); // Start the optimized LLM loading process
-                initializeRAG(); // Start RAG initialization
+                initializeModels();
             } else {
                 errorMessage.textContent = "Invalid username or password. Try again.";
             }
         }
         
+        async function initializeModels() {
+            NProgress.start(); 
+            
+            // Step 1: Initialize Core LLM
+            await initializeLLM(); 
+            NProgress.inc(0.3);
+
+            // Step 2: Initialize RAG and Embedding Model
+            await initializeRAG();
+            NProgress.inc(0.3); 
+
+            // Step 3: Initialize Multimodal Model (Image Captioner)
+            await initializeImageCaptioner();
+            NProgress.done();
+            
+            updateInitialMessage();
+        }
+
+        async function initializeImageCaptioner() {
+            try {
+                const thinkingDiv = appendBotThinking('Initializing **Image Vision Model (BLIP-Base)**...');
+                NProgress.set(0.6);
+                
+                imageCaptioner = await window.transformersPipeline(
+                    'image-to-text',
+                    'Xenova/blip-base' // Small model for basic image analysis
+                );
+                
+                thinkingDiv.remove();
+                appendBotMessage(`👁️ **Image Analysis Active!** You can drag and drop images now.`, false);
+            } catch (error) {
+                console.error("Image Captioner Failed:", error);
+                appendBotMessage(`❌ **Vision Failure:** Image analysis offline.`, false);
+                imageCaptioner = 'FALLBACK';
+            }
+        }
+
         async function initializeRAG() {
-            // Load the small, fast Sentence Transformer model for embedding generation
+            NProgress.set(0.3);
             try {
                 const thinkingDiv = appendBotThinking('Initializing **Vector Search Engine**...');
                 
                 sentenceTransformer = await window.transformersPipeline(
                     'feature-extraction', 
-                    'Xenova/all-MiniLM-L6-v2' // Smallest, fastest embedding model
+                    'Xenova/all-MiniLM-L6-v2' 
                 );
 
-                // Setup LanceDB-Lite (Simulated knowledge base)
                 lancedb = await window.lancedb.connect('lancedb-lite-data');
                 
-                // Sample data with vectors (since we can't run the embedding model right now)
                 const data = [
                     { id: 1, text: "The first web browser was Mosaic, developed by Marc Andreessen and Eric Bina.", vector: await getEmbedding("first web browser Mosaic") },
                     { id: 2, text: "The Llama model architecture is a decoder-only transformer, known for its efficiency.", vector: await getEmbedding("Llama model decoder transformer efficiency") },
@@ -206,24 +220,18 @@
                     { id: 4, text: "JavaScript's WebGPU API allows web applications to perform high-performance parallel computations.", vector: await getEmbedding("WebGPU high-performance parallel computing") }
                 ];
 
-                // Create or open the table
                 knowledgeTable = await lancedb.createTable('knowledge_base', data, { mode: "overwrite" });
 
                 thinkingDiv.remove();
-                appendBotMessage(`✅ **Vector Database Active!** I can now perform grounded factual searches.`, false);
-
             } catch (error) {
                 console.error("RAG Initialization Failed:", error);
-                appendBotMessage(`❌ **RAG Failure:** Factual search capability offline.`, false);
                 sentenceTransformer = 'FALLBACK';
                 knowledgeTable = 'FALLBACK';
             }
         }
         
-        // Helper function to get embeddings for LanceDB
         async function getEmbedding(text) {
             if (sentenceTransformer === 'FALLBACK') {
-                // If the embedding model failed, return a dummy vector (or skip RAG)
                 return Array(384).fill(0); 
             }
             const output = await sentenceTransformer(text, { pooling: 'mean', normalize: true });
@@ -243,13 +251,11 @@
                 
                 pipeline = await window.transformersPipeline('text-generation', TINYLLAMA_MODEL); 
                 
-                // Pre-Warming the Model
                 thinkingDiv.innerHTML = `**TinyLlama 1.1B** loaded. **Compiling for faster queries...** (First run compilation)`;
                 await pipeline('Hello.', { max_new_tokens: 5, do_sample: false }); 
                 
                 thinkingDiv.remove();
                 appendBotMessage(`🎉 **TinyLlama 1.1B Loaded!** General and creative tasks are now active.`, false);
-                userInput.focus();
 
             } catch (error) {
                 console.error("TinyLlama failed to load. Falling back to minimal model.", error);
@@ -259,7 +265,6 @@
                     
                     pipeline = await window.transformersPipeline('text-generation', DISTILGPT2_MODEL);
                     
-                    // Pre-Warming the Fallback Model
                     thinkingDiv.innerHTML = `**DistilGPT2** loaded. **Compiling for faster queries...**`;
                     await pipeline('Hello.', { max_new_tokens: 5, do_sample: false }); 
 
@@ -272,7 +277,6 @@
                     pipeline = 'FALLBACK';
                 }
             }
-            updateInitialMessage(); 
         }
         
         function updateInitialMessage() {
@@ -293,29 +297,24 @@
                 saveHistory(allSessions);
                 renderChatBox(currentSession);
             }
+            userInput.focus();
         }
 
 
 // ---------------------------
-// 2. CORE CHATBOT LOGIC (Enhanced Tool Dispatcher)
+// 2. CORE CHATBOT LOGIC (Streaming & Tool Dispatch)
 // ---------------------------
 
-        // LOCAL KNOWLEDGE BASE (Guaranteed answers)
         const KNOWLEDGE_BASE = [
             { keywords: ['u sure', 'are you sure'], response: `That is a certainty. I use **Math.js**, **Vector Search**, or **Keywords** for verification.` },
             { keywords: ['html', 'what html', 'define html'], response: "HTML stands for **HyperText Markup Language**. It forms the structure of web pages." },
         ];
         
-        /**
-         * The LLM System Prompt. Instructions for tool use.
-         * We tell the model to respond in a YAML structure if a tool is needed.
-         */
         const SYSTEM_PROMPT = `You are a helpful, advanced client-side AI. Your core intelligence is a language model, but you have access to powerful tools.
 
 Available Tools:
 1. math_tool: Use for all calculations, arithmetic, or algebraic expressions.
 2. rag_tool: Use for specific factual questions about technology, history, or knowledge. Do not use for general chat or poetry.
-3. keyword_tool: Use only if the user query matches a simple keyword exactly.
 
 If a tool is REQUIRED, respond ONLY with a YAML block.
 If NO tool is required, respond directly to the user's query.
@@ -325,24 +324,9 @@ YAML Tool Format:
 tool: [tool_name]
 input: [tool_input_text]
 ---
-Example for 'what is 2 + 2':
----
-tool: math_tool
-input: 2 + 2
----
-Example for 'what is the llama model':
----
-tool: rag_tool
-input: Llama model architecture
----
+`;
 
-If the user provides the output of a tool, use that information to formulate a final, helpful answer.`;
-
-
-        /**
-         * Enhanced LLM Response function for Tool Calling
-         */
-        async function getLLMResponse(userText, toolOutput = null) {
+        async function getLLMResponse(userText, toolOutput = null, imageCaption = null) {
             if (pipeline === 'FALLBACK' || !pipeline) {
                 return "The local AI model is offline. Only the built-in Math/Keyword system is active.";
             }
@@ -350,215 +334,286 @@ If the user provides the output of a tool, use that information to formulate a f
             const allSessions = loadHistory();
             const currentSession = allSessions[currentSessionId];
 
-            // Build simplified context for the LLM
             const history = currentSession.slice(-4).map(msg => 
                 msg.type === 'user' ? `[INST] ${msg.text} ` : `[/INST] ${msg.text} `
             ).join('');
             
-            // Incorporate tool output into the prompt if available
             let tool_context = "";
             if (toolOutput) {
                 tool_context = `\n\n[TOOL_OUTPUT]: ${toolOutput}\n\n`;
             }
+            if (imageCaption) {
+                tool_context += `\n\n[IMAGE_CONTEXT]: The image shows: "${imageCaption}"\n\n`;
+            }
 
             const prompt = `<s>${SYSTEM_PROMPT}\n\n${history} [INST] ${userText} ${tool_context}[/INST]`;
-            const modelName = pipeline.model.includes('TinyLlama') ? 'TinyLlama 1.1B' : 'DistilGPT2';
 
+            // Use the streaming feature for better UX
             const output = await pipeline(prompt, {
-                max_new_tokens: 180, // Increased for tool context
+                max_new_tokens: 180, 
                 do_sample: true,
                 temperature: 0.8,
+                // --- Streaming Enabled ---
+                streaming: true,
+                // -------------------------
             });
-
-            let botText = output[0].generated_text.substring(prompt.length).trim();
-            botText = botText.split('</s>')[0].trim();
-            botText = botText.split('[INST]')[0].trim();
             
-            return botText;
+            return output; // Return the full output object for streaming
         }
 
-        /**
-         * NEW: RAG/Vector Search Function
-         */
+        async function streamLLMResponse(userText, toolOutput = null, imageCaption = null) {
+            const output = await getLLMResponse(userText, toolOutput, imageCaption);
+            
+            if (typeof output === 'string') {
+                return output; // Handle 'FALLBACK' string
+            }
+
+            // Create the new message container for streaming
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot-message';
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            
+            let fullText = '';
+            const promptLength = (await output).prompt.length;
+            
+            for await (const chunk of output) {
+                let token = chunk.text;
+                
+                // Skip the prompt part
+                if (token.length < promptLength) continue;
+
+                token = token.substring(promptLength);
+                
+                // Clean up any remaining generation tags
+                token = token.replace('</s>', '').replace('[INST]', '').trimStart(); 
+
+                fullText += token;
+                messageDiv.innerHTML = fullText; 
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+
+            fullText = fullText.split('</s>')[0].trim();
+            fullText = fullText.split('[INST]')[0].trim();
+            
+            return fullText;
+        }
+
         async function performRAG(query) {
             if (knowledgeTable === 'FALLBACK') {
                 return `RAG Tool Error: The vector database failed to initialize. Cannot search for "${query}".`;
             }
             try {
-                // 1. Get query embedding
                 const queryVector = await getEmbedding(query);
-                
-                // 2. Perform vector search (k=2 for context)
-                const results = await knowledgeTable.query()
-                    .near(queryVector)
-                    .limit(2)
-                    .execute();
+                const results = await knowledgeTable.query().near(queryVector).limit(2).execute();
                 
                 if (results.length > 0) {
                     const context = results.map(r => r.text).join(' ');
                     return `Knowledge Context: ${context}`;
                 }
                 return `Knowledge Context: No specific facts found for "${query}".`;
-
             } catch (e) {
                 console.error("RAG execution failed:", e);
                 return "RAG Tool Error: Failed during vector search.";
             }
         }
 
-
-        async function sendMessage() {
+        async function sendMessage(imageCaption = null) {
             const userText = userInput.value.trim();
-            if (!userText) return;
+            if (!userText && !imageCaption) return;
 
-            appendUserMessage(userText);
-            saveCurrentChat(userText, null); 
+            // Only append user text if it was explicitly typed
+            if (userText) appendUserMessage(userText); 
+            if (imageCaption) appendUserMessage(`[User prompted with image] ${userText || 'Analyze the image.'}`);
 
+            // Clear input and disable
             userInput.value = '';
             userInput.disabled = true;
+            sendBtn.disabled = true;
+            voiceBtn.disabled = true;
 
+            let toolOutput = null;
             let finalResponse = null;
-            let thinkingDiv = appendBotThinking('Routing query for best result...');
-            chatBox.scrollTop = chatBox.scrollHeight;
-
+            
             // --- STAGE 1: Keyword Check (Highest Priority/Speed) ---
             finalResponse = getKeywordResponse(userText.toLowerCase()); 
+
             if (finalResponse) {
                 lastResponseType = 'keyword';
-            }
-
-            // --- STAGE 2: LLM Tool Dispatch ---
-            let toolOutput = null;
-            let llmRawResponse = '';
-            let toolRequest = null;
-
-            if (!finalResponse) {
-                llmRawResponse = await getLLMResponse(userText);
+            } else {
                 
+                // Create a temporary "Thinking" div (it will be removed and replaced by streaming)
+                const thinkingDiv = appendBotThinking('Routing query for best result...');
+                chatBox.scrollTop = chatBox.scrollHeight;
+                
+                // --- STAGE 2: LLM Tool Dispatch ---
+                const llmRawResponse = await streamLLMResponse(userText, null, imageCaption);
+                thinkingDiv.remove(); // Remove temporary thinking div after first LLM call
+
+                let toolRequest = null;
                 try {
-                    // Try to parse a YAML tool call from the response
                     const yamlMatch = llmRawResponse.match(/---\s*tool:\s*(.*?)\s*input:\s*(.*?)\s*---/s);
                     if (yamlMatch) {
                         const yamlBlock = yamlMatch[0];
                         toolRequest = jsyaml.load(yamlBlock);
                     }
-                } catch (e) {
-                    console.warn("Could not parse YAML from LLM response:", e);
-                    // If parsing fails, fall through and treat the response as direct text
+                } catch (e) { /* Fall through to direct response */ }
+                
+                // --- STAGE 3: Tool Execution ---
+                if (toolRequest && toolRequest.tool && toolRequest.input) {
+                    const toolName = toolRequest.tool;
+                    const toolInput = toolRequest.input;
+                    
+                    // Display tool execution message in the chat
+                    const executionDiv = appendBotThinking(`Executing **${toolName}** on \`${toolInput.substring(0, 50)}...\` ...`);
+                    chatBox.scrollTop = chatBox.scrollHeight;
+
+                    if (toolName === 'math_tool') {
+                        toolOutput = clientSideMath(toolInput);
+                    } else if (toolName === 'rag_tool') {
+                        toolOutput = await performRAG(toolInput);
+                    }
+                    
+                    executionDiv.remove(); // Remove execution message
+
+                    // Re-prompt the LLM with the tool output (This time, no YAML call is expected)
+                    const thinkingDiv2 = appendBotThinking('Tool results received. Generating final answer...');
+                    const finalLLMResponse = await streamLLMResponse(userText, toolOutput, imageCaption);
+                    thinkingDiv2.remove(); // Remove second thinking div
+                    
+                    finalResponse = finalLLMResponse;
+                    lastResponseType = toolName; 
+
+                } else {
+                    // STAGE 4: Direct LLM response (The streaming output is already in `llmRawResponse`)
+                    finalResponse = llmRawResponse;
+                    lastResponseType = 'llm';
                 }
+            }
+
+            // --- Display Final Response (If not already streamed) ---
+            if (finalResponse && typeof finalResponse === 'string') {
+                 // For Keyword/Error responses, append the message normally
+                appendBotMessage(finalResponse, true); 
+            } else if (finalResponse) {
+                // If it was streamed, the message is already displayed, just save to history and process math rendering/TTS
+                saveCurrentChat(null, finalResponse);
+                lastResponse = finalResponse;
+                processBotResponse(finalResponse); 
             }
             
-            // --- STAGE 3: Tool Execution ---
-            if (toolRequest && toolRequest.tool && toolRequest.input) {
-                thinkingDiv.innerHTML = `Executing **${toolRequest.tool}** with input: \`${toolRequest.input.substring(0, 50)}...\` ...`;
-                
-                if (toolRequest.tool === 'math_tool') {
-                    toolOutput = clientSideMath(toolRequest.input);
-                } else if (toolRequest.tool === 'rag_tool') {
-                    toolOutput = await performRAG(toolRequest.input);
-                } else {
-                    toolOutput = `Tool Error: Unknown tool '${toolRequest.tool}'.`;
-                }
-
-                // If a tool was executed, re-prompt the LLM with the tool output
-                thinkingDiv.innerHTML = `Tool executed. Re-prompting LLM with results...`;
-                finalResponse = await getLLMResponse(userText, toolOutput);
-                lastResponseType = toolRequest.tool; 
-
-            } else if (!finalResponse) {
-                // STAGE 4: Direct LLM response (if no tool was called and no keyword matched)
-                finalResponse = llmRawResponse;
-                lastResponseType = 'llm';
-            }
-
-
-            // --- Display Final Response ---
-            if (!finalResponse || finalResponse.includes("The local AI model is offline")) {
-                if (pipeline === 'FALLBACK') {
-                   // This means the LLM is completely disabled
-                   finalResponse = "I'm sorry, no LLM is running. Only Math and Keyword answers are available.";
-                } else {
-                    // Fallback for LLM generating an empty or confusing response
-                    finalResponse = `I was unable to generate a valid response (LLM output was confusing). Try phrasing your question differently.`;
-                }
-                lastResponseType = 'none';
-            }
-
-            thinkingDiv.remove();
-            appendBotMessage(finalResponse, true);
-
+            // Re-enable UI
             userInput.disabled = false;
+            sendBtn.disabled = false;
+            voiceBtn.disabled = false;
             userInput.focus();
             renderSidebar(loadHistory());
         }
 
-        // The rest of the functions (clientSideMath, getKeywordResponse, UI functions, History Management) remain the same...
+        // --- Post-processing for streamed text ---
+        function processBotResponse(text) {
+             const messageDiv = chatBox.lastElementChild;
+             if (messageDiv && messageDiv.classList.contains('bot-message')) {
+                // Rerender KaTeX for the streamed message
+                if (window.renderMathInElement) {
+                    try {
+                        window.renderMathInElement(messageDiv, {
+                            delimiters: [
+                                { left: '$$', right: '$$', display: true },
+                                { left: '$', right: '$', display: false }
+                            ]
+                        });
+                    } catch (e) { console.warn('KaTeX render failed:', e); }
+                }
+                // Speak the response
+                speakResponse(text);
+             }
+        }
 
-        function clientSideMath(input) {
-            math.config({ implicit: 'auto' });
-            const mathPattern = /\d|[+\-x*/=^()]/i;
-            if (!mathPattern.test(input)) return null;
 
-            let processedInput = input.trim().replace(/,/g, '.').replace(/([0-9)])\s*\(/g, '$1*('); 
+// ---------------------------
+// 3. MULTIMODALITY (Image & Voice)
+// ---------------------------
+
+        function toggleVoiceInput() {
+            if (isVoiceRecording) {
+                recognition.stop();
+                isVoiceRecording = false;
+                voiceBtn.classList.remove('voice-recording');
+                voiceBtn.innerHTML = '🎤';
+                return;
+            }
+            
+            // Check for Web Speech API support
+            if (!('webkitSpeechRecognition' in window)) {
+                alert("Voice input is not supported in this browser. Try Chrome or Edge.");
+                return;
+            }
+
+            if (!recognition) {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+
+                recognition.onstart = () => {
+                    isVoiceRecording = true;
+                    voiceBtn.classList.add('voice-recording');
+                    voiceBtn.innerHTML = '🔴';
+                    userInput.placeholder = '...Listening (Speak Now)';
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    userInput.value = transcript;
+                    sendMessage(); // Auto-send the transcribed message
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech Recognition Error:', event.error);
+                    appendBotMessage(`⚠️ Voice Error: ${event.error}. Try typing instead.`);
+                };
+
+                recognition.onend = () => {
+                    isVoiceRecording = false;
+                    voiceBtn.classList.remove('voice-recording');
+                    voiceBtn.innerHTML = '🎤';
+                    userInput.placeholder = 'Ask a question, try math, or drag an image...';
+                };
+            }
 
             try {
-                const result = math.evaluate(processedInput, mathScope);
-                
-                if (typeof result === 'number' || result.constructor.name === 'BigNumber' || result.constructor.name === 'Complex') {
-                    let output = result.toString();
-                    if (result.constructor.name === 'BigNumber') output = result.toPrecision(15); 
-                    
-                    let finalInput = processedInput.replace(/\*/g, '\\times').replace(/x/g, '\\times'); 
-                    return `[MATH_RESULT]: $${finalInput.replace(/ /g, '')} = ${output}$`;
-                }
-                
-                return `[MATH_RESULT]: Tool ran successfully, but produced a non-numeric/unplottable result.`;
+                recognition.start();
             } catch (e) {
-                return `[MATH_ERROR]: The expression could not be parsed. Check syntax.`;
+                console.error("Failed to start recognition:", e);
+                // Handle case where recognition might be mid-process
+                if (e.message.includes('already started')) {
+                    recognition.stop();
+                }
             }
         }
         
-        // ... (rest of the functions: getKeywordResponse, setupDragAndDrop, appendUserMessage, initializeChatbotUI, etc. are as in the previous version) ...
-
-        function getKeywordResponse(input) {
-            const isVerification = input.includes('u sure') || input.includes('are you sure') || input.includes('is that true');
+        function speakResponse(text) {
+            // Remove markdown for smoother speech
+            const speechText = text.replace(/\*\*|#|```|\\(times|cdot)/g, ''); 
             
-            if (isVerification && lastResponseType === 'math') {
-                const allSessions = loadHistory();
-                const currentSession = allSessions[currentSessionId];
-                const lastUserQuery = currentSession.slice(-2).find(m => m.type === 'user')?.text || '';
-                if (lastUserQuery) {
-                   const mathToolOutput = clientSideMath(lastUserQuery);
-                   const mathResult = mathToolOutput.split('=')[1]?.trim().replace('$', '') || 'the result.';
-                   return `Yes, the math is certain. The expression \`${lastUserQuery.replace(/\*/g, '\\times').replace(/x/g, '\\times')}\` was solved by the **Math.js** library, yielding **${mathResult}**.`;
-                }
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(speechText);
+                utterance.pitch = 1.0;
+                utterance.rate = 1.1;
+                window.speechSynthesis.speak(utterance);
             }
-            // Normal Keyword Check
-            for (const item of KNOWLEDGE_BASE) {
-                if (item.keywords.some(keyword => input.includes(keyword))) {
-                    return item.response;
-                }
-            }
-            return null;
         }
-
-        // ... (remaining UI and History functions go here) ...
-        
-        // --- UI Functions (kept for completeness) ---
 
         function setupDragAndDrop() {
             const dropTarget = document.querySelector('.chat-interface');
             const dropZone = document.getElementById('dropZone');
-            if (!dropTarget || !dropZone) return;
-
+            
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                 dropTarget.addEventListener(eventName, preventDefaults, false);
             });
 
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
+            function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
 
             dropTarget.addEventListener('dragenter', (e) => {
                 if (e.target.closest('.chat-interface') && !e.target.closest('.input-container')) {
@@ -572,39 +627,90 @@ If the user provides the output of a tool, use that information to formulate a f
             dropTarget.addEventListener('drop', handleDrop, false);
 
             function handleDrop(e) {
-                let dt = e.dataTransfer;
-                let files = dt.files;
+                let files = e.dataTransfer.files;
                 if (files.length === 0) return;
 
                 const file = files[0];
                 const fileName = file.name;
-                const fileSize = (file.size / 1024 / 1024).toFixed(2);
                 const fileType = file.type || 'application/octet-stream'; 
-                const extension = fileName.split('.').pop().toLowerCase();
+                
+                // Only process images for the Captioner
+                if (fileType.startsWith('image/')) {
+                    if (imageCaptioner === 'FALLBACK') {
+                        appendUserMessage(`Dropped image: ${fileName}`);
+                        appendBotMessage(`❌ Image analysis is currently offline.`, true);
+                        return;
+                    }
+                    
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                        const imageURL = event.target.result;
+                        const thinkingDiv = appendBotThinking(`Analyzing image **${fileName}** using **BLIP-Base**...`);
+                        
+                        try {
+                            // Run the image captioning model
+                            const result = await imageCaptioner(imageURL);
+                            const caption = result[0].generated_text;
+                            
+                            thinkingDiv.remove();
+                            // Pass the caption to the main LLM for a descriptive answer
+                            sendMessage(caption); 
 
-                const userDropMessage = `Attempting to analyze dropped file: **${fileName}**`;
-                let botResponse;
+                        } catch (error) {
+                            thinkingDiv.remove();
+                            appendBotMessage(`⚠️ Image analysis failed during processing. The file might be too large or complex.`, true);
+                            console.error("Image Captioning Error:", error);
+                        }
+                    };
+                    reader.readAsDataURL(file);
 
-                // --- Smarter File Type Analysis ---
-                if (['exe', 'bat', 'sh', 'vbs', 'com', 'js', 'php'].includes(extension) || fileType.includes('script')) {
-                    botResponse = `**SECURITY ALERT** 🚨: File **${fileName}** (${fileSize} MB) received. This is a potential **executable or script file**. I cannot execute or read this file for security reasons. File type: \`${fileType}\`.`;
-                } else if (fileType.startsWith('image/')) {
-                    botResponse = `File **${fileName}** (${fileSize} MB) received. This is a common **Image File**. Its MIME type is: \`${fileType}\`. I can identify it as a visual asset.`;
-                } else if (fileType.includes('document') || fileType.includes('pdf')) {
-                    botResponse = `File **${fileName}** (${fileSize} MB) received. This appears to be a common **Document or Spreadsheet File**. MIME type: \`${fileType}\`.`;
                 } else {
-                    botResponse = `File **${fileName}** (${fileSize} MB) received. This is an **Unknown or Uncommon File Type** (\`${extension}\`). MIME type: \`${fileType}\`.`;
+                    // Fallback for non-image files (kept from previous versions)
+                    appendUserMessage(`Dropped file: ${fileName}`);
+                    appendBotMessage(`I only process image files for visual analysis. Other file types are rejected.`, true);
                 }
-
-                appendUserMessage(userDropMessage);
-                userInput.disabled = true;
-
-                setTimeout(() => {
-                    appendBotMessage(botResponse, true);
-                    userInput.disabled = false;
-                    userInput.focus();
-                }, 500);
             }
+        }
+        
+        // --- Remaining Helper Functions (Unchanged) ---
+
+        function clientSideMath(input) {
+            math.config({ implicit: 'auto' });
+            const mathPattern = /\d|[+\-x*/=^()]/i;
+            if (!mathPattern.test(input)) return null;
+            let processedInput = input.trim().replace(/,/g, '.').replace(/([0-9)])\s*\(/g, '$1*('); 
+            try {
+                const result = math.evaluate(processedInput, mathScope);
+                if (typeof result === 'number' || result.constructor.name === 'BigNumber' || result.constructor.name === 'Complex') {
+                    let output = result.toString();
+                    if (result.constructor.name === 'BigNumber') output = result.toPrecision(15); 
+                    let finalInput = processedInput.replace(/\*/g, '\\times').replace(/x/g, '\\times'); 
+                    return `[MATH_RESULT]: $${finalInput.replace(/ /g, '')} = ${output}$`;
+                }
+                return `[MATH_RESULT]: Tool ran successfully, but produced a non-numeric/unplottable result.`;
+            } catch (e) {
+                return `[MATH_ERROR]: The expression could not be parsed. Check syntax.`;
+            }
+        }
+
+        function getKeywordResponse(input) {
+            const isVerification = input.includes('u sure') || input.includes('are you sure') || input.includes('is that true');
+            if (isVerification && lastResponseType === 'math') {
+                const allSessions = loadHistory();
+                const currentSession = allSessions[currentSessionId];
+                const lastUserQuery = currentSession.slice(-2).find(m => m.type === 'user')?.text || '';
+                if (lastUserQuery) {
+                   const mathToolOutput = clientSideMath(lastUserQuery);
+                   const mathResult = mathToolOutput.split('=')[1]?.trim().replace('$', '') || 'the result.';
+                   return `Yes, the math is certain. The expression \`${lastUserQuery.replace(/\*/g, '\\times').replace(/x/g, '\\times')}\` was solved by the **Math.js** library, yielding **${mathResult}**.`;
+                }
+            }
+            for (const item of KNOWLEDGE_BASE) {
+                if (item.keywords.some(keyword => input.includes(keyword))) {
+                    return item.response;
+                }
+            }
+            return null;
         }
 
         function appendUserMessage(text) {
@@ -634,9 +740,9 @@ If the user provides the output of a tool, use that information to formulate a f
             if (saveToHistory) {
                 saveCurrentChat(null, text);
                 lastResponse = text; 
+                processBotResponse(text);
             }
 
-            // Render KaTeX for math output
             if (window.renderMathInElement) {
                 try {
                     window.renderMathInElement(botMessageDiv, {
@@ -645,21 +751,15 @@ If the user provides the output of a tool, use that information to formulate a f
                             { left: '$', right: '$', display: false }
                         ]
                     });
-                } catch (e) {
-                    console.warn('KaTeX render failed:', e);
-                }
+                } catch (e) { console.warn('KaTeX render failed:', e); }
             }
         }
 
-        // --- History Functions (kept for completeness) ---
-
         function userStorageKey() { return HISTORY_ROOT_KEY; }
-
         function loadHistory() {
             const key = userStorageKey();
             const historyData = localStorage.getItem(key);
             const sessions = historyData ? JSON.parse(historyData) : {};
-
             if (!sessions[currentSessionId]) {
                 currentSessionId = 'session_' + Date.now();
                 sessions[currentSessionId] = [{
@@ -668,16 +768,13 @@ If the user provides the output of a tool, use that information to formulate a f
                 }];
                 localStorage.setItem(key, JSON.stringify(sessions));
             }
-
             return sessions;
         }
-
         function saveHistory(sessions) {
             const key = userStorageKey();
             localStorage.setItem(key, JSON.stringify(sessions));
             localStorage.setItem('currentSessionId', currentSessionId);
         }
-
         function renderChatBox(messages) {
             if (!chatBox) return;
             chatBox.innerHTML = '';
@@ -687,115 +784,79 @@ If the user provides the output of a tool, use that information to formulate a f
                 messageDiv.innerHTML = msg.text;
                 chatBox.appendChild(messageDiv);
                 if (msg.type === 'bot' && window.renderMathInElement) {
-                    try {
-                        window.renderMathInElement(messageDiv);
-                    } catch (e) { console.warn('KaTeX render error for history:', e); }
+                    try { window.renderMathInElement(messageDiv); } catch (e) { console.warn('KaTeX render error for history:', e); }
                 }
             });
             chatBox.scrollTop = chatBox.scrollHeight;
         }
-
         function initializeChatbotUI() {
-            const sendBtn = document.getElementById('sendBtn');
-            const newChatBtn = document.querySelector('.new-chat-btn');
-            const sidebarToggle = document.getElementById('sidebarToggle');
-
-            if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+            if (sendBtn) sendBtn.addEventListener('click', () => sendMessage());
             if (userInput) userInput.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') sendMessage();
             });
-
-            if (newChatBtn) newChatBtn.addEventListener('click', startNewChat);
-            if (sidebarToggle) sidebarToggle.addEventListener('click', toggleSidebar);
-
+            document.querySelector('.new-chat-btn').addEventListener('click', startNewChat);
+            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
             setupDragAndDrop();
-
             const sessions = loadHistory();
-            const currentSession = sessions[currentSessionId];
-
             renderSidebar(sessions);
-            renderChatBox(currentSession);
+            renderChatBox(sessions[currentSessionId]);
         }
-
         function startNewChat() {
-            Object.keys(mathScope).forEach(k => delete mathScope[k]); // Clear Math.js state
+            Object.keys(mathScope).forEach(k => delete mathScope[k]);
             saveCurrentChat();
             currentSessionId = 'session_' + Date.now();
             lastResponse = '';
             lastResponseType = 'none'; 
-
-            const newSession = [{
-                type: 'bot',
-                text: "New conversation started! **Math variables have been cleared.** Ask me anything."
-            }];
-
+            const newSession = [{ type: 'bot', text: "New conversation started! **Math variables have been cleared.** Ask me anything." }];
             const allSessions = loadHistory();
             allSessions[currentSessionId] = newSession;
             saveHistory(allSessions);
-
             renderChatBox(newSession);
             renderSidebar(allSessions);
-            if (pipeline) updateInitialMessage(); 
+            if (pipeline) updateInitialMessage();
         }
-
         function saveCurrentChat(userText, botResponse) {
             const allSessions = loadHistory();
             let currentSession = allSessions[currentSessionId] || [];
-
             if (userText) currentSession.push({ type: 'user', text: userText });
             if (botResponse) currentSession.push({ type: 'bot', text: botResponse });
-
             if (currentSession.length > 0) {
                 allSessions[currentSessionId] = currentSession;
                 saveHistory(allSessions);
-                if (userText || botResponse) renderSidebar(allSessions);
             }
         }
-
         function renderSidebar(sessions) {
             if (!chatList) return;
             chatList.innerHTML = '';
             const sessionKeys = Object.keys(sessions).reverse();
-
             sessionKeys.forEach(id => {
                 const messages = sessions[id];
                 const firstUserMsg = messages.find(m => m.type === 'user');
                 const titleText = firstUserMsg ? (firstUserMsg.text.substring(0, 30) + (firstUserMsg.text.length > 30 ? '...' : '')) : 'New Chat (Simulated)';
-
                 const listItem = document.createElement('li');
                 listItem.className = 'chat-item';
                 if (id === currentSessionId) listItem.classList.add('active');
-
                 const titleSpan = document.createElement('span');
                 titleSpan.className = 'chat-title';
                 titleSpan.textContent = titleText;
-
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'delete-chat-btn';
                 deleteBtn.textContent = '🗑️';
-
                 titleSpan.addEventListener('click', () => switchChat(id, sessions));
-                deleteBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    deleteChat(id);
-                });
-
+                deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); deleteChat(id); });
                 listItem.dataset.sessionId = id;
                 listItem.appendChild(titleSpan);
                 listItem.appendChild(deleteBtn);
-
                 chatList.appendChild(listItem);
             });
             const activeItemElement = chatList.querySelector('.chat-item.active');
             if (activeItemElement) activeItemElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
-
         function switchChat(sessionId, sessions) {
             saveCurrentChat();
             currentSessionId = sessionId;
             const messages = sessions[sessionId];
             renderChatBox(messages);
-
             document.querySelectorAll('.chat-item').forEach(item => {
                 item.classList.remove('active');
                 if (item.dataset.sessionId === sessionId) item.classList.add('active');
@@ -803,31 +864,20 @@ If the user provides the output of a tool, use that information to formulate a f
             lastResponse = messages[messages.length - 1]?.text || '';
             lastResponseType = 'none'; 
         }
-
         function deleteChat(sessionIdToDelete) {
             if (!confirm("Are you sure you want to delete this chat history?")) return;
-
             const allSessions = loadHistory();
             delete allSessions[sessionIdToDelete];
             saveHistory(allSessions);
-
             if (sessionIdToDelete === currentSessionId) {
                 const sessionKeys = Object.keys(allSessions).reverse();
-                if (sessionKeys.length > 0) {
-                    switchChat(sessionKeys[0], allSessions);
-                } else {
-                    startNewChat();
-                }
-            } else {
-                renderSidebar(allSessions);
-            }
+                if (sessionKeys.length > 0) { switchChat(sessionKeys[0], allSessions); } else { startNewChat(); }
+            } else { renderSidebar(allSessions); }
         }
-
         function toggleSidebar() {
             const container = document.getElementById('gameSection');
             if (container) container.classList.toggle('sidebar-visible');
         }
-
     </script>
 </body>
 </html>
