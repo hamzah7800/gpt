@@ -3,13 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client-Side AI Simulator (Tailwind Edition)</title>
+    <title>Client-Side Simulator (Pure JS Tools Edition)</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
-
-    <script type="module">
-        import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.14.0';
-        window.transformersPipeline = pipeline;
-    </script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
 
@@ -17,27 +12,16 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
-
-    <script src="https://cdn.jsdelivr.net/npm/lancedb-lite@0.0.6/dist/lancedb-lite.js" type="module"></script>
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.js"></script>
 
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
-        /*
-        *****************************************************
-        * Tailwind is now handling most styling!            *
-        * We only keep custom animations and specific overrides.
-        *****************************************************
-        */
+        /* Custom styles preserved for animations */
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
         }
-
-        /* Custom animation for thinking message */
         .thinking-message { 
             background-color: #fff8e1; 
             color: #ff9800; 
@@ -49,24 +33,18 @@
             50% { opacity: 1; } 
             100% { opacity: 0.8; } 
         }
-        
-        /* Custom dot animation */
         .dot { opacity: 0; animation: dot-fade 1s infinite; }
         .dot:nth-child(2) { animation-delay: 0.2s; }
         .dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes dot-fade { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
-
-        /* Voice Recording Pulse */
         .voice-recording { 
-            background-color: #ef4444; /* Tailwind red-500 */
+            background-color: #ef4444; 
             animation: voice-pulse 1s infinite alternate; 
         }
         @keyframes voice-pulse { 
             from { opacity: 1; } 
             to { opacity: 0.7; } 
         }
-        
-        /* Sidebar Visibility for Mobile (Requires non-Tailwind transition due to complex state) */
         @media (max-width: 1200px) {
             .sidebar { 
                 position: absolute; 
@@ -81,7 +59,6 @@
             #sidebarToggle { display: block !important; }
             .chat-interface { overflow: hidden; }
         }
-
     </style>
 </head>
 <body class="bg-gray-100 flex justify-center items-center min-h-screen p-4">
@@ -106,12 +83,12 @@
 
         <div class="chat-interface flex-grow flex flex-col relative">
             
-            <div id="dropZone" class="absolute inset-0 bg-blue-600 bg-opacity-80 text-white hidden justify-center items-center text-2xl z-10 pointer-events-none">Drop files here to simulate analysis (Client-side only)</div>
+            <div id="dropZone" class="absolute inset-0 bg-blue-600 bg-opacity-80 text-white hidden justify-center items-center text-2xl z-10 pointer-events-none">Drop files here to simulate analysis (Image analysis is now mocked)</div>
 
             <div class="chat-header bg-gray-50 p-4 border-b border-gray-200 flex items-center">
                 <button id="sidebarToggle" onclick="toggleSidebar()" class="text-xl text-blue-600 mr-4 hidden">&#9776;</button>
                 <img src="icon-192.jpg" alt="AI Icon" class="header-icon w-8 h-8 rounded-full object-cover mr-4 border-2 border-blue-500">
-                <h3 class="text-lg font-semibold text-gray-800">Client-Side JS Simulator (Ultimate Hybrid AI)</h3>
+                <h3 class="text-lg font-semibold text-gray-800">Client-Side JS Simulator (Pure Tools Edition)</h3>
             </div>
 
             <div id="chatBox" class="flex-grow p-5 overflow-y-auto bg-gray-50 flex flex-col">
@@ -133,11 +110,7 @@
         let currentSessionId = 'session_' + Date.now();
         const HISTORY_ROOT_KEY = 'CLIENT_AI_CHAT_HISTORY';
         const mathScope = {}; 
-        let pipeline = null; 
-        let imageCaptioner = null;
-        let sentenceTransformer = null; 
-        let lancedb = null; 
-        let knowledgeTable = null; 
+        
         let isVoiceRecording = false;
         let recognition = null; 
         
@@ -150,7 +123,7 @@
 
 
 // ---------------------------
-// 1. INITIALIZATION (with NProgress)
+// 1. INITIALIZATION & SETUP
 // ---------------------------
 
         function validateLogin() {
@@ -160,337 +133,109 @@
 
             if (username === "ryzen" && password === "4060") {
                 document.getElementById("loginContainer").style.display = "none";
-                // Show gameSection and set up mobile visibility helper class
                 document.getElementById("gameSection").classList.remove('hidden');
                 document.getElementById("gameSection").classList.add('flex');
 
-                initializeChatbotUI();
-                initializeModels();
+                NProgress.start();
+                // Simulate model initialization time
+                setTimeout(() => {
+                    NProgress.done();
+                    initializeChatbotUI();
+                }, 500);
             } else {
                 errorMessage.textContent = "Invalid username or password. Try again.";
             }
         }
         
-        async function initializeModels() {
-            NProgress.start(); 
-            
-            // Step 1: Initialize Core LLM
-            await initializeLLM(); 
-            NProgress.inc(0.3);
+        // Removed initializeLLM, initializeRAG, initializeImageCaptioner
 
-            // Step 2: Initialize RAG and Embedding Model
-            await initializeRAG();
-            NProgress.inc(0.3); 
-
-            // Step 3: Initialize Multimodal Model (Image Captioner)
-            await initializeImageCaptioner();
-            NProgress.done();
-            
-            updateInitialMessage();
-        }
-
-        async function initializeImageCaptioner() {
-            try {
-                const thinkingDiv = appendBotThinking('Initializing **Image Vision Model (BLIP-Base)**...');
-                NProgress.set(0.6);
-                
-                imageCaptioner = await window.transformersPipeline(
-                    'image-to-text',
-                    'Xenova/blip-base'
-                );
-                
-                thinkingDiv.remove();
-                appendBotMessage(`👁️ **Image Analysis Active!** You can drag and drop images now.`, false);
-            } catch (error) {
-                console.error("Image Captioner Failed:", error);
-                appendBotMessage(`❌ **Vision Failure:** Image analysis offline.`, false);
-                imageCaptioner = 'FALLBACK';
-            }
-        }
-
-        async function initializeRAG() {
-            NProgress.set(0.3);
-            try {
-                const thinkingDiv = appendBotThinking('Initializing **Vector Search Engine**...');
-                
-                sentenceTransformer = await window.transformersPipeline(
-                    'feature-extraction', 
-                    'Xenova/all-MiniLM-L6-v2' 
-                );
-
-                lancedb = await window.lancedb.connect('lancedb-lite-data');
-                
-                const data = [
-                    { id: 1, text: "The first web browser was Mosaic, developed by Marc Andreessen and Eric Bina.", vector: await getEmbedding("first web browser Mosaic") },
-                    { id: 2, text: "The Llama model architecture is a decoder-only transformer, known for its efficiency.", vector: await getEmbedding("Llama model decoder transformer efficiency") },
-                    { id: 3, text: "Gemini is a family of multimodal models designed by Google to excel across various domains.", vector: await getEmbedding("Gemini Google multimodal") },
-                    { id: 4, text: "JavaScript's WebGPU API allows web applications to perform high-performance parallel computations.", vector: await getEmbedding("WebGPU high-performance parallel computing") }
-                ];
-
-                knowledgeTable = await lancedb.createTable('knowledge_base', data, { mode: "overwrite" });
-
-                thinkingDiv.remove();
-            } catch (error) {
-                console.error("RAG Initialization Failed:", error);
-                sentenceTransformer = 'FALLBACK';
-                knowledgeTable = 'FALLBACK';
-            }
-        }
-        
-        async function getEmbedding(text) {
-            if (sentenceTransformer === 'FALLBACK') {
-                return Array(384).fill(0); 
-            }
-            const output = await sentenceTransformer(text, { pooling: 'mean', normalize: true });
-            return Array.from(output.data);
-        }
-
-        async function initializeLLM() {
-            const TINYLLAMA_MODEL = 'Xenova/TinyLlama-1.1B-Chat-v1.0'; 
-            const DISTILGPT2_MODEL = 'Xenova/distilgpt2'; 
-            
-            try {
-                const thinkingDiv = appendBotThinking(`Initializing **Smart Mobile Model (TinyLlama 1.1B)**...`);
-                
-                if (typeof window.transformersPipeline === 'undefined') {
-                    throw new Error("transformersPipeline library is missing.");
-                }
-                
-                pipeline = await window.transformersPipeline('text-generation', TINYLLAMA_MODEL); 
-                
-                thinkingDiv.innerHTML = `**TinyLlama 1.1B** loaded. **Compiling for faster queries...** (First run compilation)`;
-                await pipeline('Hello.', { max_new_tokens: 5, do_sample: false }); 
-                
-                thinkingDiv.remove();
-                appendBotMessage(`🎉 **TinyLlama 1.1B Loaded!** General and creative tasks are now active.`, false);
-
-            } catch (error) {
-                console.error("TinyLlama failed to load. Falling back to minimal model.", error);
-
-                try {
-                    const thinkingDiv = appendBotThinking(`TinyLlama failed. Loading minimal **DistilGPT2** (~260 MB) for guaranteed stability...`);
-                    
-                    pipeline = await window.transformersPipeline('text-generation', DISTILGPT2_MODEL);
-                    
-                    thinkingDiv.innerHTML = `**DistilGPT2** loaded. **Compiling for faster queries...**`;
-                    await pipeline('Hello.', { max_new_tokens: 5, do_sample: false }); 
-
-                    thinkingDiv.remove();
-                    appendBotMessage(`⚠️ **Minimal Model Loaded (DistilGPT2).** Only simple, short, general answers can be generated.`, false);
-
-                } catch (e2) {
-                    console.error("Critical Failure: All AI models failed to load. The device memory is too low.", e2);
-                    appendBotMessage(`❌ **CRITICAL ERROR:** No AI model could load (device memory low). Only **Math.js** and **Keyword** answers will work.`, false);
-                    pipeline = 'FALLBACK';
-                }
-            }
-        }
-        
-        function updateInitialMessage() {
-            const allSessions = loadHistory();
-            const currentSession = allSessions[currentSessionId];
-            
-            let statusText = "";
-            if (pipeline === 'FALLBACK') {
-                statusText = "I am running in **Pure JS Mode**. My only intelligence is **Math.js** and a small keyword database.";
-            } else if (pipeline && pipeline.model.includes('TinyLlama')) {
-                statusText = "I am an advanced JavaScript simulator with a vast knowledge base, powered by **TinyLlama 1.1B**.";
-            } else if (pipeline) {
-                statusText = "I am a basic simulator, running on a minimal LLM for stability.";
-            }
-
-            if (currentSession.length > 0 && currentSession[0].type === 'bot') {
-                currentSession[0].text = `Hello! ${statusText} Ask me anything.`;
-                saveHistory(allSessions);
-                renderChatBox(currentSession);
-            }
+        function initializeChatbotUI() {
+            if (sendBtn) sendBtn.addEventListener('click', () => sendMessage());
+            if (userInput) userInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') sendMessage();
+            });
+            document.querySelector('.new-chat-btn').addEventListener('click', startNewChat);
+            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
+            setupDragAndDrop();
+            const sessions = loadHistory();
+            renderSidebar(sessions);
+            renderChatBox(sessions[currentSessionId]);
             userInput.focus();
         }
 
 
 // ---------------------------
-// 2. CORE CHATBOT LOGIC (Streaming & Tool Dispatch)
+// 2. CORE CHATBOT LOGIC (Pure JS Tool Dispatch)
 // ---------------------------
 
         const KNOWLEDGE_BASE = [
-            { keywords: ['u sure', 'are you sure'], response: `That is a certainty. I use **Math.js**, **Vector Search**, or **Keywords** for verification.` },
-            { keywords: ['html', 'what html', 'define html'], response: "HTML stands for **HyperText Markup Language**. It forms the structure of web pages." },
+            // RAG/Knowledge base is now a simple list of facts
+            { keywords: ['html', 'what html', 'define html'], response: "**HTML** stands for **HyperText Markup Language**. It forms the structure of web pages." },
+            { keywords: ['javascript', 'what is javascript', 'js'], response: "**JavaScript** is the programming language that enables interactive web pages. It is the language of the browser." },
+            { keywords: ['webgpu', 'define webgpu'], response: "**WebGPU** is a new web standard that allows web applications to perform high-performance parallel computations (like graphics and AI) using the GPU." },
+            { keywords: ['llm', 'what is llm'], response: "**LLM** stands for Large Language Model. It is a type of AI that can understand and generate human-like text." },
+            { keywords: ['browser', 'first browser'], response: "The first popular graphical web browser was **Mosaic**, developed by Marc Andreessen and Eric Bina." },
+            // Keyword responses for tool verification
+            { keywords: ['u sure', 'are you sure', 'is that true'], response: `That is a certainty. I verify all facts using my internal **Knowledge Base** or **Math.js**.` },
         ];
         
-        const SYSTEM_PROMPT = `You are a helpful, advanced client-side AI. Your core intelligence is a language model, but you have access to powerful tools.
-
-Available Tools:
-1. math_tool: Use for all calculations, arithmetic, or algebraic expressions.
-2. rag_tool: Use for specific factual questions about technology, history, or knowledge. Do not use for general chat or poetry.
-
-If a tool is REQUIRED, respond ONLY with a YAML block.
-If NO tool is required, respond directly to the user's query.
-
-YAML Tool Format:
----
-tool: [tool_name]
-input: [tool_input_text]
----
-`;
-
-        async function getLLMResponse(userText, toolOutput = null, imageCaption = null) {
-            if (pipeline === 'FALLBACK' || !pipeline) {
-                return "The local AI model is offline. Only the built-in Math/Keyword system is active.";
-            }
-
-            const allSessions = loadHistory();
-            const currentSession = allSessions[currentSessionId];
-
-            const history = currentSession.slice(-4).map(msg => 
-                msg.type === 'user' ? `[INST] ${msg.text} ` : `[/INST] ${msg.text} `
-            ).join('');
-            
-            let tool_context = "";
-            if (toolOutput) {
-                tool_context = `\n\n[TOOL_OUTPUT]: ${toolOutput}\n\n`;
-            }
-            if (imageCaption) {
-                tool_context += `\n\n[IMAGE_CONTEXT]: The image shows: "${imageCaption}"\n\n`;
-            }
-
-            const prompt = `<s>${SYSTEM_PROMPT}\n\n${history} [INST] ${userText} ${tool_context}[/INST]`;
-
-            const output = await pipeline(prompt, {
-                max_new_tokens: 180, 
-                do_sample: true,
-                temperature: 0.8,
-                streaming: true,
-            });
-            
-            return output;
-        }
-
-        async function streamLLMResponse(userText, toolOutput = null, imageCaption = null) {
-            const output = await getLLMResponse(userText, toolOutput, imageCaption);
-            
-            if (typeof output === 'string') {
-                return output;
-            }
-
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message bot-message bg-gray-200 text-gray-800 self-start rounded-xl p-3 mb-4 max-w-xl rounded-bl-none';
-            chatBox.appendChild(messageDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
-            
-            let fullText = '';
-            const promptLength = (await output).prompt.length;
-            
-            for await (const chunk of output) {
-                let token = chunk.text;
-                
-                if (token.length < promptLength) continue;
-
-                token = token.substring(promptLength);
-                
-                token = token.replace('</s>', '').replace('[INST]', '').trimStart(); 
-
-                fullText += token;
-                messageDiv.innerHTML = fullText; 
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }
-
-            fullText = fullText.split('</s>')[0].trim();
-            fullText = fullText.split('[INST]')[0].trim();
-            
-            return fullText;
-        }
-
-        async function performRAG(query) {
-            if (knowledgeTable === 'FALLBACK') {
-                return `RAG Tool Error: The vector database failed to initialize. Cannot search for "${query}".`;
-            }
-            try {
-                const queryVector = await getEmbedding(query);
-                const results = await knowledgeTable.query().near(queryVector).limit(2).execute();
-                
-                if (results.length > 0) {
-                    const context = results.map(r => r.text).join(' ');
-                    return `Knowledge Context: ${context}`;
-                }
-                return `Knowledge Context: No specific facts found for "${query}".`;
-            } catch (e) {
-                console.error("RAG execution failed:", e);
-                return "RAG Tool Error: Failed during vector search.";
-            }
-        }
-
         async function sendMessage(imageCaption = null) {
             const userText = userInput.value.trim();
             if (!userText && !imageCaption) return;
 
+            // 1. Append User Message
             if (userText) appendUserMessage(userText); 
-            if (imageCaption) appendUserMessage(`[User prompted with image] ${userText || 'Analyze the image.'}`);
+            if (imageCaption) appendUserMessage(`[Image prompt] ${userText || 'Analyze the image.'}`);
 
             userInput.value = '';
             userInput.disabled = true;
             sendBtn.disabled = true;
             voiceBtn.disabled = true;
 
-            let toolOutput = null;
             let finalResponse = null;
+            let query = userText || (imageCaption ? `Analyze the image showing: ${imageCaption}` : '');
             
-            finalResponse = getKeywordResponse(userText.toLowerCase()); 
-
-            if (finalResponse) {
-                lastResponseType = 'keyword';
-            } else {
-                
-                const thinkingDiv = appendBotThinking('Routing query for best result...');
-                chatBox.scrollTop = chatBox.scrollHeight;
-                
-                const llmRawResponse = await streamLLMResponse(userText, null, imageCaption);
-                thinkingDiv.remove();
-
-                let toolRequest = null;
-                try {
-                    const yamlMatch = llmRawResponse.match(/---\s*tool:\s*(.*?)\s*input:\s*(.*?)\s*---/s);
-                    if (yamlMatch) {
-                        const yamlBlock = yamlMatch[0];
-                        toolRequest = jsyaml.load(yamlBlock);
-                    }
-                } catch (e) { /* Fall through to direct response */ }
-                
-                if (toolRequest && toolRequest.tool && toolRequest.input) {
-                    const toolName = toolRequest.tool;
-                    const toolInput = toolRequest.input;
-                    
-                    const executionDiv = appendBotThinking(`Executing **${toolName}** on \`${toolInput.substring(0, 50)}...\` ...`);
-                    chatBox.scrollTop = chatBox.scrollHeight;
-
-                    if (toolName === 'math_tool') {
-                        toolOutput = clientSideMath(toolInput);
-                    } else if (toolName === 'rag_tool') {
-                        toolOutput = await performRAG(toolInput);
-                    }
-                    
-                    executionDiv.remove();
-
-                    const thinkingDiv2 = appendBotThinking('Tool results received. Generating final answer...');
-                    const finalLLMResponse = await streamLLMResponse(userText, toolOutput, imageCaption);
-                    thinkingDiv2.remove();
-                    
-                    finalResponse = finalLLMResponse;
-                    lastResponseType = toolName; 
-
-                } else {
-                    finalResponse = llmRawResponse;
-                    lastResponseType = 'llm';
+            const thinkingDiv = appendBotThinking('Processing query with pure JS tools...');
+            
+            // 2. Tool Execution Logic
+            
+            // Try Math Tool first (Highest confidence)
+            const mathResult = clientSideMath(query);
+            if (mathResult) {
+                finalResponse = `**MATH TOOL RESULT:** ${mathResult}`;
+                lastResponseType = 'math';
+            }
+            
+            // Try Keyword/RAG Tool (Medium confidence)
+            if (!finalResponse) {
+                finalResponse = getKeywordResponse(query.toLowerCase()); 
+                if (finalResponse) {
+                    lastResponseType = 'rag'; 
                 }
             }
 
+            // Handle Image Input (Simulated)
+            if (imageCaption && !finalResponse) {
+                 finalResponse = `**SIMULATED VISION RESPONSE:** I have analyzed the image, which appears to show: **${imageCaption}**. Since no tool was triggered, here is a general, hard-coded response: That's a fascinating image!`;
+                 lastResponseType = 'vision_mock';
+            }
+
+            // Fallback (Lowest confidence)
+            if (!finalResponse) {
+                finalResponse = getFallbackResponse(query);
+                lastResponseType = 'fallback';
+            }
+
+            // 3. Render Final Response
+            // Use a short delay to make the "thinking" visible
+            await new Promise(r => setTimeout(r, 800)); 
+            thinkingDiv.remove();
+
             if (finalResponse && typeof finalResponse === 'string') {
                 appendBotMessage(finalResponse, true); 
-            } else if (finalResponse) {
-                saveCurrentChat(null, finalResponse);
-                lastResponse = finalResponse;
-                processBotResponse(finalResponse); 
             }
             
+            // 4. Cleanup
             userInput.disabled = false;
             sendBtn.disabled = false;
             voiceBtn.disabled = false;
@@ -498,7 +243,20 @@ input: [tool_input_text]
             renderSidebar(loadHistory());
         }
 
+        function getFallbackResponse(query) {
+            const lowQuery = query.toLowerCase();
+            if (lowQuery.includes('hello') || lowQuery.includes('hi')) {
+                return "Hello there! I'm the pure JS simulator. I can do math and look up facts from my small database. Ask me a calculation!";
+            }
+            if (lowQuery.includes('how are you') || lowQuery.includes('what are you')) {
+                return "I am a simple JavaScript program. I use Math.js, a keyword list, and my internal logic to respond. I do not have a full LLM.";
+            }
+            // General hard-coded response
+            return `I'm sorry, I couldn't find a direct keyword match or a mathematical expression for **"${query}"** in my current knowledge base. Try a simple math problem or a technical term like 'WebGPU'.`;
+        }
+
         function processBotResponse(text) {
+             // Function is now just responsible for KaTeX rendering and speaking
              const messageDiv = chatBox.lastElementChild;
              if (messageDiv && messageDiv.classList.contains('bot-message')) {
                 if (window.renderMathInElement) {
@@ -517,7 +275,118 @@ input: [tool_input_text]
 
 
 // ---------------------------
-// 3. MULTIMODALITY (Image & Voice)
+// 3. TOOL IMPLEMENTATIONS (Math, RAG/Keyword, Vision Mock)
+// ---------------------------
+
+        function clientSideMath(input) {
+            // Check for explicit math commands or high probability math symbols
+            const mathPattern = /^\s*(\d|\(|\-|\+)/; 
+            if (!mathPattern.test(input) && !input.includes('calculate') && !input.includes('solve')) {
+                 return null;
+            }
+            
+            // Simplify input for math.js: remove 'calculate', 'what is', replace x with *
+            let processedInput = input.trim().replace(/calculate|what is|solve|the result of/i, '')
+                                             .replace(/x/g, '*');
+            
+            math.config({ implicit: 'auto' });
+            try {
+                const result = math.evaluate(processedInput, mathScope);
+                if (typeof result === 'number' || result.constructor.name === 'BigNumber' || result.constructor.name === 'Complex' || result.isMatrix) {
+                    let output = result.toString();
+                    if (result.constructor.name === 'BigNumber') output = result.toPrecision(15); 
+                    
+                    // Format output with KaTeX
+                    let finalInput = processedInput.replace(/\*/g, '\\times').replace(/ /g, ''); 
+                    
+                    return `I used **Math.js** to solve the expression. The result is: $$${finalInput} = ${output}$$`;
+                }
+                return `I used **Math.js**, but the result was a complex object I cannot display.`;
+            } catch (e) {
+                // If the math parser fails, it's probably not a calculation
+                return null; 
+            }
+        }
+
+        function getKeywordResponse(input) {
+            const isVerification = input.includes('u sure') || input.includes('are you sure') || input.includes('is that true');
+            
+            // Specific check for math verification
+            if (isVerification && lastResponseType === 'math') {
+                const allSessions = loadHistory();
+                const currentSession = allSessions[currentSessionId];
+                const lastUserQuery = currentSession.slice(-2).find(m => m.type === 'user')?.text || '';
+                if (lastUserQuery) {
+                   // Run the math function again on the last query to get the result string
+                   const mathResultText = clientSideMath(lastUserQuery);
+                   if (mathResultText) {
+                       return `Yes, the calculation is certain. I re-ran the query using **Math.js** for verification.`;
+                   }
+                }
+            }
+
+            // Simple Keyword/RAG search
+            for (const item of KNOWLEDGE_BASE) {
+                if (item.keywords.some(keyword => input.includes(keyword))) {
+                    return `[RAG TOOL SEARCH RESULT] ${item.response}`;
+                }
+            }
+            return null;
+        }
+
+        function setupDragAndDrop() {
+            const dropTarget = document.querySelector('.chat-interface');
+            const dropZone = document.getElementById('dropZone');
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropTarget.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+            // Visual feedback
+            dropTarget.addEventListener('dragenter', (e) => {
+                if (e.target.closest('.chat-interface') && !e.target.closest('.input-container')) {
+                    dropZone.classList.remove('hidden');
+                    dropZone.classList.add('flex');
+                }
+            }, false);
+
+            dropTarget.addEventListener('dragleave', (e) => {
+                if (!e.relatedTarget || !e.relatedTarget.closest('.chat-interface')) {
+                    dropZone.classList.add('hidden');
+                    dropZone.classList.remove('flex');
+                }
+            }, false);
+
+            dropTarget.addEventListener('drop', (e) => {
+                dropZone.classList.add('hidden');
+                dropZone.classList.remove('flex');
+                handleDrop(e);
+            }, false);
+
+            function handleDrop(e) {
+                let files = e.dataTransfer.files;
+                if (files.length === 0) return;
+
+                const file = files[0];
+                const fileName = file.name;
+                const fileType = file.type || 'application/octet-stream'; 
+                
+                if (fileType.startsWith('image/')) {
+                    // MOCKING the Image Analysis
+                    const mockCaption = `A simulated caption for '${fileName}' generated locally. It looks like a ${Math.random() > 0.5 ? 'computer' : 'landscape'}.`;
+                    sendMessage(mockCaption);
+
+                } else {
+                    appendUserMessage(`Dropped file: ${fileName}`);
+                    appendBotMessage(`I only process image files for visual analysis (currently mocked). Other file types are rejected.`, true);
+                }
+            }
+        }
+
+// ---------------------------
+// 4. UI/HELPER FUNCTIONS (Simplified and using Tailwind)
 // ---------------------------
 
         function toggleVoiceInput() {
@@ -571,6 +440,8 @@ input: [tool_input_text]
             } catch (e) {
                 if (e.message.includes('already started')) {
                     recognition.stop();
+                } else {
+                    console.error(e);
                 }
             }
         }
@@ -586,122 +457,18 @@ input: [tool_input_text]
             }
         }
 
-        function setupDragAndDrop() {
-            const dropTarget = document.querySelector('.chat-interface');
-            const dropZone = document.getElementById('dropZone');
-            
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropTarget.addEventListener(eventName, preventDefaults, false);
-            });
-
-            function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
-
-            dropTarget.addEventListener('dragenter', (e) => {
-                if (e.target.closest('.chat-interface') && !e.target.closest('.input-container')) {
-                    dropZone.classList.add('hover');
-                }
-            }, false);
-
-            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('hover'), false);
-            dropTarget.addEventListener('drop', () => dropZone.classList.remove('hover'), false);
-
-            dropTarget.addEventListener('drop', handleDrop, false);
-
-            function handleDrop(e) {
-                let files = e.dataTransfer.files;
-                if (files.length === 0) return;
-
-                const file = files[0];
-                const fileName = file.name;
-                const fileType = file.type || 'application/octet-stream'; 
-                
-                if (fileType.startsWith('image/')) {
-                    if (imageCaptioner === 'FALLBACK') {
-                        appendUserMessage(`Dropped image: ${fileName}`);
-                        appendBotMessage(`❌ Image analysis is currently offline.`, true);
-                        return;
-                    }
-                    
-                    const reader = new FileReader();
-                    reader.onload = async (event) => {
-                        const imageURL = event.target.result;
-                        const thinkingDiv = appendBotThinking(`Analyzing image **${fileName}** using **BLIP-Base**...`);
-                        
-                        try {
-                            const result = await imageCaptioner(imageURL);
-                            const caption = result[0].generated_text;
-                            
-                            thinkingDiv.remove();
-                            sendMessage(caption); 
-
-                        } catch (error) {
-                            thinkingDiv.remove();
-                            appendBotMessage(`⚠️ Image analysis failed during processing. The file might be too large or complex.`, true);
-                            console.error("Image Captioning Error:", error);
-                        }
-                    };
-                    reader.readAsDataURL(file);
-
-                } else {
-                    appendUserMessage(`Dropped file: ${fileName}`);
-                    appendBotMessage(`I only process image files for visual analysis. Other file types are rejected.`, true);
-                }
-            }
-        }
-        
-        // --- Remaining Helper Functions (Updated to use Tailwind classes) ---
-
-        function clientSideMath(input) {
-            math.config({ implicit: 'auto' });
-            const mathPattern = /\d|[+\-x*/=^()]/i;
-            if (!mathPattern.test(input)) return null;
-            let processedInput = input.trim().replace(/,/g, '.').replace(/([0-9)])\s*\(/g, '$1*('); 
-            try {
-                const result = math.evaluate(processedInput, mathScope);
-                if (typeof result === 'number' || result.constructor.name === 'BigNumber' || result.constructor.name === 'Complex') {
-                    let output = result.toString();
-                    if (result.constructor.name === 'BigNumber') output = result.toPrecision(15); 
-                    let finalInput = processedInput.replace(/\*/g, '\\times').replace(/x/g, '\\times'); 
-                    return `[MATH_RESULT]: $${finalInput.replace(/ /g, '')} = ${output}$`;
-                }
-                return `[MATH_RESULT]: Tool ran successfully, but produced a non-numeric/unplottable result.`;
-            } catch (e) {
-                return `[MATH_ERROR]: The expression could not be parsed. Check syntax.`;
-            }
-        }
-
-        function getKeywordResponse(input) {
-            const isVerification = input.includes('u sure') || input.includes('are you sure') || input.includes('is that true');
-            if (isVerification && lastResponseType === 'math') {
-                const allSessions = loadHistory();
-                const currentSession = allSessions[currentSessionId];
-                const lastUserQuery = currentSession.slice(-2).find(m => m.type === 'user')?.text || '';
-                if (lastUserQuery) {
-                   const mathToolOutput = clientSideMath(lastUserQuery);
-                   const mathResult = mathToolOutput.split('=')[1]?.trim().replace('$', '') || 'the result.';
-                   return `Yes, the math is certain. The expression \`${lastUserQuery.replace(/\*/g, '\\times').replace(/x/g, '\\times')}\` was solved by the **Math.js** library, yielding **${mathResult}**.`;
-                }
-            }
-            for (const item of KNOWLEDGE_BASE) {
-                if (item.keywords.some(keyword => input.includes(keyword))) {
-                    return item.response;
-                }
-            }
-            return null;
-        }
-
         function appendUserMessage(text) {
             const userMessageDiv = document.createElement('div');
-            // Tailwind classes for user message: blue background, white text, self-end, rounded corners
             userMessageDiv.className = 'message user-message bg-blue-600 text-white self-end rounded-xl p-3 mb-4 max-w-xl rounded-br-none shadow-md';
             userMessageDiv.textContent = text;
             chatBox.appendChild(userMessageDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
+            // Save the user message immediately
+            saveCurrentChat(text, null); 
         }
 
         function appendBotThinking(message) {
             const thinkingDiv = document.createElement('div');
-            // Tailwind classes combined with custom animation class
             thinkingDiv.className = 'message bot-message thinking-message self-start rounded-xl p-3 mb-4 max-w-xl rounded-bl-none shadow-md';
             thinkingDiv.innerHTML = message || '...Thinking and checking sources<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>'; 
             chatBox.appendChild(thinkingDiv);
@@ -711,7 +478,6 @@ input: [tool_input_text]
 
         function appendBotMessage(text, saveToHistory = true) {
             const botMessageDiv = document.createElement('div');
-            // Tailwind classes for bot message: gray background, gray text, self-start, rounded corners
             botMessageDiv.className = 'message bot-message bg-gray-200 text-gray-800 self-start rounded-xl p-3 mb-4 max-w-xl rounded-bl-none shadow-md';
             botMessageDiv.innerHTML = text;
             chatBox.appendChild(botMessageDiv);
@@ -722,21 +488,8 @@ input: [tool_input_text]
                 lastResponse = text; 
                 processBotResponse(text);
             }
-
-            if (window.renderMathInElement) {
-                try {
-                    window.renderMathInElement(botMessageDiv, {
-                        delimiters: [
-                            { left: '$$', right: '$$', display: true },
-                            { left: '$', right: '$', display: false }
-                        ]
-                    });
-                } catch (e) { console.warn('KaTeX render failed:', e); }
-            }
         }
         
-        // --- History Management and UI Functions (Updated to use Tailwind classes) ---
-
         function userStorageKey() { return HISTORY_ROOT_KEY; }
 
         function loadHistory() {
@@ -747,7 +500,7 @@ input: [tool_input_text]
                 currentSessionId = 'session_' + Date.now();
                 sessions[currentSessionId] = [{
                     type: 'bot',
-                    text: "Hello! I am an advanced JavaScript simulator with a vast knowledge base. Ask me anything."
+                    text: "Hello! I am a **Pure JavaScript Simulator**. I use **Math.js** for calculations and a **Knowledge Base** for facts. Ask me anything!"
                 }];
                 localStorage.setItem(key, JSON.stringify(sessions));
             }
@@ -765,7 +518,6 @@ input: [tool_input_text]
             chatBox.innerHTML = '';
             (messages || []).forEach(msg => {
                 const messageDiv = document.createElement('div');
-                // Use the new class logic
                 if (msg.type === 'user') {
                      messageDiv.className = 'message user-message bg-blue-600 text-white self-end rounded-xl p-3 mb-4 max-w-xl rounded-br-none shadow-md';
                 } else {
@@ -780,22 +532,8 @@ input: [tool_input_text]
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        function initializeChatbotUI() {
-            if (sendBtn) sendBtn.addEventListener('click', () => sendMessage());
-            if (userInput) userInput.addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') sendMessage();
-            });
-            document.querySelector('.new-chat-btn').addEventListener('click', startNewChat);
-            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
-            setupDragAndDrop();
-            const sessions = loadHistory();
-            renderSidebar(sessions);
-            renderChatBox(sessions[currentSessionId]);
-        }
-
         function startNewChat() {
             Object.keys(mathScope).forEach(k => delete mathScope[k]);
-            saveCurrentChat();
             currentSessionId = 'session_' + Date.now();
             lastResponse = '';
             lastResponseType = 'none'; 
@@ -805,7 +543,6 @@ input: [tool_input_text]
             saveHistory(allSessions);
             renderChatBox(newSession);
             renderSidebar(allSessions);
-            if (pipeline) updateInitialMessage();
         }
 
         function saveCurrentChat(userText, botResponse) {
@@ -826,20 +563,17 @@ input: [tool_input_text]
             sessionKeys.forEach(id => {
                 const messages = sessions[id];
                 const firstUserMsg = messages.find(m => m.type === 'user');
-                const titleText = firstUserMsg ? (firstUserMsg.text.substring(0, 30) + (firstUserMsg.text.length > 30 ? '...' : '')) : 'New Chat (Simulated)';
+                const titleText = firstUserMsg ? (firstUserMsg.text.substring(0, 30) + (firstUserMsg.text.length > 30 ? '...' : '')) : 'New Chat (Pure JS)';
 
                 const listItem = document.createElement('li');
-                // Tailwind classes for list item
                 listItem.className = 'chat-item px-5 py-3 cursor-pointer flex justify-between items-center transition duration-200 hover:bg-gray-700';
                 if (id === currentSessionId) listItem.classList.add('bg-gray-700', 'active');
 
                 const titleSpan = document.createElement('span');
-                // Tailwind classes for title
                 titleSpan.className = 'chat-title flex-grow whitespace-nowrap overflow-hidden text-ellipsis';
                 titleSpan.textContent = titleText;
 
                 const deleteBtn = document.createElement('button');
-                // Tailwind classes for delete button
                 deleteBtn.className = 'delete-chat-btn bg-transparent border-none text-red-400 cursor-pointer ml-3 text-lg hover:text-red-500 transition';
                 deleteBtn.textContent = '🗑️';
 
@@ -857,7 +591,6 @@ input: [tool_input_text]
         }
 
         function switchChat(sessionId, sessions) {
-            saveCurrentChat();
             currentSessionId = sessionId;
             const messages = sessions[sessionId];
             renderChatBox(messages);
