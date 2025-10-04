@@ -15,10 +15,16 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+    <script src="https://unpkg.com/ml5@0.12.2/dist/ml5.min.js"></script>
+    <script src="https://docs.opencv.org/4.x/opencv.js" async></script>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.31.1.min.js"></script>
 
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
+        /* ... (CSS Styles remain the same) ... */
         /* --- General Styling --- */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
@@ -40,6 +46,7 @@
         .tool-card-api { background-color: #fffde7; border: 1px solid #ffeb3b; color: #f57f17; }
         .tool-card-imagegen { background-color: #e1f5fe; border: 1px solid #03a9f4; color: #01579b; }
         .tool-card-ml { background-color: #f3e8ff; border: 1px solid #9333ea; color: #5b21b6; } /* NEW ML Tool Card */
+        .tool-card-vis { background-color: #fff3e0; border: 1px solid #ff9800; color: #e65100; } /* Visualization Tool Card */
         .tool-card-fallback { background-color: #ffebee; border: 1px solid #f44336; color: #b71c1c; }
 
         .response-content { margin-top: 0.5rem; } 
@@ -82,7 +89,7 @@
             <div class="chat-header bg-gray-50 p-4 border-b border-gray-200 flex items-center">
                 <button id="sidebarToggle" onclick="toggleSidebar()" class="text-xl text-blue-600 mr-4 hidden">&#9776;</button>
                 <img src="icon-192.jpg" alt="AI Icon" class="header-icon w-8 h-8 rounded-full object-cover mr-4 border-2 border-blue-500">
-                <h3 class="text-lg font-semibold text-gray-800">Ultimate JS Simulator (ML & Tools Active)</h3>
+                <h3 class="text-lg font-semibold text-gray-800">Ultimate JS Simulator (ML, Vision, & Viz Tools Active)</h3>
             </div>
 
             <div id="chatBox" class="flex-grow p-5 overflow-y-auto bg-gray-50 flex flex-col">
@@ -160,6 +167,12 @@
                 // Fallback to mock if loading fails
             }
 
+            // Check for other key libraries
+            if (window.d3) console.log("D3.js Loaded for advanced visualization.");
+            if (window.Plotly) console.log("Plotly.js Loaded for scientific charts.");
+            if (window.ml5) console.log("ml5.js Loaded for easy ML access.");
+            // Note: OpenCV.js loads asynchronously via 'onload' event
+
             if (sendBtn) sendBtn.addEventListener('click', () => sendMessage());
             if (userInput) userInput.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') sendMessage();
@@ -182,6 +195,8 @@
             { keywords: ['javascript', 'what is javascript', 'js'], response: "**JavaScript** is the programming language that enables **interactive web pages**." },
             { keywords: ['llm', 'what is llm', 'large language model'], response: "**LLM** (Large Language Model) is a type of AI that can understand and generate human-like text." },
             { keywords: ['tensorflow', 'tfjs', 'machine learning', 'client-side ai'], response: "**TensorFlow.js** is a powerful library for running **Machine Learning models** directly in the browser using JavaScript." },
+            { keywords: ['d3.js', 'what is d3'], response: "**D3.js** is the most powerful JavaScript library for creating custom data visualizations using HTML, SVG, and CSS." },
+            { keywords: ['plotly', 'scientific charts'], response: "**Plotly.js** is excellent for declarative scientific, statistical, and 3D data visualization in the browser." },
         ];
         
         async function sendMessage(fileDataUrl = null, fileDetails = null) {
@@ -214,31 +229,36 @@
                  finalResponse = await clientSideML(fileDataUrl, fileDetails);
                  lastResponseType = 'ml_real';
             }
-            // 2b. Vision Tool Mock (Fallback for ML if model not loaded or error)
+            // 2b. Visualization Tool 
+            else if (!finalResponse) {
+                finalResponse = clientSideVisualizationMock(query);
+                if (finalResponse) lastResponseType = 'vis_mock';
+            }
+            // 2c. Vision Tool Mock (Fallback for ML if model not loaded or error)
             else if (fileDetails) {
                  finalResponse = clientSideVisionMock(fileDetails);
                  lastResponseType = 'vision_mock';
             }
 
-            // 2c. Code Execution Mock
+            // 2d. Code Execution Mock
             if (!finalResponse) {
                 finalResponse = clientSideCodeExecutionMock(query);
                 if (finalResponse) lastResponseType = 'code_mock';
             }
 
-            // 2d. Image Generation Mock 
+            // 2e. Image Generation Mock 
             if (!finalResponse) {
                 finalResponse = clientSideImageGenerationMock(query);
                 if (finalResponse) lastResponseType = 'image_gen_mock';
             }
 
-            // 2e. API/Live Search Mock 
+            // 2f. API/Live Search Mock 
             if (!finalResponse) {
                 finalResponse = clientSideAPIMock(query);
                 if (finalResponse) lastResponseType = 'api_mock';
             }
 
-            // 2f. Math Tool 
+            // 2g. Math Tool 
             if (!finalResponse) {
                 const mathResult = clientSideMath(query);
                 if (mathResult) {
@@ -247,7 +267,7 @@
                 }
             }
             
-            // 2g. Simulated Text Generation Tool (General complex queries)
+            // 2h. Simulated Text Generation Tool (General complex queries)
             if (!finalResponse) {
                 const essayResult = clientSideEssayGenerator(query);
                 if (essayResult) {
@@ -256,7 +276,7 @@
                 }
             }
 
-            // 2h. Keyword/RAG Tool (Factual lookups)
+            // 2i. Keyword/RAG Tool (Factual lookups)
             if (!finalResponse) {
                 finalResponse = getKeywordResponse(query.toLowerCase(), chatContext); 
                 if (finalResponse) lastResponseType = 'rag'; 
@@ -290,7 +310,6 @@
             let cssClass = `tool-card-fallback`;
 
             switch (toolType) {
-                // ... (existing cases: math, rag, vision, generation, code, api, imagegen) ...
                 case 'math': icon = '🧮'; title = 'MATH TOOL (Calculations)'; cssClass = 'tool-card-math'; break;
                 case 'rag': icon = '📜'; title = 'RAG TOOL (Knowledge Base)'; cssClass = 'tool-card-rag'; break;
                 case 'vision_mock': icon = '👁️'; title = 'VISION TOOL MOCK (File/Image Analysis)'; cssClass = 'tool-card-vision'; break;
@@ -298,11 +317,8 @@
                 case 'code_mock': icon = '💻'; title = 'CODE EXECUTION MOCK (Copilot/Gemini)'; cssClass = 'tool-card-code'; break;
                 case 'api_mock': icon = '🌐'; title = 'API CALL MOCK (Real-Time Search)'; cssClass = 'tool-card-api'; break;
                 case 'image_gen_mock': icon = '🎨'; title = 'IMAGE GENERATION MOCK (Multi-Modality)'; cssClass = 'tool-card-imagegen'; break;
-                case 'ml_real':
-                    icon = '🧠';
-                    title = 'ML TOOL (TensorFlow.js Classification)';
-                    cssClass = 'tool-card-ml';
-                    break;
+                case 'ml_real': icon = '🧠'; title = 'ML TOOL (TensorFlow.js Classification)'; cssClass = 'tool-card-ml'; break;
+                case 'vis_mock': icon = '📈'; title = 'VISUALIZATION TOOL (D3/Plotly Mock)'; cssClass = 'tool-card-vis'; break;
                 default: icon = '❓'; title = 'GENERAL FALLBACK'; break;
             }
 
@@ -314,9 +330,37 @@
                     </div>`;
         }
 
-        // ... (getKeywordResponse, jaccardSimilarity, getFallbackResponse, processBotResponse functions - retained from previous code) ...
 
-// **-- New/Updated Tool Implementations --**
+// **-- New Tool: Visualization Mock --**
+
+        function clientSideVisualizationMock(input) {
+            const lowQuery = input.toLowerCase();
+            const vizKeywords = ['create a graph', 'show me the data', 'visualize', 'plot', 'd3', 'plotly'];
+            if (!vizKeywords.some(keyword => lowQuery.includes(keyword))) return null;
+
+            const subject = lowQuery.includes('performance') ? 'Performance Metrics' : 'Simulated Data Distribution';
+            const library = lowQuery.includes('d3') ? 'D3.js (Custom SVG/Canvas)' : (lowQuery.includes('plotly') ? 'Plotly.js (3D/Statistical)' : 'Plotly.js (Default)');
+
+            const htmlContent = `
+                <div id="viz-placeholder-${Date.now()}" style="height: 250px; width: 100%; border: 1px solid #ccc; background-color: #fff; display: flex; justify-content: center; align-items: center;">
+                    <svg width="200" height="200">
+                        <circle cx="100" cy="100" r="80" fill="#2563eb" fill-opacity="0.7" />
+                        <text x="100" y="100" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="14">Chart Placeholder</text>
+                    </svg>
+                </div>
+            `;
+
+            const response = `
+                ### **Visualization Generation Report**
+                **Data Subject:** ${subject}
+                **Intended Engine:** ${library}
+                **Output:** ${htmlContent}
+                **Note:** The visualization engine (${library}) has been initialized. The final graphic is rendered directly into the chatbox using an embedded SVG placeholder, simulating a real-time chart creation.
+            `;
+            return formatToolResponse(response, 'vis_mock');
+        }
+
+        // --- (All other Tool, UI, History functions are assumed to be present below) ---
 
         async function clientSideML(fileDataUrl, fileDetails) {
             if (!mobilenetModel) return null;
@@ -364,8 +408,6 @@
             return formatToolResponse(analysis, 'ml_real');
         }
 
-        // --- (clientSideMath, clientSideEssayGenerator, clientSideCodeExecutionMock, clientSideAPIMock, clientSideImageGenerationMock are retained as-is) ---
-        
         function clientSideVisionMock(imageDetails) {
             const sizeKB = Math.round(imageDetails.size / 1024);
             const fileName = imageDetails.name;
@@ -375,7 +417,7 @@
             const mockResolution = '1920x1080 (Simulated)'; 
 
             const analysis = `
-                ### **Simulated Visual Analysis Report (ML Model not loaded)**
+                ### **Simulated Visual Analysis Report (OpenCV/ML5 Mock)**
                 
                 | Metric | Result |
                 | :--- | :--- |
@@ -383,77 +425,12 @@
                 | **File Size** | ${sizeKB} KB |
                 | **Simulated Resolution** | ${mockResolution} |
                 | **Primary Categories** | ${mockCategories} |
-                | **Assessment** | **MOCK:** Image analysis based on file name/size metadata. Load the **TensorFlow.js** model to enable real classification. |
+                | **Assessment** | **MOCK:** Low-level image analysis using simulated **OpenCV.js** processing pipeline. For real classification, use a valid ML model. |
             `;
             
             return formatToolResponse(analysis, 'vision_mock');
         }
         
-        // --- (All other existing Tool functions are assumed to be present here) ---
-
-// **-- Updated Drag and Drop (now handling real files) --**
-
-        function setupDragAndDrop() {
-            const dropTarget = document.querySelector('.chat-interface');
-            
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropTarget.addEventListener(eventName, preventDefaults, false);
-            });
-
-            function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
-
-            // Visual feedback
-            dropTarget.addEventListener('dragenter', (e) => {
-                if (e.target.closest('.chat-interface') && !e.target.closest('.input-container')) {
-                    dropZone.classList.remove('hidden');
-                    dropZone.classList.add('flex');
-                }
-            }, false);
-
-            dropTarget.addEventListener('dragleave', (e) => {
-                if (!e.relatedTarget || !e.relatedTarget.closest('.chat-interface')) {
-                    dropZone.classList.add('hidden');
-                    dropZone.classList.remove('flex');
-                }
-            }, false);
-
-            dropTarget.addEventListener('drop', (e) => {
-                dropZone.classList.add('hidden');
-                dropZone.classList.remove('flex');
-                handleDrop(e);
-            }, false);
-
-            function handleDrop(e) {
-                let files = e.dataTransfer.files;
-                if (files.length === 0) return;
-
-                const file = files[0];
-                const fileType = file.type || 'application/octet-stream'; 
-                
-                if (fileType.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        const fileDataUrl = event.target.result;
-                        const fileDetails = {
-                            name: file.name,
-                            size: file.size, 
-                            type: file.type
-                        };
-                        sendMessage(fileDataUrl, fileDetails);
-                    };
-                    reader.readAsDataURL(file);
-
-                } else {
-                    appendUserMessage(`Dropped file: ${file.name}`);
-                    appendBotMessage(formatToolResponse(`I only process image files for visual analysis/ML. Other file types are rejected.`, 'fallback'), true);
-                }
-            }
-        }
-
-// --- (All other existing UI/History functions are assumed to be present here) ---
-
-// Placeholder functions for the assumed-retained functions:
-
         function getKeywordResponse(input, context) {
             let bestMatch = null;
             let maxConfidence = 0.15; 
@@ -566,12 +543,12 @@
         function getFallbackResponse(query) {
             const lowQuery = query.toLowerCase();
             if (lowQuery.includes('hello') || lowQuery.includes('hi')) {
-                return formatToolResponse("Hello there! I'm the **Ultimate Client-Side JS Simulator**. I now feature real **TensorFlow.js** image classification (try dropping an image!) alongside all the other tools.", 'fallback');
+                return formatToolResponse("Hello there! I'm the **Ultimate Client-Side JS Simulator**. Try dropping an image, or asking me to 'plot a bar chart'!", 'fallback');
             }
             if (lowQuery.includes('how are you') || lowQuery.includes('what are you')) {
-                return formatToolResponse("I am an advanced JavaScript program, running entirely in your browser. I now feature tools that mock the functionality of **Gemini**, **OpenAI**, and **Copilot**, and include **real ML capabilities**.", 'fallback');
+                return formatToolResponse("I am an advanced JavaScript program, running entirely in your browser. I now feature **D3.js**, **Plotly.js**, and **OpenCV.js** for visualization and vision processing.", 'fallback');
             }
-            return formatToolResponse(`I'm sorry, I couldn't find a direct tool match for **"${query}"**. Try asking me to 'write an essay', 'generate an image of...', or 'run this code: 2+2'.`, 'fallback');
+            return formatToolResponse(`I'm sorry, I couldn't find a direct tool match for **"${query}"**. Try asking me to 'write an essay', 'generate an image of...', 'run this code: 2+2', or 'visualize key performance indicators'.`, 'fallback');
         }
         
         function processBotResponse(text) {
@@ -588,8 +565,8 @@
                         });
                     } catch (e) { console.warn('KaTeX render failed:', e); }
                 }
-                // Speak the response (if desired)
-                // speakResponse(text); 
+                // Optional: Check for embedded visualization data/placeholder and render it here
+                // Example for Plotly: if (contentDiv.querySelector('[id^="viz-placeholder"]')) { /* ... Plotly.plot() logic ... */ }
              }
         }
         
@@ -683,6 +660,63 @@
             }
         }
 
+        function setupDragAndDrop() {
+            const dropTarget = document.querySelector('.chat-interface');
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropTarget.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+            // Visual feedback
+            dropTarget.addEventListener('dragenter', (e) => {
+                if (e.target.closest('.chat-interface') && !e.target.closest('.input-container')) {
+                    dropZone.classList.remove('hidden');
+                    dropZone.classList.add('flex');
+                }
+            }, false);
+
+            dropTarget.addEventListener('dragleave', (e) => {
+                if (!e.relatedTarget || !e.relatedTarget.closest('.chat-interface')) {
+                    dropZone.classList.add('hidden');
+                    dropZone.classList.remove('flex');
+                }
+            }, false);
+
+            dropTarget.addEventListener('drop', (e) => {
+                dropZone.classList.add('hidden');
+                dropZone.classList.remove('flex');
+                handleDrop(e);
+            }, false);
+
+            function handleDrop(e) {
+                let files = e.dataTransfer.files;
+                if (files.length === 0) return;
+
+                const file = files[0];
+                const fileType = file.type || 'application/octet-stream'; 
+                
+                if (fileType.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const fileDataUrl = event.target.result;
+                        const fileDetails = {
+                            name: file.name,
+                            size: file.size, 
+                            type: file.type
+                        };
+                        sendMessage(fileDataUrl, fileDetails);
+                    };
+                    reader.readAsDataURL(file);
+
+                } else {
+                    appendUserMessage(`Dropped file: ${file.name}`);
+                    appendBotMessage(formatToolResponse(`I only process image files for visual analysis/ML. Other file types are rejected.`, 'fallback'), true);
+                }
+            }
+        }
+
         function userStorageKey() { return HISTORY_ROOT_KEY; }
 
         function loadHistory() {
@@ -693,7 +727,7 @@
                 currentSessionId = 'session_' + Date.now();
                 sessions[currentSessionId] = [{
                     type: 'bot',
-                    text: formatToolResponse("Welcome! I am the **Pro Tools JS Simulator**. Try asking me to 'run this code: 2+2' or 'generate an image of a cloud'.", 'fallback')
+                    text: formatToolResponse("Welcome! The simulator now has **D3.js**, **Plotly.js**, **OpenCV.js**, and **ml5.js** loaded. Try asking me to 'plot a graph'!", 'fallback')
                 }];
                 localStorage.setItem(key, JSON.stringify(sessions));
             }
