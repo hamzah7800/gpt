@@ -1,247 +1,134 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Artificial Consciousness Simulation Web App</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0a0a0a;
-      color: #f1f1f1;
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
-    }
-    header {
-      background: linear-gradient(90deg, #007bff, #00d4ff);
-      color: white;
-      padding: 20px;
-      text-align: center;
-      font-size: 1.8em;
-      letter-spacing: 1px;
-    }
-    #login-section, #main-app {
-      max-width: 900px;
-      margin: 30px auto;
-      padding: 20px;
-      background: #111;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
-    }
-    input, button, textarea {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      border: none;
-      border-radius: 5px;
-      font-size: 1em;
-    }
-    input, textarea {
-      background: #222;
-      color: #eee;
-    }
-    button {
-      background: #007bff;
-      color: white;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    #chat-window {
-      height: 300px;
-      overflow-y: auto;
-      background: #000;
-      border: 1px solid #333;
-      border-radius: 5px;
-      padding: 10px;
-      margin-bottom: 10px;
-    }
-    .message {
-      margin: 8px 0;
-    }
-    .user {
-      color: #00d4ff;
-    }
-    .bot {
-      color: #0f0;
-    }
-    canvas {
-      background: #111;
-      border: 1px solid #333;
-      border-radius: 5px;
-      margin-top: 10px;
-    }
-    #logout {
-      background: #dc3545;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Client-Side AI Simulator (JS/ML Tools)</title>
+    <link rel="icon" href="icon-192.jpg" type="image/jpeg">
+    
+    <link rel="manifest" href="manifest.json">
+
+    <link rel="stylesheet" href="style.css"> 
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nprogress/0.2.0/nprogress.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+    <script src="https://cdn.jsdelivr.net/npm/plotly.js@2.29.1/dist/plotly.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/opencv.js/4.9.0/opencv.min.js"></script>
+    
 </head>
-<body>
-  <header>🧠 Artificial Consciousness Simulation Web App</header>
+<body class="bg-gray-900 text-gray-100 h-screen flex flex-col antialiased">
 
-  <!-- Login Section -->
-  <div id="login-section">
-    <h2>Login</h2>
-    <form id="login-form">
-      <input type="text" id="username" placeholder="Username" required />
-      <input type="password" id="password" placeholder="Password" required />
-      <button type="submit">Login</button>
-    </form>
-    <p id="login-status"></p>
-  </div>
+    <div id="login-overlay" class="fixed inset-0 bg-gray-900 z-50 flex items-center justify-center">
+        <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-sm">
+            <h2 class="text-3xl font-extrabold text-teal-400 mb-6 text-center">AI SIMULATOR</h2>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label for="username" class="block text-sm font-medium text-gray-400">Username</label>
+                    <input type="text" id="username" class="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500 text-white" required>
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-sm font-medium text-gray-400">Password</label>
+                    <input type="password" id="password" class="mt-1 block w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500 text-white" required>
+                </div>
+                <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-gray-900 bg-teal-400 hover:bg-teal-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition duration-150 ease-in-out">
+                    Access System
+                </button>
+            </form>
+            <p id="login-message" class="text-red-400 mt-4 text-center text-sm"></p>
+        </div>
+    </div>
 
-  <!-- Main App Section -->
-  <div id="main-app" style="display:none;">
-    <h2>Welcome, <span id="user-display"></span></h2>
-    <button id="logout">Logout</button>
+    <div id="chat-ui" class="flex flex-1 overflow-hidden hidden">
+        
+        <div id="sidebar" class="bg-gray-800 w-16 md:w-64 flex-shrink-0 flex flex-col transition-all duration-300 ease-in-out">
+            <div class="p-4 flex items-center justify-center md:justify-start">
+                <div class="h-8 w-8 bg-teal-500 rounded-full flex items-center justify-center text-white font-bold text-xl">A</div>
+                <span class="ml-3 text-lg font-semibold hidden md:block">AI Simulator</span>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-2">
+                <button id="data-panel-toggle" class="w-full flex items-center px-4 py-2 text-sm font-medium rounded-md text-gray-300 bg-gray-700 hover:bg-gray-600 transition duration-150 ease-in-out">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6m4 0a7 7 0 007-7H3m14 7V7a2 2 0 00-2-2h-2a2 2 0 00-2 2v12m7 0a7 7 0 00-7-7h-3"></path></svg>
+                    <span class="hidden md:block">Data/Tools Panel</span>
+                </button>
+                <div id="history" class="text-sm space-y-1 mt-4">
+                    <p class="text-gray-500 hidden md:block">Recent Sessions:</p>
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-700">
+                <button id="logout-button" class="w-full flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md text-red-400 bg-gray-700 hover:bg-red-900 transition duration-150 ease-in-out">
+                    <svg class="w-5 h-5 mr-0 md:mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    <span class="hidden md:block">Logout</span>
+                </button>
+            </div>
+        </div>
 
-    <h3>💬 Chat Simulation</h3>
-    <div id="chat-window"></div>
-    <textarea id="user-input" placeholder="Type your message..."></textarea>
-    <button id="send-btn">Send</button>
+        <div class="flex-1 flex flex-col">
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-4 bg-gray-900 transition-all duration-300 ease-in-out">
+                </div>
+            
+            <div class="p-4 bg-gray-800 border-t border-gray-700 flex items-center shadow-lg">
+                <button id="mode-toggle" class="p-2 mr-2 bg-teal-600 rounded-full text-white hover:bg-teal-500 transition-colors duration-150" title="Toggle Input Mode">
+                    <svg id="chat-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                    <svg id="code-icon" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                </button>
+                <input type="text" id="user-input" placeholder="Ask a question or enter a command..." class="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500 text-white transition duration-150 ease-in-out text-base">
+                <button id="send-button" class="ml-4 p-2 bg-teal-600 rounded-full text-white hover:bg-teal-500 transition-colors duration-150">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </button>
+            </div>
+        </div>
+        
+        <div id="data-panel" class="bg-gray-700 w-0 lg:w-96 flex-shrink-0 border-l border-gray-700 overflow-y-auto hidden transition-all duration-300 ease-in-out">
+            <div class="p-4 border-b border-gray-600 flex justify-between items-center">
+                <h3 class="text-xl font-semibold text-teal-400">Tool Status & Data</h3>
+                <button id="close-data-panel" class="text-gray-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="p-4 space-y-6">
+                
+                <div class="bg-gray-800 p-4 rounded-lg shadow-md">
+                    <h4 class="font-bold text-lg text-teal-300 mb-2">System Status</h4>
+                    <p id="system-status" class="text-sm text-green-400">System Ready</p>
+                    <p id="model-status" class="text-xs text-gray-400 mt-1">ML Model: <span class="text-yellow-400">Loading...</span></p>
+                </div>
 
-    <h3>📈 Data Visualization</h3>
-    <div id="chart"></div>
+                <div id="visualization-area" class="bg-gray-800 p-4 rounded-lg shadow-md">
+                    <h4 class="font-bold text-lg text-teal-300 mb-2">Data Visualization (Plotly/D3)</h4>
+                    <div id="plot-container" class="w-full h-64 bg-gray-900 rounded-md"></div>
+                </div>
 
-    <h3>🧩 Cognitive Simulation</h3>
-    <canvas id="consciousness-canvas" width="400" height="200"></canvas>
+                <div id="three-d-area" class="bg-gray-800 p-4 rounded-lg shadow-md hidden">
+                    <h4 class="font-bold text-lg text-teal-300 mb-2">3D Physics Simulation (Three.js/Cannon.js)</h4>
+                    <div id="3d-container" class="w-full h-64 bg-gray-900 rounded-md"></div>
+                </div>
 
-    <h3>🤖 Neural Network Model</h3>
-    <p id="model-status">Loading TensorFlow model...</p>
-  </div>
+                <div id="d3-data-explorer" class="bg-gray-800 p-4 rounded-lg shadow-md hidden">
+                    <h4 class="font-bold text-lg text-teal-300 mb-2">Data Explorer (D3.js)</h4>
+                    <div id="d3-chart-container" class="w-full h-64 bg-gray-900 rounded-md"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="drop-zone" class="fixed inset-0 bg-black/50 z-50 items-center justify-center hidden">
+        <div class="text-white text-2xl border-4 border-dashed border-white p-20 rounded-xl">Drop Image Here for Analysis</div>
+    </div>
 
-  <!-- External Libraries -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.20.0/dist/tf.min.js"></script>
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.4/d3.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
-
-  <script>
-    let isLoggedIn = false;
-    let model;
-
-    // Simple login simulation
-    async function handleLogin(event) {
-      event.preventDefault();
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value.trim();
-      const status = document.getElementById('login-status');
-
-      if (username === 'admin' && password === 'password') {
-        isLoggedIn = true;
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('username', username);
-        initializeChatbotUI();
-      } else {
-        status.textContent = '❌ Invalid credentials.';
-      }
-    }
-
-    function initializeChatbotUI() {
-      document.getElementById('login-section').style.display = 'none';
-      document.getElementById('main-app').style.display = 'block';
-      document.getElementById('user-display').textContent = localStorage.getItem('username');
-      initTensorflowModel();
-      drawCognitiveCanvas();
-      generateSampleChart();
-    }
-
-    // Chat simulation
-    document.getElementById('send-btn').addEventListener('click', handleMessage);
-
-    function handleMessage() {
-      const input = document.getElementById('user-input');
-      const chatWindow = document.getElementById('chat-window');
-      const message = input.value.trim();
-      if (!message) return;
-
-      chatWindow.innerHTML += `<div class="message user">You: ${message}</div>`;
-      input.value = '';
-
-      const response = simulateAIResponse(message);
-      chatWindow.innerHTML += `<div class="message bot">AI: ${response}</div>`;
-      chatWindow.scrollTop = chatWindow.scrollHeight;
-    }
-
-    function simulateAIResponse(msg) {
-      const replies = [
-        "That’s fascinating. Tell me more.",
-        "I’m processing that thought...",
-        "Interesting perspective!",
-        "I sense a pattern in your words.",
-        "Let’s explore this idea deeper."
-      ];
-      return replies[Math.floor(Math.random() * replies.length)];
-    }
-
-    // TensorFlow.js model
-    async function initTensorflowModel() {
-      const status = document.getElementById('model-status');
-      try {
-        model = await tf.loadLayersModel('https://tfhub.dev/google/tfjs-model/imagenet/mobilenet_v2_100_224/classification/3/default/1', {fromTFHub: true});
-        status.textContent = "✅ Model loaded successfully.";
-      } catch (err) {
-        status.textContent = "⚠️ Failed to load model. Running in fallback mode.";
-        console.error(err);
-      }
-    }
-
-    // Visualization using Plotly
-    function generateSampleChart() {
-      const x = Array.from({length: 20}, (_, i) => i);
-      const y = x.map(i => Math.sin(i / 2));
-      const trace = { x, y, type: 'scatter', mode: 'lines+markers' };
-      Plotly.newPlot('chart', [trace], { margin: { t: 30 }, paper_bgcolor: '#111', plot_bgcolor: '#111', font: { color: '#fff' } });
-    }
-
-    // Consciousness visualization
-    function drawCognitiveCanvas() {
-      const canvas = document.getElementById('consciousness-canvas');
-      const ctx = canvas.getContext('2d');
-      let neurons = Array.from({length: 30}, () => ({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        dx: (Math.random() - 0.5) * 2,
-        dy: (Math.random() - 0.5) * 2
-      }));
-
-      function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        neurons.forEach(n => {
-          n.x += n.dx;
-          n.y += n.dy;
-          if (n.x < 0 || n.x > canvas.width) n.dx *= -1;
-          if (n.y < 0 || n.y > canvas.height) n.dy *= -1;
-          ctx.beginPath();
-          ctx.arc(n.x, n.y, 3, 0, Math.PI * 2);
-          ctx.fillStyle = '#0f0';
-          ctx.fill();
-        });
-        requestAnimationFrame(draw);
-      }
-      draw();
-    }
-
-    // Logout
-    document.getElementById('logout').addEventListener('click', () => {
-      localStorage.clear();
-      location.reload();
-    });
-
-    // Event listeners
-    document.getElementById('login-form').addEventListener('submit', handleLogin);
-
-    // Auto-login from storage
-    window.addEventListener('load', () => {
-      const storedLogin = localStorage.getItem('isLoggedIn');
-      if (storedLogin === 'true') {
-        initializeChatbotUI();
-      }
-    });
-  </script>
+    <script src="main.js"></script>
+    
 </body>
 </html>
