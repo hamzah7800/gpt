@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ultimate Client-Side AI Simulator (JS/ML Tools)</title>
-    <link rel="icon" href="icon-192.jpg" type="image/jpeg">
     
-    <link rel="manifest" href="manifest.json">
-
-    <link rel="stylesheet" href="style.css"> 
-
+    <link rel="icon" href="icon-192.jpg" type="image/jpeg">
+    <meta name="theme-color" content="#10b981">
+    <link rel="apple-touch-icon" href="icon-192.jpg">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
@@ -26,7 +24,48 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/opencv.js/4.9.0/opencv.min.js"></script>
-    
+
+    <style>
+        /* Custom D3 Tooltip Style */
+        .d3-tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 8px;
+            font: 12px sans-serif;
+            background: #374151; /* bg-gray-700 */
+            color: white;
+            border: 0px;
+            border-radius: 4px;
+            pointer-events: none;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+            z-index: 100;
+        }
+        
+        /* Custom Styles for D3 Axes/Ticks */
+        #d3-chart-container .tick line,
+        #d3-chart-container .domain {
+            stroke: #4b5563; /* Tailwind gray-600 for subtle lines */
+        }
+        
+        #d3-chart-container text {
+            fill: #d1d5db; /* Tailwind gray-300 for tick labels */
+        }
+        
+        /* Custom Input Field Focus Glow (Example) */
+        #user-input:focus {
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.5); /* Teal glow */
+        }
+        
+        /* Basic Chat Bubble Animation */
+        .message-bubble {
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
 <body class="bg-gray-900 text-gray-100 h-screen flex flex-col antialiased">
 
@@ -128,7 +167,754 @@
         <div class="text-white text-2xl border-4 border-dashed border-white p-20 rounded-xl">Drop Image Here for Analysis</div>
     </div>
 
-    <script src="main.js"></script>
-    
+    <script>
+        // --- Global State Variables ---
+        let isLoggedIn = false;
+        let mlModel = null;
+        let currentInputMode = 'chat'; // 'chat' or 'code'
+
+        // Tool Data and Knowledge Base
+        const KNOWLEDGE_BASE = [
+            "I am the Ultimate Client-Side AI Simulator. I utilize various open-source JavaScript libraries.",
+            "My key tools include: Math.js (for math), TensorFlow.js MobileNet (for image recognition), Plotly.js/D3.js (for visualization), and Three.js/Cannon.js (for 3D physics).",
+            "I run 100% in your browser. No data is sent to a server.",
+            "To use the code mode, start your message with 'code:' or type 'code' to toggle the mode."
+        ];
+
+        const mock_sim_data = [
+            { id: 1, latency: 45, throughput: 1024, accuracy: 0.98 },
+            { id: 2, latency: 120, throughput: 512, accuracy: 0.85 },
+            { id: 3, latency: 30, throughput: 2048, accuracy: 0.99 },
+            { id: 4, latency: 90, throughput: 768, accuracy: 0.92 },
+            { id: 5, latency: 60, throughput: 1536, accuracy: 0.95 }
+        ];
+
+        // --- Initialization Functions ---
+
+        /**
+         * Loads the ML model (MobileNet) and updates the status.
+         */
+        async function loadMLModel() {
+            try {
+                NProgress.start();
+                const modelStatusElement = document.getElementById('model-status').querySelector('span');
+                modelStatusElement.textContent = 'Loading... (approx 3MB)';
+                mlModel = await mobilenet.load();
+                modelStatusElement.textContent = 'Ready';
+                modelStatusElement.classList.remove('text-yellow-400');
+                modelStatusElement.classList.add('text-green-400');
+                console.log('MobileNet model loaded successfully.');
+                NProgress.done();
+            } catch (error) {
+                console.error('Failed to load MobileNet model:', error);
+                document.getElementById('model-status').querySelector('span').textContent = 'Error';
+                document.getElementById('model-status').querySelector('span').classList.add('text-red-400');
+                NProgress.done();
+            }
+        }
+
+        /**
+         * Initializes the main Chatbot UI after successful login.
+         */
+        function initializeChatbotUI() {
+            document.getElementById('login-overlay').classList.add('hidden');
+            document.getElementById('chat-ui').classList.remove('hidden');
+
+            loadMLModel();
+            initializeEventListeners();
+
+            // Welcome Message
+            setTimeout(() => {
+                const welcome = "Hello! I am the **Ultimate Client-Side AI Simulator**. My ML model and tools are loading. Ask me a question, try a math problem, or drag-and-drop an image!";
+                appendMessage('bot', welcome);
+            }, 500);
+        }
+
+        /**
+         * Sets up all event listeners.
+         */
+        function initializeEventListeners() {
+            const sendButton = document.getElementById('send-button');
+            const userInput = document.getElementById('user-input');
+            const modeToggle = document.getElementById('mode-toggle');
+            const logoutButton = document.getElementById('logout-button');
+            const dataPanelToggle = document.getElementById('data-panel-toggle');
+            const closeDataPanel = document.getElementById('close-data-panel');
+
+            sendButton.addEventListener('click', () => sendMessage(userInput.value));
+            userInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage(userInput.value);
+                }
+            });
+
+            modeToggle.addEventListener('click', toggleInputMode);
+            logoutButton.addEventListener('click', logout);
+            dataPanelToggle.addEventListener('click', toggleDataPanel);
+            closeDataPanel.addEventListener('click', toggleDataPanel);
+
+            setupDragAndDrop();
+        }
+
+        /**
+         * Toggles the input mode between 'chat' and 'code'.
+         */
+        function toggleInputMode() {
+            const userInput = document.getElementById('user-input');
+            const chatIcon = document.getElementById('chat-icon');
+            const codeIcon = document.getElementById('code-icon');
+            
+            if (currentInputMode === 'chat') {
+                currentInputMode = 'code';
+                userInput.placeholder = 'Enter JavaScript code to execute... (Ctrl+Enter to send)';
+                chatIcon.classList.add('hidden');
+                codeIcon.classList.remove('hidden');
+            } else {
+                currentInputMode = 'chat';
+                userInput.placeholder = 'Ask a question or enter a command...';
+                chatIcon.classList.remove('hidden');
+                codeIcon.classList.add('hidden');
+            }
+            appendMessage('system', `Input mode switched to **${currentInputMode.toUpperCase()}**.`);
+        }
+
+
+        // --- Core Chatbot Logic ---
+
+        /**
+         * Sends a message and triggers the bot's response logic.
+         * @param {string} message - The user's input message.
+         * @param {object} [fileDetails] - Details for a dropped file.
+         * @param {string} [fileDataUrl] - Data URL for a dropped image.
+         */
+        function sendMessage(message, fileDetails = null, fileDataUrl = null) {
+            const userInput = document.getElementById('user-input');
+            
+            if (!message && !fileDetails) return;
+
+            // Append user message or file details
+            if (fileDetails) {
+                appendMessage('user', `Image uploaded: **${fileDetails.name}** (${(fileDetails.size / 1024 / 1024).toFixed(2)} MB)`);
+            } else {
+                appendMessage('user', message);
+            }
+            
+            userInput.value = ''; // Clear input
+
+            // Determine the action based on mode or content
+            if (fileDetails) {
+                processImage(fileDataUrl, fileDetails.name);
+            } else if (currentInputMode === 'code' || message.toLowerCase().startsWith('code:')) {
+                executeCode(message.replace(/^code:\s*/i, ''));
+            } else {
+                processText(message);
+            }
+        }
+
+        /**
+         * Processes a text message to check for tool usage.
+         * @param {string} text - The user's text input.
+         */
+        function processText(text) {
+            const lowerText = text.toLowerCase();
+            let botResponse = '';
+
+            NProgress.start();
+
+            // Math Tool
+            if (lowerText.startsWith('calculate:') || lowerText.includes('what is') && lowerText.includes('?') || lowerText.includes('solve:')) {
+                const expression = text.split(/calculate:|what is|solve:/i).pop().trim().replace('?', '');
+                botResponse = clientSideMath(expression);
+            } 
+            // Data/Plotly Tool
+            else if (lowerText.includes('plot') || lowerText.includes('chart')) {
+                const togglePanel = `\n\n_Data panel opened. Click the **Data/Tools Panel** button on the sidebar to close it._`;
+                toggleDataPanel(true); // Ensure panel is open
+                if (lowerText.includes('scatter')) {
+                    botResponse = clientSidePlotly('scatter');
+                } else if (lowerText.includes('d3')) {
+                    botResponse = clientSideD3Chart();
+                } else if (lowerText.includes('simulation') || lowerText.includes('physics')) {
+                    botResponse = clientSidePhysicsSim();
+                } else {
+                    botResponse = clientSidePlotly('bar'); // Default to bar chart
+                }
+                botResponse += togglePanel;
+            } 
+            // Help/Knowledge Base
+            else if (lowerText.includes('help') || lowerText.includes('tool') || lowerText.includes('know')) {
+                botResponse = "I can do the following:\n" + KNOWLEDGE_BASE.map(item => `- ${item}`).join('\n');
+            }
+            // Default response
+            else {
+                botResponse = clientSideChatbotMock(text);
+            }
+
+            setTimeout(() => {
+                appendMessage('bot', botResponse);
+                NProgress.done();
+            }, 500);
+        }
+
+        /**
+         * Processes an image using the loaded ML model (MobileNet).
+         * @param {string} dataUrl - The image data URL.
+         * @param {string} fileName - The name of the file.
+         */
+        async function processImage(dataUrl, fileName) {
+            if (!mlModel) {
+                appendMessage('bot', "The ML model is still loading. Please try again in a moment.");
+                return;
+            }
+
+            const img = document.createElement('img');
+            img.src = dataUrl;
+            img.width = 224; 
+            img.height = 224; 
+
+            // Append the image to the chat before analysis results
+            appendMessage('bot', 'Analyzing image...', true); // Show loading
+            const analysisId = Date.now();
+            appendMessage('bot', `<div id="image-analysis-${analysisId}"></div>`);
+            
+            NProgress.start();
+
+            try {
+                const predictions = await mlModel.classify(img);
+                
+                // Remove loading state
+                const loadingMessage = document.getElementById('chat-messages').lastChild;
+                if (loadingMessage && loadingMessage.textContent.includes('Analyzing image')) {
+                    loadingMessage.remove(); 
+                }
+
+                let results = "### ML Classification Report\n";
+                results += `Image: **${fileName}**\n`;
+                results += `Model: **MobileNet (TensorFlow.js)**\n`;
+                results += "--- \n";
+                results += predictions.map(p => `- **${(p.probability * 100).toFixed(2)}%**: ${p.className}`).join('\n');
+                results += "\n\n" + clientSideVisionMock(fileName);
+
+                document.getElementById(`image-analysis-${analysisId}`).innerHTML = results;
+                appendImageToChat(dataUrl);
+
+            } catch (error) {
+                console.error('Image analysis failed:', error);
+                appendMessage('bot', `An error occurred during ML analysis: ${error.message}`);
+            } finally {
+                NProgress.done();
+            }
+        }
+
+        /**
+         * Executes a JavaScript code snippet safely.
+         * @param {string} code - The JS code to execute.
+         */
+        function executeCode(code) {
+            let result = '';
+            try {
+                // Use a wrapper function to prevent global scope pollution
+                const output = (new Function(`return ${code}`))(); 
+                result = `### Code Execution Result\n\n\`\`\`javascript\n${code}\n\`\`\`\n\n**Output:** ${JSON.stringify(output)}`;
+            } catch (e) {
+                result = `### Code Execution Error\n\n\`\`\`javascript\n${code}\n\`\`\`\n\n**Error:** ${e.message}`;
+            }
+            appendMessage('bot', result);
+        }
+
+
+        // --- Tool Implementations ---
+
+        /**
+         * Math Tool (Math.js)
+         * @param {string} expression - The math expression to evaluate.
+         */
+        function clientSideMath(expression) {
+            try {
+                const result = math.evaluate(expression);
+                const tex = math.parse(expression).toTex();
+                
+                let output = `### Math Tool Result\n\n`;
+                output += `Input: $${tex}$\n\n`;
+                output += `Output: **${result}**\n`;
+                
+                if (typeof result === 'number' && !isNaN(result)) {
+                    output += `(Result is approximately: ${result.toPrecision(10)})`;
+                }
+
+                return output;
+
+            } catch (e) {
+                return `### Math Tool Error\n\nCould not evaluate expression **'${expression}'**.\n\nError: ${e.message}`;
+            }
+        }
+
+        /**
+         * Plotly Tool
+         * @param {string} type - 'bar' or 'scatter'
+         */
+        function clientSidePlotly(type) {
+            const data = [{
+                x: ['Model A', 'Model B', 'Model C', 'Model D', 'Model E'],
+                y: mock_sim_data.map(d => d.throughput),
+                type: type,
+                marker: { color: type === 'bar' ? '#10b981' : '#f59e0b' }
+            }];
+
+            const layout = {
+                title: `Model Throughput (${type.toUpperCase()} Chart)`,
+                xaxis: { title: 'Model ID' },
+                yaxis: { title: 'Throughput (MB/s)' },
+                plot_bgcolor: '#1f2937',
+                paper_bgcolor: '#1f2937',
+                font: { color: '#ffffff' }
+            };
+            
+            // Clear the container first
+            const plotContainer = document.getElementById('plot-container');
+            plotContainer.innerHTML = ''; 
+
+            Plotly.newPlot('plot-container', data, layout, {responsive: true});
+
+            return `### Visualization Tool (Plotly.js)\n\nGenerated a **${type}** chart of mock data.`;
+        }
+
+        /**
+         * D3.js Tool (Scatter Plot)
+         */
+        function clientSideD3Chart() {
+            toggleDataPanel(true);
+            document.getElementById('d3-data-explorer').classList.remove('hidden');
+            document.getElementById('visualization-area').classList.add('hidden');
+            renderD3Chart(mock_sim_data);
+
+            return `### Data Explorer Tool (D3.js)\n\nGenerated a **D3.js Scatter Plot** of model performance metrics.`;
+        }
+
+
+        /**
+         * Renders the D3.js chart in the panel.
+         * @param {Array<Object>} data - The data to visualize.
+         */
+        function renderD3Chart(data) {
+            const containerId = '#d3-chart-container';
+            const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+            
+            const container = d3.select(containerId);
+            container.selectAll("*").remove(); // Clear previous chart
+            
+            const width = container.node().getBoundingClientRect().width - margin.left - margin.right;
+            const height = container.node().getBoundingClientRect().height - margin.top - margin.bottom;
+
+            const svg = container.append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            // Scales
+            const x = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.latency) * 1.1])
+                .range([0, width]);
+            
+            const y = d3.scaleLinear()
+                .domain([d3.min(data, d => d.accuracy) * 0.9, 1])
+                .range([height, 0]);
+
+            // Axes
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x).ticks(5).tickSizeOuter(0))
+                .attr("class", "text-gray-400"); // Apply Tailwind-like classes for color
+            
+            svg.append("g")
+                .call(d3.axisLeft(y).ticks(5).tickSizeOuter(0))
+                .attr("class", "text-gray-400");
+
+            // Tooltip setup
+            const tooltip = d3.select("body").append("div")
+                .attr("class", "d3-tooltip")
+                .style("opacity", 0);
+
+            // Circles
+            svg.selectAll("dot")
+                .data(data)
+                .enter().append("circle")
+                .attr("cx", d => x(d.latency))
+                .attr("cy", d => y(d.accuracy))
+                .attr("r", 5)
+                .style("fill", "#10b981")
+                .style("opacity", 0.8)
+                .style("stroke", "white")
+                .on("mouseover", function(event, d) {
+                    d3.select(this).style("stroke", "#f59e0b").style("opacity", 1);
+                    tooltip.transition()
+                        .duration(200)
+                        .style("opacity", 0.9);
+                    tooltip.html(`ID: ${d.id}<br>Latency: ${d.latency}ms<br>Accuracy: ${d.accuracy}`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mousemove", function(event) {
+                    tooltip.style("left", (event.pageX + 10) + "px")
+                            .style("top", (event.pageY - 28) + "px");
+                })
+                .on("mouseleave", function(d) {
+                    d3.select(this).style("stroke", "white").style("opacity", 0.8);
+                    tooltip.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                });
+        }
+
+        /**
+         * 3D Physics Tool (Three.js/Cannon.js)
+         */
+        function clientSidePhysicsSim() {
+            toggleDataPanel(true);
+            document.getElementById('three-d-area').classList.remove('hidden');
+            document.getElementById('visualization-area').classList.add('hidden');
+            document.getElementById('d3-data-explorer').classList.add('hidden');
+            
+            const container = document.getElementById('3d-container');
+            container.innerHTML = ''; // Clear previous simulation
+
+            // --- Three.js Setup ---
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            // Lighting
+            scene.add(new THREE.AmbientLight(0x666666));
+            const light = new THREE.DirectionalLight(0xdfebff, 1);
+            light.position.set(50, 200, 100);
+            light.position.multiplyScalar(1.3);
+            scene.add(light);
+
+            // --- Cannon.js Setup ---
+            const world = new CANNON.World();
+            world.gravity.set(0, -9.82, 0); // Standard gravity
+
+            // Arrays to hold bodies and meshes
+            const bodies = [];
+            const meshes = [];
+
+            // Ground Plane
+            const groundShape = new CANNON.Plane();
+            const groundBody = new CANNON.Body({ mass: 0, shape: groundShape }); // mass 0 makes it static
+            groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2); // Rotate to lie flat
+            world.addBody(groundBody);
+            
+            const groundMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(100, 100),
+                new THREE.MeshLambertMaterial({ color: 0x222222, side: THREE.DoubleSide })
+            );
+            groundMesh.rotation.x = -Math.PI / 2;
+            scene.add(groundMesh);
+
+            // Create 5 dynamic cubes
+            const boxShape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5));
+            const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
+            
+            for (let i = 0; i < 5; i++) {
+                const body = new CANNON.Body({ mass: 1, shape: boxShape });
+                body.position.set(Math.random() * 5 - 2.5, 5 + i * 2, Math.random() * 5 - 2.5);
+                world.addBody(body);
+                bodies.push(body);
+
+                const material = new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff });
+                const mesh = new THREE.Mesh(boxGeometry, material);
+                scene.add(mesh);
+                meshes.push(mesh);
+            }
+
+            camera.position.set(0, 5, 10);
+            camera.lookAt(0, 0, 0);
+
+            // Animation Loop
+            let lastTime;
+            const timeStep = 1 / 60; // Standard physics time step
+            
+            function animate(time) {
+                requestAnimationFrame(animate);
+                
+                if (lastTime !== undefined) {
+                    const dt = (time - lastTime) / 1000;
+                    world.step(timeStep, dt);
+                }
+                
+                // Update Three.js meshes based on Cannon.js bodies
+                for (let i = 0; i < bodies.length; i++) {
+                    meshes[i].position.copy(bodies[i].position);
+                    meshes[i].quaternion.copy(bodies[i].quaternion);
+                }
+
+                renderer.render(scene, camera);
+                lastTime = time;
+            }
+            
+            animate(0);
+
+            // Handle resizing
+            const onResize = () => {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            };
+            window.addEventListener('resize', onResize);
+            
+            // Cleanup function (important to avoid memory leaks)
+            container.dataset.cleanup = () => {
+                window.removeEventListener('resize', onResize);
+                // Additional cleanup for three.js resources if needed
+            };
+
+
+            return `### 3D Physics Tool (Three.js/Cannon.js)\n\nStarted a real-time **Cube Drop** simulation in the panel.`;
+        }
+
+
+        /**
+         * Vision Tool Mock (OpenCV.js Mock)
+         * This is a mock since real OpenCV.js requires WASM loading which is complex for a snippet.
+         * @param {string} fileName - The name of the file being processed.
+         */
+        function clientSideVisionMock(fileName) {
+            const objectName = fileName.replace(/\.jpe?g/i, '').replace(/-/g, ' ').trim();
+
+            return `\n\n### Vision Tool Mock Report\n\n**Client Tool:** \`OpenCV.js (WASM)\`\n\nDetected **${objectName}** with high confidence. Running advanced WebAssembly filter... **Filter complete** (OpenCV.js Mock).`;
+        }
+
+        /**
+         * Chatbot Mock (Simple text response)
+         * @param {string} text - User's input text.
+         */
+        function clientSideChatbotMock(text) {
+            const lowerText = text.toLowerCase();
+            
+            if (lowerText.includes('name')) return "I am the Client-Side AI Simulator.";
+            if (lowerText.includes('weather')) return "I cannot access real-time external data like weather, as I run completely in your browser.";
+            if (lowerText.includes('thank')) return "You're welcome! How else can I assist you with client-side tools?";
+            
+            return `I am currently running a mock language model. I detected your query as general conversation. Try asking me a **math problem** (e.g., 'calculate: 2^100'), asking to **plot** some data, or **drag-and-drop an image** for ML analysis.`;
+        }
+
+
+        // --- UI Helper Functions ---
+
+        /**
+         * Appends a message to the chat interface.
+         * @param {string} sender - 'user', 'bot', or 'system'.
+         * @param {string} content - The message content (can include markdown).
+         * @param {boolean} [showLoading=false] - If true, displays a loading spinner.
+         */
+        function appendMessage(sender, content, showLoading = false) {
+            const chatMessages = document.getElementById('chat-messages');
+            const isBot = sender === 'bot';
+            const isSystem = sender === 'system';
+            
+            const messageContainer = document.createElement('div');
+            messageContainer.className = `flex ${isBot || isSystem ? 'justify-start' : 'justify-end'}`;
+
+            const bubble = document.createElement('div');
+            bubble.className = `max-w-3/4 p-3 rounded-xl shadow-lg whitespace-pre-wrap ${
+                isBot ? 'bg-gray-700 text-white rounded-bl-none' : 
+                isSystem ? 'bg-yellow-900/50 text-yellow-300 text-sm rounded-lg' :
+                'bg-teal-600 text-white rounded-br-none'
+            } transition-all duration-300 message-bubble`;
+            
+            if (showLoading) {
+                bubble.innerHTML = `<div class="flex items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>${content}</div>`;
+            } else {
+                bubble.innerHTML = marked.parse(content);
+                
+                // Render KaTeX for bot messages
+                if (isBot) {
+                    renderMathInElement(bubble, {
+                        delimiters: [
+                            {left: "$$", right: "$$", display: true},
+                            {left: "$", right: "$", display: false}
+                        ],
+                        throwOnError : false
+                    });
+                }
+            }
+            
+            messageContainer.appendChild(bubble);
+            chatMessages.appendChild(messageContainer);
+            chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll to bottom
+        }
+
+        /**
+         * Appends an image preview to the chat interface.
+         * @param {string} dataUrl - The image data URL.
+         */
+        function appendImageToChat(dataUrl) {
+            const chatMessages = document.getElementById('chat-messages');
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'flex justify-start';
+
+            const image = document.createElement('img');
+            image.src = dataUrl;
+            image.className = 'max-w-xs max-h-48 rounded-lg shadow-xl mt-2 mb-4 cursor-pointer transition-transform hover:scale-105';
+            image.onclick = () => window.open(dataUrl, '_blank'); // Open in new tab on click
+
+            imageContainer.appendChild(image);
+            chatMessages.appendChild(imageContainer);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        /**
+         * Toggles the visibility of the right data panel.
+         * @param {boolean} [forceOpen] - Optional boolean to force the panel state.
+         */
+        function toggleDataPanel(forceOpen = null) {
+            const dataPanel = document.getElementById('data-panel');
+            const isDataPanelVisible = dataPanel.classList.contains('lg:w-96');
+            
+            let newState = forceOpen !== null ? forceOpen : !isDataPanelVisible;
+            
+            // Clean up Three.js/Cannon.js if closing
+            if (!newState) {
+                const simContainer = document.getElementById('3d-container');
+                if (simContainer.dataset.cleanup) {
+                    // This is where a real cleanup function would be called to stop the animation loop
+                    simContainer.dataset.cleanup = null;
+                }
+            }
+
+            if (newState) {
+                dataPanel.classList.remove('hidden', 'w-0');
+                dataPanel.classList.add('lg:w-96');
+                document.getElementById('visualization-area').classList.remove('hidden');
+                document.getElementById('three-d-area').classList.add('hidden');
+                document.getElementById('d3-data-explorer').classList.add('hidden');
+            } else {
+                dataPanel.classList.add('w-0');
+                dataPanel.classList.remove('lg:w-96');
+                setTimeout(() => dataPanel.classList.add('hidden'), 300); // Hide completely after transition
+            }
+        }
+
+
+        /**
+         * Sets up drag and drop functionality on the entire document.
+         */
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('drop-zone');
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            function highlight(e) {
+                if (!dropZone.classList.contains('hidden')) return;
+                if (e.dataTransfer.types && [...e.dataTransfer.types].includes('Files')) {
+                    dropZone.classList.add('flex');
+                    dropZone.classList.remove('hidden');
+                }
+            }
+
+            function unhighlight(e) {
+                dropZone.classList.add('hidden');
+                dropZone.classList.remove('flex');
+            }
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                document.addEventListener(eventName, preventDefaults, false);
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                document.addEventListener(eventName, highlight, false);
+            });
+            
+            // Add a check to prevent dragleave from closing the panel on children elements
+            document.addEventListener('dragleave', (e) => {
+                // Only unhighlight if the cursor is outside the window or the drop zone itself
+                if (e.clientX <= 0 || e.clientY <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) {
+                    unhighlight(e);
+                }
+            }, false);
+
+            document.addEventListener('drop', handleDrop, false);
+
+            function handleDrop(e) {
+                unhighlight(e);
+                const dt = e.dataTransfer;
+                const files = dt.files;
+
+                if (files.length > 0) {
+                    const file = files[0];
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function(event) {
+                            const fileDataUrl = event.target.result;
+                            const fileDetails = { name: file.name, size: file.size, type: file.type };
+                            sendMessage(fileDataUrl, fileDetails);
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        alert("Only image files are supported for ML analysis.");
+                    }
+                }
+            }
+        }
+
+
+        // --- Authentication Logic ---
+
+        /**
+         * Handles the login form submission.
+         */
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginMessage = document.getElementById('login-message');
+            
+            if (username === 'admin' && password === 'password') { // Mock authentication
+                localStorage.setItem('isLoggedIn', 'true');
+                isLoggedIn = true;
+                initializeChatbotUI();
+            } else {
+                loginMessage.textContent = 'Invalid username or password.';
+            }
+        }
+
+        /**
+         * Logs the user out and returns to the login screen.
+         */
+        function logout() {
+            localStorage.removeItem('isLoggedIn');
+            isLoggedIn = false;
+            document.getElementById('chat-ui').classList.add('hidden');
+            document.getElementById('login-overlay').classList.remove('hidden');
+            window.location.reload(); // Simple reload to reset state
+        }
+
+        /**
+         * Checks local storage for a logged-in state.
+         */
+        function checkLoginStatus() {
+            isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            if (isLoggedIn) {
+                initializeChatbotUI();
+            } else {
+                document.getElementById('login-form').addEventListener('submit', handleLogin);
+            }
+        }
+
+        // --- Application Start ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // NOTE: Service worker registration is removed to fix the 404 error on sw.js,
+            // but this removes offline support.
+            checkLoginStatus();
+        });
+    </script>
 </body>
 </html>
