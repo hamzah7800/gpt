@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Client-Side AI Simulator (JS/ML Tools)</title>
+    <title>Ultimate Client-Side AI Engine (JS/ML Tools)</title>
     <link rel="icon" href="icon-192.jpg" type="image/jpeg">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
@@ -22,7 +22,6 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.31.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
     
     <style>
@@ -58,19 +57,18 @@
         .dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes dot-fade { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
         
-        /* Tool Card Styles */
-        .tool-card { padding: 0.75rem; margin-bottom: 0rem; border-radius: 0.5rem; }
+        /* Tool Card Styles (Color coding the function calls) */
+        .tool-card { padding: 0.75rem; margin-bottom: 0rem; border-radius: 0.5rem; transition: background-color 0.3s; }
         .tool-card-math { background-color: #e0f7fa; border: 1px solid #00bcd4; color: #006064; }
         .tool-card-rag { background-color: #e8f5e9; border: 1px solid #4caf50; color: #1b5e20; }
         .tool-card-vision { background-color: #fce4ec; border: 1px solid #e91e63; color: #880e4f; }
+        .tool-card-ml { background-color: #f3e8ff; border: 1px solid #9333ea; color: #5b21b6; }
         .tool-card-generation { background-color: #e3f2fd; border: 1px solid #2196f3; color: #0d47a1; }
         .tool-card-code { background-color: #f3e5f5; border: 1px solid #9c27b0; color: #4a148c; }
         .tool-card-api { background-color: #fffde7; border: 1px solid #ffeb3b; color: #f57f17; }
-        .tool-card-imagegen { background-color: #e1f5fe; border: 1px solid #03a9f4; color: #01579b; }
-        .tool-card-ml { background-color: #f3e8ff; border: 1px solid #9333ea; color: #5b21b6; }
         .tool-card-vis { background-color: #fff3e0; border: 1px solid #ff9800; color: #e65100; }
+        .tool-card-3d { background-color: #f0fdf4; border: 1px solid #10b981; color: #065f46; }
         .tool-card-fallback { background-color: #ffebee; border: 1px solid #f44336; color: #b71c1c; }
-        .tool-card-3d { background-color: #f0fdf4; border: 1px solid #10b981; color: #065f46; } /* NEW 3D/Physics Tool Card */
 
 
         .response-content { margin-top: 0.5rem; }
@@ -78,38 +76,24 @@
         .voice-recording { background-color: #ef4444; animation: voice-pulse 1s infinite alternate; }
         @keyframes voice-pulse { from { opacity: 1; } to { opacity: 0.7; } }
 
-        @media (max-width: 1024px) { /* Changed from 1200px to standard Tailwind lg breakpoint */
+        @media (max-width: 1024px) { 
             .sidebar { position: absolute; z-index: 20; height: 100%; transform: translateX(-100%); transition: transform 0.3s ease; }
             #gameSection.sidebar-visible .sidebar { transform: translateX(0); }
             #sidebarToggle { display: block !important; }
             .chat-interface { overflow: hidden; }
         }
         
-        /* New D3.js Panel Styling */
-        .d3-panel-hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-        .d3-panel-visible {
-            opacity: 1;
-            pointer-events: all;
-        }
-        .tooltip { /* D3 Tooltip CSS */
-            position: absolute;
-            text-align: center;
-            padding: 8px;
-            font: 10px sans-serif;
-            background: lightsteelblue;
-            border: 0px;
-            border-radius: 8px;
-            pointer-events: none;
+        /* D3 Tooltip CSS */
+        .tooltip { 
+            position: absolute; text-align: center; padding: 8px; font: 10px sans-serif; 
+            background: lightsteelblue; border: 0px; border-radius: 8px; pointer-events: none; 
         }
     </style>
 </head>
 <body class="bg-gray-100 flex justify-center items-center min-h-screen p-4">
 
     <div id="loginContainer" class="bg-white p-10 rounded-xl shadow-2xl w-full max-w-sm text-center">
-        <h1 class="text-3xl text-blue-600 font-bold mb-6">Welcome to the Ultimate Client-Side AI</h1>
+        <h1 class="text-3xl text-blue-600 font-bold mb-6">Client-Side AI Engine Access</h1>
         <p class="text-gray-600 mb-4">Login to access the simulator.</p>
         <input type="text" id="username_login" placeholder="Username (ryzen)" class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
         <input type="password" id="password_login" placeholder="Key (4060)" class="w-full p-3 mb-6 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
@@ -161,17 +145,18 @@
                     <p class="text-gray-700">This panel demonstrates client-side data processing and visualization using **D3.js**. The data simulates performance metrics (**Latency** vs. **Throughput**) for a client-side ML model over time, with point color indicating **Accuracy**.</p>
                 </div>
             </div>
+
             <div class="chat-header bg-gray-50 p-4 border-b border-gray-200 flex items-center">
                 <button id="sidebarToggle" onclick="toggleSidebar()" class="text-xl text-blue-600 mr-4 hidden">&#9776;</button>
                 <img src="icon-192.jpg" alt="AI Icon" class="header-icon w-8 h-8 rounded-full object-cover mr-4 border-2 border-500">
-                <h3 class="text-lg font-semibold text-gray-800" id="current-chat-title">Ultimate JS Simulator (ML, Vision, Viz, & Physics Tools Active)</h3>
+                <h3 class="text-lg font-semibold text-gray-800" id="current-chat-title">AI Engine (Gemini-Style Dispatch Active)</h3>
             </div>
 
             <div id="chatBox" class="flex-grow p-5 overflow-y-auto bg-gray-50 flex flex-col space-y-4">
                 </div>
 
             <div class="input-container p-4 border-t border-gray-200 flex items-center bg-white">
-                <input type="text" id="userInput" placeholder="Ask a question, run code, or drag an image for ML..." autocomplete="off" class="flex-grow p-3 border border-gray-300 rounded-full mr-2 text-base focus:ring-blue-500 focus:border-blue-500">
+                <input type="text" id="userInput" placeholder="Ask a question, run a calculation, or drag an image..." autocomplete="off" class="flex-grow p-3 border border-gray-300 rounded-full mr-2 text-base focus:ring-blue-500 focus:border-blue-500">
                 
                 <button id="dataPanelToggle" class="input-btn bg-purple-600 text-white w-10 h-10 rounded-full text-xl flex justify-center items-center hover:bg-purple-700 transition ml-2" onclick="toggleDataPanel()" title="Open Data Explorer (D3.js)">📊</button>
                 <button id="voiceBtn" class="input-btn bg-blue-600 text-white w-10 h-10 rounded-full text-xl flex justify-center items-center hover:bg-blue-700 transition ml-2" onclick="toggleVoiceInput()">🎤</button>
@@ -207,8 +192,7 @@
 // 1. INITIALIZATION & SETUP
 // ---------------------------
 
-        function validateLogin() {
-            // Using unique IDs for login fields
+        window.validateLogin = function() {
             const username = document.getElementById("username_login").value.trim();
             const password = document.getElementById("password_login").value.trim();
             const errorMessage = document.getElementById("error-message");
@@ -236,33 +220,33 @@
                     mobilenetModel = await mobilenet.load();
                     console.log("TensorFlow.js MobileNet Model Loaded Successfully.");
                 } else {
-                    console.warn("TensorFlow.js or MobileNet not loaded. ML Vision will be mocked.");
+                    console.warn("TensorFlow.js or MobileNet not loaded. ML Vision will be simulated.");
                 }
             } catch (e) {
                 console.error("Error loading MobileNet model:", e);
             }
 
-            if (sendBtn) sendBtn.addEventListener('click', () => sendMessage());
+            if (sendBtn) sendBtn.addEventListener('click', () => window.sendMessage());
             if (userInput) userInput.addEventListener('keypress', function (e) {
-                if (e.key === 'Enter') sendMessage();
+                if (e.key === 'Enter') window.sendMessage();
             });
-            document.querySelector('.new-chat-btn').addEventListener('click', startNewChat);
-            document.getElementById('sidebarToggle').addEventListener('click', toggleSidebar);
-            setupDragAndDrop();
+            document.querySelector('.new-chat-btn').addEventListener('click', window.startNewChat);
+            document.getElementById('sidebarToggle').addEventListener('click', window.toggleSidebar);
+            window.setupDragAndDrop();
             
-            const sessions = loadHistory();
+            const sessions = window.loadHistory();
             if (Object.keys(sessions).length === 0) {
-                startNewChat();
+                window.startNewChat();
             } else {
                 // Load the most recent session
                 currentSessionId = Object.keys(sessions).sort().pop();
-                renderSidebar(sessions);
-                renderChatBox(sessions[currentSessionId]);
+                window.renderSidebar(sessions);
+                window.renderChatBox(sessions[currentSessionId]);
             }
             userInput.focus();
         }
 
-        function toggleSidebar() {
+        window.toggleSidebar = function() {
             document.getElementById('gameSection').classList.toggle('sidebar-visible');
         }
 
@@ -270,7 +254,7 @@
 // 2. CHAT HISTORY & RENDERING
 // ---------------------------
 
-        function loadHistory() {
+        window.loadHistory = function() {
             try {
                 const history = localStorage.getItem(HISTORY_ROOT_KEY);
                 return history ? JSON.parse(history) : {};
@@ -280,7 +264,7 @@
             }
         }
 
-        function saveHistory(sessions) {
+        window.saveHistory = function(sessions) {
             try {
                 localStorage.setItem(HISTORY_ROOT_KEY, JSON.stringify(sessions));
             } catch (e) {
@@ -288,8 +272,8 @@
             }
         }
 
-        function saveCurrentChat(userContent, botContent) {
-            const sessions = loadHistory();
+        window.saveCurrentChat = function(userContent, botContent) {
+            const sessions = window.loadHistory();
             if (!sessions[currentSessionId]) {
                 sessions[currentSessionId] = { title: "New Chat", messages: [] };
             }
@@ -306,26 +290,27 @@
                 sessions[currentSessionId].messages.push({ sender: 'ai', content: botContent });
             }
 
-            saveHistory(sessions);
+            window.saveHistory(sessions);
         }
 
-        function renderChatBox(session) {
+        window.renderChatBox = function(session) {
             chatBox.innerHTML = '';
             if (!session) return;
             session.messages.forEach(msg => {
                 if (msg.sender === 'user') {
-                    appendUserMessage(msg.content, false);
+                    window.appendUserMessage(msg.content, false);
                 } else {
-                    appendBotMessage(msg.content, false, 'history', false);
+                    // Bot messages contain the tool card HTML, which appendBotMessage handles
+                    window.appendBotMessage(msg.content, false, 'history', true);
                 }
             });
             chatBox.scrollTop = chatBox.scrollHeight;
             document.getElementById('current-chat-title').textContent = session.title;
         }
 
-        function renderSidebar(sessions) {
+        window.renderSidebar = function(sessions) {
             chatList.innerHTML = '';
-            const sessionIds = Object.keys(sessions).sort().reverse(); // Show most recent first
+            const sessionIds = Object.keys(sessions).sort().reverse(); 
 
             sessionIds.forEach(id => {
                 const session = sessions[id];
@@ -334,8 +319,8 @@
                 
                 li.innerHTML = `
                     <div class="flex items-center justify-between p-3 text-sm rounded-lg cursor-pointer ${isActive ? 'bg-blue-600 text-white' : 'hover:bg-gray-700 text-gray-300'}">
-                        <span class="truncate" onclick="loadChat('${id}')" style="flex-grow: 1;">${session.title}</span>
-                        <button onclick="deleteChat('${id}')" class="ml-2 text-xs font-bold text-red-400 hover:text-red-300 transition-colors">
+                        <span class="truncate" onclick="window.loadChat('${id}')" style="flex-grow: 1;">${session.title}</span>
+                        <button onclick="window.deleteChat('${id}')" class="ml-2 text-xs font-bold text-red-400 hover:text-red-300 transition-colors">
                             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 10-2 0v6a1 1 0 102 0V8z" clip-rule="evenodd"></path></svg>
                         </button>
                     </div>
@@ -344,43 +329,41 @@
             });
         }
 
-        function loadChat(id) {
+        window.loadChat = function(id) {
             currentSessionId = id;
-            const sessions = loadHistory();
-            renderChatBox(sessions[id]);
-            renderSidebar(sessions);
+            const sessions = window.loadHistory();
+            window.renderChatBox(sessions[id]);
+            window.renderSidebar(sessions);
         }
 
-        function deleteChat(id) {
+        window.deleteChat = function(id) {
             if (!confirm("Are you sure you want to delete this chat session?")) return;
             
-            const sessions = loadHistory();
+            const sessions = window.loadHistory();
             delete sessions[id];
-            saveHistory(sessions);
+            window.saveHistory(sessions);
 
             if (id === currentSessionId) {
-                // If the current chat is deleted, start a new one
-                startNewChat();
+                window.startNewChat();
             } else {
-                renderSidebar(sessions);
+                window.renderSidebar(sessions);
             }
         }
 
-        function startNewChat() {
+        window.startNewChat = function() {
             currentSessionId = 'session_' + Date.now();
-            const initialMessage = formatToolResponse(`Hello! I'm an **Ultimate Client-Side AI Simulator**. I can run **Math.js** calculations, **MobileNet** image classification, **Plotly** visualizations, and **Three.js/Cannon.js** physics simulations—all in your browser! Use the **📊** button to check the new D3.js data panel!`, 'generation_mock');
+            const initialMessage = window.formatToolResponse(`Hello! I'm a **Client-Side AI Engine**. I operate using a **Gemini-style function call dispatch** to execute local tools: **Math.js** (calculations), **MobileNet** (image analysis), **Plotly** (visualizations), and **Three.js/Cannon.js** (physics simulations).`, 'generation_mock');
             
             chatBox.innerHTML = '';
-            appendBotMessage(initialMessage, true, 'history', false);
+            window.appendBotMessage(initialMessage, true, 'history', false);
             
-            // Save initial AI message
-            saveCurrentChat(null, initialMessage);
+            window.saveCurrentChat(null, initialMessage);
             document.getElementById('current-chat-title').textContent = "New Chat";
-            renderSidebar(loadHistory());
+            window.renderSidebar(window.loadHistory());
         }
 
 
-        function appendUserMessage(text, save = true) {
+        window.appendUserMessage = function(text, save = true) {
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('flex', 'justify-end');
             messageDiv.innerHTML = `
@@ -390,12 +373,28 @@
                 </div>
             `;
             chatBox.appendChild(messageDiv);
-            if (save) saveCurrentChat(text, null);
+            if (save) window.saveCurrentChat(text, null);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        function appendBotMessage(htmlContent, save = true, toolType = 'fallback', append = true) {
-            const finalContent = htmlContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/`(.*?)`/g, '<code class="bg-gray-100 p-1 rounded">$1</code>');
+        /**
+         * Appends or replaces the bot's message, handling tool cards and markdown.
+         */
+        window.appendBotMessage = function(htmlContent, save = true, toolType = 'fallback', append = true) {
+            // Escape tool card from markdown rendering
+            let contentForRendering = htmlContent;
+            const toolCardMatch = htmlContent.match(/<div class="tool-card.*?<\/div>/s);
+            let toolCardHtml = '';
+            if (toolCardMatch) {
+                toolCardHtml = toolCardMatch[0];
+                contentForRendering = htmlContent.replace(toolCardMatch[0], '');
+            }
+
+            const finalContent = contentForRendering
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/`(.*?)`/g, '<code class="bg-gray-100 p-1 rounded">$1</code>')
+                .replace(//g, toolCardHtml); // Put card back
+
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('flex', 'justify-start');
             messageDiv.innerHTML = `
@@ -404,25 +403,34 @@
                     <div class="text-gray-700 space-y-3">${finalContent}</div>
                 </div>
             `;
+
+            if (save) window.saveCurrentChat(null, htmlContent);
+
             if (append) {
                 chatBox.appendChild(messageDiv);
             } else {
-                 // For history rendering, just append
-                chatBox.appendChild(messageDiv);
+                const thinkingDiv = document.getElementById('thinking-message-container');
+                if (thinkingDiv) {
+                    thinkingDiv.replaceWith(messageDiv);
+                } else {
+                    chatBox.appendChild(messageDiv);
+                }
             }
             
-            // Render KaTeX math equations
             if (window.renderMathInElement) {
                 renderMathInElement(messageDiv);
             }
 
-            if (save) saveCurrentChat(null, htmlContent);
             chatBox.scrollTop = chatBox.scrollHeight;
             return messageDiv;
         }
 
-        function appendBotThinking(message) {
+        window.appendBotThinking = function(message) {
+            const existingThinking = document.getElementById('thinking-message-container');
+            if (existingThinking) existingThinking.remove();
+            
             const thinkingDiv = document.createElement('div');
+            thinkingDiv.id = 'thinking-message-container'; 
             thinkingDiv.classList.add('flex', 'justify-start');
             thinkingDiv.innerHTML = `
                 <div id="thinking-message" class="bg-white p-3 rounded-lg shadow max-w-xs thinking-message">
@@ -448,7 +456,7 @@
             }
 
             recognition = new webkitSpeechRecognition();
-            recognition.continuous = false; // Stop after first result
+            recognition.continuous = false; 
             recognition.interimResults = false;
             recognition.lang = 'en-US';
 
@@ -462,8 +470,8 @@
             recognition.onresult = function(event) {
                 const finalTranscript = event.results[0][0].transcript;
                 userInput.value = finalTranscript;
-                stopVoiceInput(false);
-                sendMessage(); // Send message automatically
+                window.stopVoiceInput(false);
+                window.sendMessage(); 
             };
 
             recognition.onerror = function(event) {
@@ -473,56 +481,120 @@
                     errorMessage = "Microphone access denied. Check your browser settings.";
                 }
                 alert(errorMessage);
-                stopVoiceInput(false);
+                window.stopVoiceInput(false);
             };
 
             recognition.onend = function() {
-                if (isVoiceRecording) stopVoiceInput(false);
+                if (isVoiceRecording) window.stopVoiceInput(false);
             };
         }
 
-        function stopVoiceInput(manual = true) {
+        window.stopVoiceInput = function(manual = true) {
             if (recognition && isVoiceRecording) {
                 if (manual) recognition.stop();
                 isVoiceRecording = false;
                 voiceBtn.classList.remove('voice-recording');
                 voiceBtn.innerHTML = '🎤';
-                userInput.placeholder = "Type your message or calculation...";
+                userInput.placeholder = "Ask a question, run a calculation, or drag an image...";
             }
         }
 
-        function toggleVoiceInput() {
+        window.toggleVoiceInput = function() {
             if (!recognition) setupSpeechRecognition();
 
             if (isVoiceRecording) {
-                stopVoiceInput(true);
+                window.stopVoiceInput(true);
             } else if (recognition) {
                 try {
                     recognition.start();
                 } catch (e) {
-                    // Catch error if recognition is already running (e.g., fast double click)
                     console.warn("Recognition start failed, likely already running or permission issue.");
                 }
             }
         }
 
 // ---------------------------
-// 4. CORE CHATBOT LOGIC (Tool Dispatch)
+// 4. CORE CHATBOT LOGIC (Gemini-Style Dispatch)
 // ---------------------------
 
         const KNOWLEDGE_BASE = [
             { keywords: ['html', 'what html', 'define html', 'html stands for'], response: "**HTML** (HyperText Markup Language) forms the **structure** of web pages." },
             { keywords: ['javascript', 'what is javascript', 'js'], response: "**JavaScript** is the programming language that enables **interactive web pages**." },
-            { keywords: ['llm', 'what is llm', 'large language model'], response: "**LLM** (Large Language Model) is a type of AI that can understand and generate human-like text." },
-            { keywords: ['tensorflow', 'tfjs', 'machine learning', 'client-side ai'], response: "**TensorFlow.js** is a powerful library for running **Machine Learning models** directly in the browser using JavaScript." },
-            { keywords: ['d3.js', 'what is d3'], response: "**D3.js** is the most powerful JavaScript library for creating custom data visualizations using HTML, SVG, and CSS." },
-            { keywords: ['plotly', 'scientific charts'], response: "**Plotly.js** is excellent for declarative scientific, statistical, and 3D data visualization in the browser." },
-            { keywords: ['css', 'what is css'], response: "**CSS** (Cascading Style Sheets) is used for describing the presentation of a document written in HTML." },
-            { keywords: ['webassembly', 'wasm'], response: "**WebAssembly (Wasm)** is a low-level bytecode format designed for high-performance applications on the web, often used for games, video editing, and advanced client-side computations (like OpenCV.js)." },
-            { keywords: ['openai', 'gpt', 'chatgpt'], response: "**OpenAI's GPT models** (like ChatGPT) are large language models known for their ability to generate human-like text and perform a wide range of natural language tasks." },
+            { keywords: ['llm', 'what is llm', 'large language model', 'ai'], response: "A **Large Language Model (LLM)** is a type of AI that understands and generates human-like text, typically operating on a massive number of parameters." },
+            { keywords: ['tensorflow', 'tfjs', 'machine learning', 'client-side ai'], response: "**TensorFlow.js** is the powerful library that enables running **Machine Learning models** directly in the browser using JavaScript." },
+            { keywords: ['d3.js', 'what is d3'], response: "**D3.js** is a JavaScript library for creating custom data visualizations using HTML, SVG, and CSS, ideal for dynamic charting." },
+            { keywords: ['plotly', 'scientific charts'], response: "**Plotly.js** is an excellent tool for declarative scientific, statistical, and 3D data visualization rendered in the browser." },
+            { keywords: ['css', 'what is css'], response: "**CSS** (Cascading Style Sheets) defines the presentation and style of a document written in HTML." },
+            { keywords: ['webassembly', 'wasm'], response: "**WebAssembly (Wasm)** is a low-level bytecode format for high-performance applications on the web, often used for heavy computations like video processing or complex client-side AI." },
         ];
-        
-        async function sendMessage(fileDataUrl = null, fileDetails = null) {
+
+        /**
+         * Central "Gemini Nano" style function for tool dispatching.
+         */
+        window.gemini_style_dispatch = async function(query, fileDataUrl, fileDetails) {
+            query = query.toLowerCase();
+            
+            // --- 1. Tool-Call Intent Matching (Priority Order) ---
+
+            // 1a. Real-time ML Tool (Highest priority when file dropped)
+            if (fileDataUrl && mobilenetModel) {
+                return { tool: 'clientSideML', args: [fileDataUrl, fileDetails] };
+            }
+
+            // 1b. 3D/Physics Simulation Tool
+            if (query.includes('simulate') || query.includes('physics') || query.includes('3d') || query.includes('falling') || query.includes('cube') || query.includes('sphere')) {
+                return { tool: 'clientSide3DSimulation', args: [query] };
+            }
+
+            // 1c. Visualization Tool
+            if (query.includes('plot') || query.includes('chart') || query.includes('graph') || query.includes('visualize') || query.includes('data')) {
+                return { tool: 'clientSideVisualization', args: [query] };
+            }
+            
+            // 1d. Math Tool 
+            const mathRegex = /^(calculate|solve|what is|compute|evaluate|integrate|differentiate|find the|log|sin|cos|tan|sqrt|!|\^|\*\*|\/|%|\*|\+|[0-9])/i;
+            if (mathRegex.test(query) && !query.includes('what is the meaning of')) {
+                return { tool: 'clientSideMath', args: [query] };
+            }
+            
+            // 1e. Code Execution 
+            if (query.includes('run code') || query.includes('execute') || query.includes('write a script')) {
+                return { tool: 'clientSideCodeExecutionMock', args: [query] };
+            }
+
+            // 1f. Image Generation 
+            if (query.includes('generate image') || query.includes('create a picture') || query.includes('draw me')) {
+                return { tool: 'clientSideImageGenerationMock', args: [query] };
+            }
+
+            // 1g. Live Search
+            if (query.includes('latest news') || query.includes('what is the current') || query.includes('weather') || query.includes('stock price') || query.includes('today')) {
+                return { tool: 'clientSideAPIMock', args: [query] };
+            }
+
+            // 1h. Keyword/RAG Tool 
+            for (const item of KNOWLEDGE_BASE) {
+                if (item.keywords.some(k => query.includes(k))) {
+                    return { tool: 'getKeywordResponse', args: [query, chatContext] };
+                }
+            }
+            
+            // 1i. Essay Generator 
+            if (query.length > 20) {
+                return { tool: 'clientSideEssayGenerator', args: [query] };
+            }
+
+            // 1j. Vision Tool (Fallback for ML if model fails or simulated)
+            if (fileDetails) {
+                return { tool: 'clientSideVisionMock', args: [fileDetails] };
+            }
+
+            // 1k. Fallback
+            return { tool: 'getFallbackResponse', args: [query] };
+        }
+
+
+        window.sendMessage = async function(fileDataUrl = null, fileDetails = null) {
             NProgress.start();
             const userText = userInput.value.trim();
             if (!userText && !fileDataUrl) {
@@ -530,540 +602,420 @@
                 return;
             }
 
-            // 1. Append User Message
-            if (userText) appendUserMessage(userText);
+            // 1. Append User Message & Disable Input
+            if (userText) window.appendUserMessage(userText);
             
             userInput.value = '';
             userInput.disabled = true;
             sendBtn.disabled = true;
             voiceBtn.disabled = true;
-            document.getElementById('dataPanelToggle').disabled = true; // Disable new button too
+            document.getElementById('dataPanelToggle').disabled = true;
 
-            let finalResponse = null;
+            // 2. Add to context
             let query = userText || (fileDetails ? `Analyze the image: ${fileDetails.name}` : '');
-            
             if (userText) {
                 chatContext.push(userText);
                 if (chatContext.length > 3) chatContext.shift();
             }
             
-            const thinkingDiv = appendBotThinking('Processing query with pure JS tools...');
+            // 3. AI Reasoning (Thinking Message)
+            const thinkingDiv = window.appendBotThinking('Simulating AI inference: Analyzing query and selecting function call...');
             
-            // 2. Tool Execution Logic - PRIORITY ORDER
+            // 4. Dispatch Tool Call
+            const dispatch = await window.gemini_style_dispatch(query, fileDataUrl, fileDetails);
             
-            // 2a. Real-time ML Tool (Highest priority when file dropped with actual model)
-            if (fileDataUrl && mobilenetModel) {
-                 finalResponse = await clientSideML(fileDataUrl, fileDetails);
-                 if (finalResponse) lastResponseType = 'ml_real';
-            }
+            let finalResponse = '';
+            lastResponseType = dispatch.tool.replace(/clientSide|get|Mock|Response|ML/g, '').toLowerCase(); // e.g., 'clientSideMath' -> 'math'
             
-            // 2b. 3D/Physics Simulation Tool
-            if (!finalResponse) {
-                finalResponse = await clientSide3DSimulation(query);
-                if (finalResponse) lastResponseType = '3d_real';
-            }
+            // 5. Simulate Tool Execution and Response
+            await new Promise(r => setTimeout(r, 500)); // Simulate tool-call latency
             
-            // 2c. Visualization Tool - NOW WITH REAL PLOTLY
-            if (!finalResponse) {
-                finalResponse = await clientSideVisualization(query);
-                if (finalResponse) lastResponseType = 'vis_real';
-            }
+            // A. Show the Tool Call UI Card
+            const toolCallCard = window.formatToolCall(dispatch.tool, dispatch.args);
+            thinkingDiv.querySelector('p').innerHTML = `**Function Called:** <code>${dispatch.tool}(...)</code> <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>`; // Update thinking message
             
-            // 2d. Vision Tool Mock (Fallback for ML if model not loaded or error)
-            if (!finalResponse && fileDetails) {
-                 finalResponse = clientSideVisionMock(fileDetails);
-                 lastResponseType = 'vision_mock';
-            }
-
-            // 2e. Code Execution Mock
-            if (!finalResponse) {
-                finalResponse = clientSideCodeExecutionMock(query);
-                if (finalResponse) lastResponseType = 'code_mock';
-            }
-
-            // 2f. Image Generation Mock
-            if (!finalResponse) {
-                finalResponse = clientSideImageGenerationMock(query);
-                if (finalResponse) lastResponseType = 'image_gen_mock';
-            }
-
-            // 2g. API/Live Search Mock
-            if (!finalResponse) {
-                finalResponse = clientSideAPIMock(query);
-                if (finalResponse) lastResponseType = 'api_mock';
-            }
-
-            // 2h. Math Tool
-            if (!finalResponse) {
-                const mathResult = clientSideMath(query);
-                if (mathResult) {
-                    finalResponse = mathResult;
-                    lastResponseType = 'math';
-                }
-            }
-            
-            // 2i. Simulated Text Generation Tool (General complex queries)
-            if (!finalResponse) {
-                const essayResult = clientSideEssayGenerator(query);
-                if (essayResult) {
-                    finalResponse = essayResult;
-                    lastResponseType = 'generation_mock';
-                }
-            }
-
-            // 2j. Keyword/RAG Tool (Factual lookups)
-            if (!finalResponse) {
-                finalResponse = getKeywordResponse(query.toLowerCase(), chatContext);
-                if (finalResponse) lastResponseType = 'rag';
-            }
-
-            // 3. Fallback
-            if (!finalResponse) {
-                finalResponse = getFallbackResponse(query);
+            // B. Execute the Tool Function
+            let toolResult;
+            try {
+                // Ensure the function is called via the window object
+                toolResult = await window[dispatch.tool].apply(null, dispatch.args);
+            } catch (e) {
+                toolResult = `Tool Execution Error: Could not run \`${dispatch.tool}\`. The error message was: ${e.message}`;
                 lastResponseType = 'fallback';
             }
 
-            // 4. Render Final Response
-            await new Promise(r => setTimeout(r, 800));
-            thinkingDiv.remove();
-            
-            // Only render if it's a string response, non-rendered tools handle their own DOM/history update
-            if (finalResponse && typeof finalResponse === 'string' && finalResponse !== 'CHART_RENDERED' && finalResponse !== '3D_SIM_RENDERED' && finalResponse !== 'ML_RENDERED') {
-                appendBotMessage(finalResponse, true, lastResponseType);
+            // C. Format Final Response
+            if (typeof toolResult === 'string' && toolResult.startsWith('TOOL_RESULT:')) {
+                 // Direct, simple text response from a tool (e.g., Math)
+                 const result = toolResult.replace('TOOL_RESULT:', '');
+                 finalResponse = `${toolCallCard}\n\n**Tool Output:** The function returned an explicit result.\n\n${result}`;
+            } else if (toolResult && toolResult !== 'CHART_RENDERED' && toolResult !== '3D_SIM_RENDERED' && toolResult !== 'ML_RENDERED') {
+                 // Factual/Generative response (RAG/Essay/Fallback)
+                 finalResponse = `${toolCallCard}\n\n**Model Generation:** The engine generated the following response after the function call:\n\n${toolResult}`;
+            } else {
+                // Visualization/ML tool that handled its own DOM update (no final text rendering needed)
+                finalResponse = `${toolCallCard}\n\n**Tool Output:** The *${dispatch.tool.replace('clientSide', '').replace('ML', 'Vision')}* function successfully rendered its output directly in the chat box.`;
+            }
+
+            // 6. Replace Thinking Message with Final Response
+            if (finalResponse) {
+                window.appendBotMessage(finalResponse, true, lastResponseType, false);
             }
             
-            // 5. Cleanup
+            // 7. Cleanup
             userInput.disabled = false;
             sendBtn.disabled = false;
             voiceBtn.disabled = false;
-            document.getElementById('dataPanelToggle').disabled = false; // Enable new button too
+            document.getElementById('dataPanelToggle').disabled = false;
             userInput.focus();
-            renderSidebar(loadHistory());
             NProgress.done();
         }
 
-        function formatToolResponse(content, toolType) {
-            let icon = '';
-            let title = '';
-            let cssClass = `tool-card-fallback`;
-
-            switch (toolType) {
-                case 'math': icon = '🧮'; title = 'MATH TOOL (Calculations)'; cssClass = 'tool-card-math'; break;
-                case 'rag': icon = '📜'; title = 'RAG TOOL (Knowledge Base)'; cssClass = 'tool-card-rag'; break;
-                case 'vision_mock': icon = '👁️'; title = 'VISION TOOL MOCK (File/Image Analysis)'; cssClass = 'tool-card-vision'; break;
-                case 'generation_mock': icon = '✍️'; title = 'GENERATION TOOL (Simulated Essay)'; cssClass = 'tool-card-generation'; break;
-                case 'code_mock': icon = '💻'; title = 'CODE EXECUTION MOCK (Copilot/Gemini)'; cssClass = 'tool-card-code'; break;
-                case 'api_mock': icon = '🌐'; title = 'API CALL MOCK (Real-Time Search)'; cssClass = 'tool-card-api'; break;
-                case 'image_gen_mock': icon = '🎨'; title = 'IMAGE GENERATION MOCK (Multi-Modality)'; cssClass = 'tool-card-imagegen'; break;
-                case 'ml_real': icon = '🧠'; title = 'ML TOOL (TensorFlow.js Classification)'; cssClass = 'tool-card-ml'; break;
-                case 'vis_real': icon = '📈'; title = 'VISUALIZATION TOOL (Plotly.js)'; cssClass = 'tool-card-vis'; break;
-                case '3d_real': icon = '🧊'; title = '3D & PHYSICS SIMULATOR (Three.js/Cannon.js)'; cssClass = 'tool-card-3d'; break;
-                default: icon = '❓'; title = 'GENERAL FALLBACK'; break;
-            }
-
-            return `<div class="${cssClass} tool-card">
-                        <div class="flex items-center mb-2 font-bold border-b border-opacity-30 pb-1">
-                            ${icon} <span class="ml-2">${title}</span>
-                        </div>
-                        <div class="response-content">${content}</div>
-                    </div>`;
-        }
 
 // ---------------------------
-// 5. TOOL IMPLEMENTATIONS (Simulated and Real)
+// 5. TOOL UTIL FUNCTIONS
 // ---------------------------
 
-// **-- Real Math.js Tool --**
-        function isMathExpression(text) {
-            // Updated regex to handle more complex or scientific notation
-            return /^\s*[\d\s+\-*/^().eE,]+|\s*(sin|cos|tan|log|sqrt|pi|abs|pow|round|floor|ceil)\s*\(/i.test(text);
-        }
-        function clientSideMath(input) {
-            const lowQuery = input.toLowerCase().replace(/^(what is|calculate|solve|evaluate)\s*/, '').trim();
-            if (!isMathExpression(lowQuery)) return null;
-
-            try {
-                // Remove any trailing question marks or common math-related words
-                const expr = lowQuery.replace(/[?=.,]*$/, '').trim();
-                const result = math.evaluate(expr, mathScope);
-                
-                const resultString = math.format(result, { precision: 14 });
-                
-                const response = `The evaluation of the expression \`${expr}\` is:\n\n$$\\text{Result} = ${resultString}$$`;
-                return formatToolResponse(response, 'math');
-            } catch (error) {
-                const response = `**Error in Math.js**:\n\nI couldn't evaluate that expression. Please check your syntax. Error details: \`${error.message}\``;
-                return formatToolResponse(response, 'math');
-            }
-        }
-
-// **-- Real MobileNet ML Tool --**
-        async function clientSideML(fileDataUrl, fileDetails) {
-            if (!mobilenetModel) {
-                return formatToolResponse(`**ML Error:** MobileNet model failed to load. Using mock vision tool instead.`, 'ml_real');
-            }
-
-            const img = new Image();
-            img.src = fileDataUrl;
-            await new Promise(resolve => img.onload = resolve);
-            
-            const predictions = await mobilenetModel.classify(img);
-            
-            // Format predictions nicely
-            const predictionList = predictions.map(p => 
-                `<li><strong>${p.className}</strong> (Confidence: ${(p.probability * 100).toFixed(2)}%)</li>`
-            ).join('');
-
-            const responseHtml = `
-                <p>Image analysis complete. Here are the top predictions:</p>
-                <img src="${fileDataUrl}" alt="${fileDetails.name}" class="rounded-lg max-h-48 w-auto object-contain my-3 shadow-md border">
-                <ul class="list-disc list-inside mt-2 text-gray-700">
-                    ${predictionList}
-                </ul>
-            `;
-            
-            // Render the complex response directly and let the tool handling save it
-            appendBotMessage(formatToolResponse(responseHtml, 'ml_real'), true);
-            
-            return 'ML_RENDERED';
-        }
-
-// **-- Real Plotly.js Visualization Tool --**
-        async function createPlotlyChart(chartId, data, layout) {
-            if (!window.Plotly) return;
-            let chartDiv = document.getElementById(chartId);
-            if (!chartDiv) return;
-            await Plotly.newPlot(chartId, data, layout);
-        }
-
-        async function clientSideVisualization(input) {
-            const lowQuery = input.toLowerCase();
-            const vizKeywords = ['create a graph', 'show me data', 'visualize', 'plot', 'bar chart', 'line chart', 'pie chart', 'scatter plot'];
-            if (!vizKeywords.some(keyword => lowQuery.includes(keyword))) return null;
-
-            if (!window.Plotly) {
-                return formatToolResponse(`Plotly.js not fully loaded yet. Cannot run client-side visualization.`, 'vis_real');
-            }
-
-            const chartId = `plotly-chart-${Date.now()}`;
-            let data = [];
-            let layout = {
-                title: 'Simulated Data Visualization',
-                height: 300,
-                margin: {t: 40, b: 40, l: 40, r: 40},
-                responsive: true
+        /**
+         * Formats a raw response string into a structured AI message with tool card.
+         */
+        window.formatToolResponse = function(response, type) {
+            const iconMap = {
+                'math': '🧮', 'rag': '🧠', 'vision_mock': '👁️', 'ml_real': '🧠+👁️', 
+                'generation_mock': '✍️', 'code_mock': '💻', 'api_mock': '🌐', 
+                'image_gen_mock': '🎨', 'vis_real': '📈', '3d_real': '🧱', 'fallback': '❓'
             };
-
-            // Generate some dynamic data based on query
-            let chartType = 'Default';
-            if (lowQuery.includes('bar chart') || lowQuery.includes('bar graph')) {
-                data.push({
-                    x: ['A', 'B', 'C', 'D', 'E'],
-                    y: [Math.floor(Math.random() * 100), Math.floor(Math.random() * 100), Math.floor(Math.random() * 100), Math.floor(Math.random() * 100), Math.floor(Math.random() * 100)],
-                    type: 'bar',
-                    marker: { color: 'rgba(50,171,96,0.7)' }
-                });
-                layout.title = 'Simulated Bar Chart: Category Performance';
-                layout.xaxis = { title: 'Category' };
-                layout.yaxis = { title: 'Value' };
-                chartType = 'Bar Chart';
-            } else if (lowQuery.includes('line chart') || lowQuery.includes('line graph')) {
-                const x = Array.from({length: 10}, (_, i) => i + 1);
-                const y1 = x.map(val => Math.sin(val / 2) * 20 + 50 + Math.random() * 10);
-                const y2 = x.map(val => Math.cos(val / 2) * 15 + 40 + Math.random() * 10);
-                data.push({
-                    x: x, y: y1, mode: 'lines+markers', name: 'Series 1',
-                    line: { color: '#1f77b4' }, marker: { size: 8 }
-                });
-                data.push({
-                    x: x, y: y2, mode: 'lines+markers', name: 'Series 2',
-                    line: { color: '#ff7f0e' }, marker: { size: 8 }
-                });
-                layout.title = 'Simulated Line Chart: Trend Over Time';
-                layout.xaxis = { title: 'Time Point' };
-                layout.yaxis = { title: 'Measurement' };
-                chartType = 'Line Chart';
-            } else if (lowQuery.includes('pie chart')) {
-                data.push({
-                    labels: ['Success', 'Failure', 'Pending'],
-                    values: [Math.floor(Math.random() * 50) + 20, Math.floor(Math.random() * 30) + 10, Math.floor(Math.random() * 20) + 5],
-                    type: 'pie',
-                    hoverinfo: 'label+percent',
-                    textinfo: 'percent',
-                    hole: .4,
-                    marker: { colors: ['#28a745', '#dc3545', '#ffc107'] }
-                });
-                layout.title = 'Simulated Pie Chart: Status Distribution';
-                layout.showlegend = true;
-                chartType = 'Pie Chart';
-            } else if (lowQuery.includes('scatter plot')) {
-                const x = Array.from({length: 50}, () => Math.random() * 100);
-                const y = x.map(val => val * 0.8 + (Math.random() - 0.5) * 20); // Some correlation
-                data.push({
-                    x: x, y: y, mode: 'markers', name: 'Data Points',
-                    marker: { size: 8, color: '#9333ea', opacity: 0.7 }
-                });
-                layout.title = 'Simulated Scatter Plot: Correlation Analysis';
-                layout.xaxis = { title: 'Feature X' };
-                layout.yaxis = { title: 'Feature Y' };
-                chartType = 'Scatter Plot';
-            }
+            const titleMap = {
+                'math': 'Client-Side Calculation', 'rag': 'Knowledge Retrieval', 'vision_mock': 'Client-Side Vision', 
+                'ml_real': 'TensorFlow.js Classification', 'generation_mock': 'Large Model Synthesis', 
+                'code_mock': 'Code Execution Engine', 'api_mock': 'Live Data Search', 
+                'image_gen_mock': 'Image Synthesis', 'vis_real': 'Plotly Visualization', 
+                '3d_real': 'Physics Simulation', 'fallback': 'General Response'
+            };
             
-            const responseHtml = `
-                ### **Visualization Report (Plotly.js)**
-                **Chart Type:** <code>${chartType}</code>
-                **Engine:** <code>Plotly.js (Client-Side)</code>
-                **Output:**
-                <div id="${chartId}" style="height: 350px; width: 100%;" class="bg-white rounded-lg shadow-md p-2 mt-2"></div>
-                **Note:** The interactive chart above was generated directly in your browser using Plotly.js.
+            const cardClass = `tool-card tool-card-${type.split('_')[0]}`;
+            const toolCard = `
+                <div class="${cardClass} mb-2 text-sm">
+                    <p class="font-bold">${iconMap[type]} **Tool Activated:** ${titleMap[type]}</p>
+                </div>
             `;
-            
-            // Append the message first so the div exists in the DOM
-            appendBotMessage(formatToolResponse(responseHtml, 'vis_real'), false);
-            
-            // Render the Plotly chart after the div is in the DOM
-            await new Promise(resolve => setTimeout(resolve, 50));
-            await createPlotlyChart(chartId, data, layout);
 
-            // Save the structured HTML to history after rendering is complete
-            saveCurrentChat(null, formatToolResponse(responseHtml, 'vis_real'));
-            
-            return 'CHART_RENDERED';
+            return toolCard + response;
         }
 
-
-// **-- Real 3D Physics Simulation Tool (Three.js/Cannon.js) --**
-
-        async function create3DSimulation(simId, setupType) {
-            if (!window.THREE || !window.CANNON) { return; }
-
-            const container = document.getElementById(simId);
-            if (!container) return;
+        /**
+         * Formats the explicit tool-call card to show the "Gemini-style" thought process.
+         */
+        window.formatToolCall = function(toolName, args) {
+            const cleanName = toolName.replace('clientSide', '').replace('get', '');
+            const argString = args.map(arg => typeof arg === 'string' ? `'${arg.substring(0, 30).replace(/\n/g, ' ')}...'` : '...').join(', ');
             
-            // Set a fixed size for the renderer to match the container
-            const width = 400; // Fixed width for chat box element
-            const height = 350;
+            // Determine the right color card for the called tool
+            const toolType = toolName.replace(/clientSide|get|Mock|Response|ML/g, '').toLowerCase(); 
+            const cardClass = `tool-card tool-card-${toolType.split('_')[0]}`;
 
-            const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(width, height);
-            container.appendChild(renderer.domElement);
 
-            const world = new CANNON.World();
-            world.gravity.set(0, -9.82, 0);
-            world.broadphase = new CANNON.NaiveBroadphase();
-            const timeStep = 1 / 60;
-
-            const groundMaterial = new CANNON.Material("groundMaterial");
-            const objectMaterial = new CANNON.Material("objectMaterial");
-            const contactMaterial = new CANNON.ContactMaterial(
-                groundMaterial,
-                objectMaterial,
-                { friction: 0.4, restitution: 0.8 }
-            );
-            world.addContactMaterial(contactMaterial);
-
-            // Create Ground
-            const groundShape = new CANNON.Plane();
-            const groundBody = new CANNON.Body({ mass: 0, material: groundMaterial });
-            groundBody.addShape(groundShape);
-            groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
-            world.addBody(groundBody);
-
-            const groundMesh = new THREE.Mesh(
-                new THREE.PlaneGeometry(50, 50, 1, 1),
-                new THREE.MeshLambertMaterial({ color: 0x444444, side: THREE.DoubleSide })
-            );
-            groundMesh.rotation.x = -Math.PI / 2;
-            scene.add(groundMesh);
-
-            // Lighting and Camera
-            scene.add(new THREE.AmbientLight(0x404040));
-            const light = new THREE.DirectionalLight(0xffffff, 1.0);
-            light.position.set(5, 5, 5);
-            scene.add(light);
-            camera.position.set(0, 5, 10);
-            camera.lookAt(0, 0, 0);
-
-            let meshes = [];
-            let bodies = [];
-
-            // Add Objects based on setupType
-            if (setupType === 'blocks') {
-                for (let i = 0; i < 5; i++) {
-                    const size = 1 + Math.random();
-                    const boxShape = new CANNON.Box(new CANNON.Vec3(size / 2, size / 2, size / 2));
-                    const boxBody = new CANNON.Body({ mass: size, position: new CANNON.Vec3(Math.random() * 4 - 2, 10 + i * 2, Math.random() * 4 - 2), material: objectMaterial });
-                    boxBody.addShape(boxShape);
-                    world.addBody(boxBody);
-                    bodies.push(boxBody);
-
-                    const boxMesh = new THREE.Mesh(
-                        new THREE.BoxGeometry(size, size, size),
-                        new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff })
-                    );
-                    scene.add(boxMesh);
-                    meshes.push(boxMesh);
-                }
-            } else { // 'spheres' or default
-                for (let i = 0; i < 10; i++) {
-                    const radius = 0.5 + Math.random() * 0.5;
-                    const sphereShape = new CANNON.Sphere(radius);
-                    const sphereBody = new CANNON.Body({ mass: radius, position: new CANNON.Vec3(Math.random() * 4 - 2, 5 + i * 1, Math.random() * 4 - 2), material: objectMaterial });
-                    world.addBody(sphereBody);
-                    bodies.push(sphereBody);
-
-                    const sphereMesh = new THREE.Mesh(
-                        new THREE.SphereGeometry(radius, 16, 16),
-                        new THREE.MeshLambertMaterial({ color: Math.random() * 0xffffff })
-                    );
-                    scene.add(sphereMesh);
-                    meshes.push(sphereMesh);
-                }
-            }
-            
-            // Animation Loop
-            let lastTime = 0;
-            function animate(time) {
-                // Check if the container is still attached to the DOM
-                if (!document.getElementById(simId)) {
-                    renderer.dispose();
-                    return;
-                }
-
-                requestAnimationFrame(animate);
-                
-                const dt = (time - lastTime) / 1000;
-                if (dt < 1 / 60) {
-                    lastTime = time;
-                    return;
-                }
-                world.step(timeStep, dt);
-
-                // Update three.js meshes
-                for (let i = 0; i < meshes.length; i++) {
-                    meshes[i].position.copy(bodies[i].position);
-                    meshes[i].quaternion.copy(bodies[i].quaternion);
-                }
-                
-                renderer.render(scene, camera);
-                lastTime = time;
-            }
-
-            animate(0);
-        }
-
-        async function clientSide3DSimulation(input) {
-            const lowQuery = input.toLowerCase();
-            const simKeywords = ['create a 3d simulation', 'simulate physics', 'three.js', 'cannon.js', 'drop cubes', 'drop spheres', '3d environment'];
-            if (!simKeywords.some(keyword => lowQuery.includes(keyword))) return null;
-
-            if (!window.THREE || !window.CANNON) {
-                return formatToolResponse(`**3D Simulation Error:** Three.js or Cannon.js not loaded. Cannot run client-side physics.`, '3d_real');
-            }
-
-            const simId = `physics-sim-${Date.now()}`;
-            let setupType = lowQuery.includes('blocks') || lowQuery.includes('cubes') ? 'blocks' : 'spheres';
-
-            const responseHtml = `
-                ### **Live 3D Physics Simulation (Three.js + Cannon.js)**
-                **Simulation Type:** <code>${setupType.toUpperCase()} Drop Test</code>
-                **Engine:** <code>Three.js (Renderer) & Cannon.js (Physics)</code>
-                **Output:**
-                <div id="${simId}" style="height: 350px; width: 400px; background-color: #2c3e50;" class="rounded-lg shadow-md mt-2"></div>
-                **Note:** This interactive 3D simulation runs entirely in your browser. Objects are generated and follow real-time physics (gravity, collision, restitution).
+            return `
+                <div class="${cardClass} mb-2 text-sm">
+                    <p class="font-bold text-sm text-purple-800">⚙️ Function Call Transparently Executed</p>
+                    <pre class="bg-gray-100 p-2 rounded text-xs overflow-x-auto mt-1"><code>${toolName}(${argString})</code></pre>
+                    <p class="mt-1 text-gray-700">The AI engine selected this client-side function to process your request.</p>
+                </div>
             `;
-            
-            // Append the message first so the div exists
-            appendBotMessage(formatToolResponse(responseHtml, '3d_real'), false);
-            
-            // Render the 3D scene after the div is in the DOM
-            await new Promise(resolve => setTimeout(resolve, 50));
-            await create3DSimulation(simId, setupType);
-
-            // Save to history after rendering
-            saveCurrentChat(null, formatToolResponse(responseHtml, '3d_real'));
-            
-            return '3D_SIM_RENDERED'; // Indicate that a simulation was rendered
         }
 
 
-// **-- Mock Tools --**
-        function clientSideVisionMock(fileDetails) {
-            // Mock Vision/OpenCV result
-            const object = fileDetails.name.replace(/\.(jpg|png|jpeg)$/i, '').split('-').join(' ');
-            const analysis = `Detected **${object}** with high confidence. Running advanced WebAssembly filter... **Filter complete** (OpenCV.js Mock).`;
-            const result = `### Vision Analysis Report\n\n**File:** \`${fileDetails.name}\`\n**Client Tool:** \`OpenCV.js (WASM)\`\n\n${analysis}`;
-            return formatToolResponse(result, 'vision_mock');
-        }
+// ---------------------------
+// 6. TOOL IMPLEMENTATIONS 
+// ---------------------------
 
-        function clientSideCodeExecutionMock(input) {
-            if (input.toLowerCase().includes("run code") || input.toLowerCase().includes("write a function") || input.toLowerCase().includes("execute javascript")) {
-                const code = "```javascript\nfunction fib(n) {\n    return n <= 1 ? n : fib(n - 1) + fib(n - 2);\n}\nconsole.log(fib(10)); // 55\n```";
-                const result = `**Code Execution Result:**\nThe code snippet for calculating the 10th Fibonacci number was executed successfully in the sandbox environment (Simulated).\n\n**Output:** \`55\`\n\n${code}`;
-                return formatToolResponse(result, 'code_mock');
+        // --- 6a. Math Tool ---
+        window.clientSideMath = function(query) {
+            try {
+                const expression = query.replace(/(calculate|solve|what is|compute|evaluate|find the)/i, '').trim();
+                if (!expression) return null;
+
+                const result = math.evaluate(expression, mathScope);
+                
+                if (typeof result === 'object' && result !== null) {
+                    if (result.type !== 'Unit' && result.type !== 'Matrix') return null;
+                }
+
+                const formattedResult = (typeof result.toString === 'function') ? result.toString() : String(result);
+
+                if (formattedResult && formattedResult.length < 100) {
+                    const mathjaxOutput = formattedResult.includes('e') ? formattedResult : `$$${math.parse(expression).toTex()}$$ Result: **${formattedResult}**`;
+                    return `TOOL_RESULT: ${window.formatToolResponse(mathjaxOutput, 'math')}`;
+                }
+            } catch (e) {
+                return null; 
             }
             return null;
         }
 
-        function clientSideImageGenerationMock(input) {
-            if (input.toLowerCase().includes("generate image") || input.toLowerCase().includes("draw a picture")) {
-                const prompt = input.replace(/generate image of|draw a picture of|i want an image of/i, '').trim() || "A minimalist cat on a skateboard";
-                const result = `### **Image Generation Result**\n\n**Prompt:** \`${prompt}\`\n**Model:** \`Simulated DALL-E/Imagen\`\n\n\n\n**Note:** Image rendering is simulated. The requested prompt was processed successfully by the multimodal tool.`;
-                return formatToolResponse(result, 'image_gen_mock');
-            }
-            return null;
-        }
 
-        function clientSideAPIMock(input) {
-            if (input.toLowerCase().includes("weather") || input.toLowerCase().includes("stock price") || input.toLowerCase().includes("latest news")) {
-                const topic = input.toLowerCase().includes("weather") ? "The weather" : (input.toLowerCase().includes("stock") ? "NVIDIA stock" : "The latest AI news");
-                const result = `**API Call Success (Simulated):**\n\nFetching real-time data for "${topic}"...\n\nResult: The current simulated ${topic.toLowerCase()} is **unavailable** due to a local server timeout. This feature relies on external API access.`;
-                return formatToolResponse(result, 'api_mock');
-            }
-            return null;
-        }
-
-        function clientSideEssayGenerator(input) {
-            if (input.toLowerCase().includes("write an essay") || input.toLowerCase().includes("explain in detail") || input.toLowerCase().includes("what is the importance of")) {
-                const topic = input.replace(/write an essay on|explain in detail|what is the importance of/i, '').trim() || "Client-Side Computing";
-                const result = `### **Simulated Generation Tool Output**\n\n**Title:** The Profound Importance of ${topic}\n\nClient-side computing, exemplified by JavaScript and WebAssembly, has fundamentally reshaped the modern web. By offloading complex processing tasks from centralized servers to the user's local machine, it enables unparalleled **speed**, **privacy**, and **interactivity**. This architecture is crucial for modern applications, from real-time gaming to machine learning inference in the browser. The move towards decentralized computation is not just an optimization but a paradigm shift... *[Simulated text continues for length]*`;
-                return formatToolResponse(result, 'generation_mock');
-            }
-            return null;
-        }
-
-        function getKeywordResponse(query, context) {
-            const lowQuery = query.toLowerCase();
+        // --- 6b. RAG Tool ---
+        window.getKeywordResponse = function(query, context) {
+            const fullQuery = query + ' ' + context.join(' ');
             for (const item of KNOWLEDGE_BASE) {
-                if (item.keywords.some(keyword => lowQuery.includes(keyword))) {
-                    return formatToolResponse(item.response, 'rag');
+                if (item.keywords.some(k => fullQuery.includes(k))) {
+                    return window.formatToolResponse(item.response, 'rag');
                 }
             }
             return null;
         }
 
-        function getFallbackResponse(query) {
-            if (query.length > 50) {
-                return formatToolResponse(`I'm sorry, I don't have a specific tool or knowledge entry for that complex query. My abilities are currently limited to Math.js, MobileNet image classification, Plotly charting, and Three.js/Cannon.js simulations.`, 'fallback');
+
+        // --- 6c. Vision Tool (Real & Mock) ---
+        window.clientSideML = async function(fileDataUrl, fileDetails) {
+            const imageElement = document.createElement('img');
+            imageElement.src = fileDataUrl;
+            imageElement.style.maxWidth = '100%';
+            imageElement.style.height = 'auto';
+            imageElement.style.borderRadius = '0.5rem';
+            
+            try {
+                window.appendBotMessage(window.formatToolResponse(`Analyzing image: **${fileDetails.name}**... `, 'ml_real'), false, 'ml_real');
+                chatBox.lastChild.querySelector('.text-gray-700').appendChild(imageElement);
+
+                const predictions = await mobilenetModel.classify(imageElement);
+                const topPrediction = predictions[0];
+                
+                const resultText = `
+                    The **TensorFlow.js MobileNet** model classified this image on your device.
+                    <br><br>
+                    **Top Prediction:** **${topPrediction.className}**
+                    <br>
+                    **Confidence:** ${(topPrediction.probability * 100).toFixed(2)}%
+                `;
+                
+                const finalMessage = window.formatToolResponse(resultText, 'ml_real');
+                window.saveCurrentChat(null, finalMessage);
+                
+                return 'ML_RENDERED'; 
+                
+            } catch (e) {
+                console.error("ML Classification Error:", e);
+                return window.formatToolResponse(`**Error in TensorFlow.js:** Could not classify the image. The model reported an error: ${e.message}`, 'fallback');
             }
-            return formatToolResponse(`I can't process your request: \`${query}\`. Please try a calculation (e.g., \`What is 10*5\`), a visualization request (e.g., \`plot a line chart\`), or drop an image.`, 'fallback');
         }
 
-// ---------------------------
-// 6. DRAG AND DROP SETUP
-// ---------------------------
+        window.clientSideVisionMock = function(fileDetails) {
+            const filename = fileDetails.name.toLowerCase();
+            let analysis = `A comprehensive client-side vision analysis of **${fileDetails.name}** yields: `;
+            
+            if (filename.includes('dog') || filename.includes('cat') || filename.includes('animal')) {
+                analysis += "**Pet Mammal** with high certainty. Identified as either a Golden Retriever or Calico Cat.";
+            } else if (filename.includes('graph') || filename.includes('chart') || filename.includes('data')) {
+                analysis += "**Data Visualization** containing lines and axes. Predicted to show a time-series trend of computational throughput.";
+            } else {
+                analysis += "**Outdoor Landscape** (85% probability). Key elements: high-contrast blue sky, vibrant green foliage, and clear depth perception.";
+            }
 
-        function setupDragAndDrop() {
+            const imageHtml = `<p>Image: **${fileDetails.name}**</p><img src="${fileDetails.dataUrl}" style="max-width: 150px; height: auto; border-radius: 5px; margin-top: 10px;">`;
+            
+            return window.formatToolResponse(imageHtml + '<br><br>' + analysis, 'vision_mock');
+        }
+
+
+        // --- 6d. Visualization Tool (Real Plotly) ---
+        window.clientSideVisualization = async function(query) {
+            const keywords = query.toLowerCase();
+            
+            if (keywords.includes('plotly') || keywords.includes('chart') || keywords.includes('visualize') || keywords.includes('data')) {
+                const plotDivId = `plotly-chart-${Date.now()}`;
+                const plotHtml = `<div id="${plotDivId}" style="width: 100%; height: 350px;"></div>`;
+                
+                const messageDiv = window.appendBotMessage(window.formatToolResponse(`**Plotly Chart Generation**... Visualization is rendering below.`, 'vis_real'), false, 'vis_real');
+                messageDiv.querySelector('.text-gray-700').innerHTML += plotHtml; 
+
+                await new Promise(r => setTimeout(r, 100)); 
+
+                const data = [{
+                    x: [1, 2, 3, 4, 5],
+                    y: [1, 3, 2, 4, 5].map(y => y * (Math.random() * 0.5 + 0.75)),
+                    mode: 'lines+markers',
+                    type: 'scatter',
+                    name: 'Performance Metric',
+                    marker: {color: '#ff9800'} // Amber
+                }];
+                
+                const layout = {
+                    title: `Client-Side Generated Plot: ${query.substring(0, 50)}...`,
+                    xaxis: { title: 'Time (s)' },
+                    yaxis: { title: 'Metric Value' },
+                    margin: { t: 40, b: 30, l: 40, r: 10 }
+                };
+
+                if (window.Plotly) {
+                    Plotly.newPlot(plotDivId, data, layout, {responsive: true, displayModeBar: false});
+                }
+                
+                window.saveCurrentChat(null, window.formatToolResponse(`**Plotly Visualization Rendered!** The client-side library executed the command and generated a Scatter Plot directly below.`, 'vis_real'));
+
+                return 'CHART_RENDERED';
+            }
+            
+            return null;
+        }
+
+
+        // --- 6e. 3D/Physics Simulation Tool (Real Three.js/Cannon.js) ---
+        window.clientSide3DSimulation = async function(query) {
+            const keywords = query.toLowerCase();
+
+            if (keywords.includes('simulate') && (keywords.includes('physics') || keywords.includes('3d') || keywords.includes('falling'))) {
+                
+                const simDivId = `sim-canvas-${Date.now()}`;
+                const simHtml = `<div id="${simDivId}" style="width: 100%; height: 300px; background-color: #333; border-radius: 0.5rem; overflow: hidden; margin-top: 10px;"></div>`;
+                
+                const messageDiv = window.appendBotMessage(window.formatToolResponse(`**Initializing 3D Simulation (Three.js/Cannon.js)...** A simple physics simulation of a falling object will load below.`, '3d_real'), false, '3d_real');
+                messageDiv.querySelector('.text-gray-700').innerHTML += simHtml; 
+
+                await new Promise(r => setTimeout(r, 200));
+
+                if (window.THREE && window.CANNON) {
+                    const container = document.getElementById(simDivId);
+                    if (container) {
+                        // Setup Three.js (omitted for brevity, assume successful setup from original code)
+                        const scene = new THREE.Scene();
+                        const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+                        const renderer = new THREE.WebGLRenderer({ antialias: true });
+                        renderer.setSize(container.clientWidth, container.clientHeight);
+                        renderer.setClearColor(0x333333);
+                        container.appendChild(renderer.domElement);
+
+                        const ambientLight = new THREE.AmbientLight(0x404040); scene.add(ambientLight);
+                        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                        directionalLight.position.set(1, 1, 1).normalize(); scene.add(directionalLight);
+
+                        const world = new CANNON.World();
+                        world.gravity.set(0, -9.82, 0); 
+
+                        const groundShape = new CANNON.Plane();
+                        const groundBody = new CANNON.Body({ mass: 0, shape: groundShape });
+                        groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2); 
+                        world.addBody(groundBody);
+
+                        const groundGeometry = new THREE.PlaneGeometry(10, 10);
+                        const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 }); 
+                        const groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
+                        groundMesh.rotation.x = -Math.PI / 2;
+                        scene.add(groundMesh);
+
+                        const radius = 0.5;
+                        const sphereShape = new CANNON.Sphere(radius);
+                        const sphereBody = new CANNON.Body({ mass: 5, shape: sphereShape });
+                        sphereBody.position.set(0, 5, 0);
+                        world.addBody(sphereBody);
+
+                        const sphereGeometry = new THREE.SphereGeometry(radius);
+                        const sphereMaterial = new THREE.MeshLambertMaterial({ color: 0x0077ff }); 
+                        const sphereMesh = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                        scene.add(sphereMesh);
+
+                        camera.position.set(3, 3, 5);
+                        camera.lookAt(0, 0, 0);
+
+                        let lastTime = 0;
+                        function animate(time) {
+                            requestAnimationFrame(animate);
+
+                            const dt = (time - lastTime) / 1000;
+                            if (dt < 0.1) world.step(1/60, dt);
+                            lastTime = time;
+
+                            sphereMesh.position.copy(sphereBody.position);
+                            sphereMesh.quaternion.copy(sphereBody.quaternion);
+
+                            renderer.render(scene, camera);
+                        }
+                        
+                        animate(0); 
+                        
+                        window.saveCurrentChat(null, window.formatToolResponse(`**3D Physics Simulation Rendered!** The client used **Three.js** and **Cannon.js** to simulate a falling sphere with real-time physics.`, '3d_real'));
+
+                        return '3D_SIM_RENDERED';
+                    }
+                }
+                return window.formatToolResponse(`**Error:** Three.js or Cannon.js failed to initialize the simulation.`, 'fallback');
+            }
+            return null;
+        }
+
+
+        // --- 6f. Essay Generator Tool ---
+        window.clientSideEssayGenerator = function(query) {
+            if (query.length > 50) {
+                return window.formatToolResponse(`**Model Synthesis Report:** I have analyzed your request regarding "${query.substring(0, 35)}...". The engine generated a detailed synthesis based on its comprehensive internal model. 
+                \n\n**Key Finding:** The operation of powerful AI models entirely on the client-side is becoming increasingly viable due to advancements in browser APIs (like WebGPU and WebAssembly) and optimized model architectures (like Nano). This architecture provides superior privacy, eliminates cloud costs, and enables offline functionality for tools like image classification and calculation engines, offering a more immediate and robust user experience.`, 'generation_mock');
+            }
+            return null;
+        }
+
+        // --- 6g. Mock Tools (Code, Image Gen, API) ---
+        window.clientSideCodeExecutionMock = function(query) {
+            const codeExample = `
+// Input: console.log('Client AI Ready')
+function performComplexCalculation(data) {
+    let sum = data.reduce((a, b) => a + b, 0);
+    return Math.pow(sum, 2);
+}
+// Simulated Output: performComplexCalculation([1, 2, 3]) -> 36
+            `;
+            return window.formatToolResponse(`**Code Execution Engine:** The engine interprets your command and executes the following JavaScript in a simulated environment:
+                \n\n\`\`\`javascript${codeExample}\`\`\`\n\n*Note: This simulation confirms the logic. For security, actual arbitrary code execution is blocked, but the output is guaranteed to be correct for the simulated function.*`, 'code_mock');
+        }
+
+        window.clientSideImageGenerationMock = function(query) {
+            const filename = `generated-asset-${Math.floor(Math.random() * 100)}.png`;
+            const prompt = query.replace(/(generate image|create a picture|draw me)/i, '').trim();
+            
+            return window.formatToolResponse(`**Image Synthesis Tool:** Based on the prompt, "*${prompt}*", the client-side synthesis model generated a 1024x1024 asset.
+                \n\n[Asset of a complex, prompt-based picture]
+                \n\n**File:** *${filename}* (Simulated PNG)\n\n*This process is simulated to demonstrate capability; no file was actually created.*`, 'image_gen_mock');
+        }
+
+        window.clientSideAPIMock = function(query) {
+            const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            return window.formatToolResponse(`**Live Data Search Tool:** The engine executed a live search for *${query}*.
+                \n\n**Current Date:** ${today}
+                \n\n**Simulated Data Feed:** Global **Client-Side AI Inference Latency** is averaging **32ms** (p95). The latest data suggests a 5% speed improvement year-over-year.`, 'api_mock');
+        }
+
+
+        // --- 6h. Fallback Tool ---
+        window.getFallbackResponse = function(query) {
+            return window.formatToolResponse(`I'm sorry, I couldn't dispatch a specific client-side tool to address your request: "*${query}*". Please rephrase your query to clearly indicate an action like 'calculate,' 'plot,' 'simulate,' or 'analyze image.'`, 'fallback');
+        }
+
+
+// ---------------------------
+// 7. DRAG AND DROP
+// ---------------------------
+        window.setupDragAndDrop = function() {
+            const gameSection = document.getElementById('gameSection');
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                gameSection.addEventListener(eventName, preventDefaults, false);
+            });
+
             function preventDefaults(e) {
                 e.preventDefault();
                 e.stopPropagation();
             }
 
+            ['dragenter', 'dragover'].forEach(eventName => {
+                gameSection.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                gameSection.addEventListener(eventName, unhighlight, false);
+            });
+
             function highlight(e) {
-                dropZone.classList.add('flex');
                 dropZone.classList.remove('hidden');
+                dropZone.classList.add('flex');
             }
 
             function unhighlight(e) {
@@ -1071,93 +1023,74 @@
                 dropZone.classList.remove('flex');
             }
 
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                document.addEventListener(eventName, preventDefaults, false);
-            });
-
-            document.addEventListener('dragenter', (e) => {
-                // Only highlight if dragging over the chat interface
-                if (document.getElementById('gameSection').contains(e.target)) {
-                    highlight(e);
-                }
-            }, false);
-
-            document.addEventListener('dragleave', (e) => {
-                if (e.target === dropZone || !dropZone.contains(e.target)) {
-                    unhighlight(e);
-                }
-            }, false);
-            
-            document.addEventListener('drop', handleDrop, false);
+            gameSection.addEventListener('drop', handleDrop, false);
 
             function handleDrop(e) {
-                unhighlight(e);
-                const dt = e.dataTransfer;
-                const files = dt.files;
+                let dt = e.dataTransfer;
+                let files = dt.files;
 
-                if (files.length > 0) {
+                if (files.length > 0 && files[0].type.startsWith('image/')) {
                     const file = files[0];
-                    if (file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = function(event) {
-                            const fileDataUrl = event.target.result;
-                            const fileDetails = { name: file.name, size: file.size, type: file.type };
-                            sendMessage(fileDataUrl, fileDetails);
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(event) {
+                        const dataUrl = event.target.result;
+                        const fileDetails = {
+                            name: file.name,
+                            type: file.type,
+                            dataUrl: dataUrl
                         };
-                        reader.readAsDataURL(file);
-                    } else {
-                        alert("Only image files are supported for ML analysis.");
-                    }
+                        window.sendMessage(dataUrl, fileDetails);
+                    };
+                    
+                    reader.readAsDataURL(file);
+                } else {
+                    alert('Please drop an image file.');
                 }
             }
         }
-        
+
+
 // ---------------------------
-// 7. NEW D3.JS DATA EXPLORER LOGIC
+// 8. D3.JS PANEL 
 // ---------------------------
+        window.toggleDataPanel = function() {
+            const panel = document.getElementById('dataPanel');
+            panel.classList.toggle('d3-panel-hidden');
+            panel.classList.toggle('d3-panel-visible');
 
-        // New Global State
-        let isDataPanelVisible = false;
-        const dataPanel = document.getElementById('dataPanel');
-        const d3ChartArea = document.getElementById('d3ChartArea');
-        const dataJsonView = document.getElementById('dataJsonView');
-
-        // Data for D3 simulation
-        const simulatedData = Array.from({ length: 50 }, (_, i) => ({
-            id: i + 1,
-            latency: Math.floor(Math.random() * 50) + 10, // ms
-            throughput: (Math.random() * 20 + 30).toFixed(2), // ops/sec
-            accuracy: (Math.random() * 0.2 + 0.78).toFixed(3) // 78% to 98%
-        }));
-
-        function toggleDataPanel() {
-            isDataPanelVisible = !isDataPanelVisible;
-            if (isDataPanelVisible) {
-                dataPanel.classList.remove('d3-panel-hidden');
-                dataPanel.classList.add('d3-panel-visible');
-                renderD3Chart(simulatedData);
-                dataJsonView.textContent = JSON.stringify(simulatedData, null, 2);
-            } else {
-                dataPanel.classList.add('d3-panel-hidden');
-                dataPanel.classList.remove('d3-panel-visible');
-                // Clean up any D3 tooltips/extra elements when closing
-                d3.select("body").selectAll(".tooltip").remove(); 
+            if (panel.classList.contains('d3-panel-visible')) {
+                const data = window.generateSimulatedData();
+                document.getElementById('dataJsonView').textContent = JSON.stringify(data, null, 2);
+                window.renderD3Chart(data);
             }
         }
 
-        function renderD3Chart(data) {
-            if (!window.d3) {
-                d3ChartArea.innerHTML = "<p class='text-red-500'>D3.js not loaded. Cannot render chart.</p>";
-                return;
+        window.generateSimulatedData = function() {
+            const data = [];
+            const timeSteps = 50;
+            for (let i = 0; i < timeSteps; i++) {
+                const latency = 10 + Math.random() * 5 + Math.sin(i / 5) * 2;
+                const throughput = 500 + Math.random() * 100 - Math.cos(i / 10) * 50;
+                const accuracy = 0.85 + Math.random() * 0.15;
+                
+                data.push({
+                    id: i,
+                    latency: parseFloat(latency.toFixed(2)),
+                    throughput: parseFloat(throughput.toFixed(2)),
+                    accuracy: parseFloat(accuracy.toFixed(3))
+                });
             }
-            
-            // Clear previous chart
-            d3.select("#d3ChartArea").selectAll("*").remove();
-            
-            const margin = { top: 10, right: 30, bottom: 40, left: 50 };
-            const containerWidth = d3ChartArea.getBoundingClientRect().width;
-            const width = containerWidth - margin.left - margin.right;
-            const height = 350 - margin.top - margin.bottom; // Fixed height
+            return data;
+        }
+
+        window.renderD3Chart = function(data) {
+            const chartArea = document.getElementById('d3ChartArea');
+            chartArea.innerHTML = ''; // Clear previous chart
+
+            const margin = { top: 20, right: 20, bottom: 40, left: 50 };
+            const width = chartArea.clientWidth - margin.left - margin.right;
+            const height = chartArea.clientHeight - margin.top - margin.bottom;
 
             const svg = d3.select("#d3ChartArea")
                 .append("svg")
@@ -1166,103 +1099,79 @@
                 .append("g")
                 .attr("transform", `translate(${margin.left},${margin.top})`);
 
-            // X axis (Latency)
             const x = d3.scaleLinear()
-                .domain([0, d3.max(data, d => d.latency) * 1.1])
+                .domain(d3.extent(data, d => d.throughput)).nice()
                 .range([0, width]);
+
+            const y = d3.scaleLinear()
+                .domain(d3.extent(data, d => d.latency)).nice()
+                .range([height, 0]);
+            
+            const color = d3.scaleSequential(d3.interpolateViridis)
+                .domain([d3.min(data, d => d.accuracy), d3.max(data, d => d.accuracy)]);
+
+            // X-axis
             svg.append("g")
                 .attr("transform", `translate(0,${height})`)
                 .call(d3.axisBottom(x));
-            
-            // X axis label
             svg.append("text")
-                .attr("class", "x label")
-                .attr("text-anchor", "end")
-                .attr("x", width)
-                .attr("y", height + 35)
-                .style("font-size", "11px")
-                .style("fill", "#4b5563")
-                .text("Latency (ms)");
+                .attr("transform", `translate(${width / 2}, ${height + margin.bottom - 5})`)
+                .style("text-anchor", "middle")
+                .text("Throughput (Ops/Sec)");
 
-
-            // Y axis (Throughput)
-            const y = d3.scaleLinear()
-                .domain([0, d3.max(data, d => parseFloat(d.throughput)) * 1.1])
-                .range([height, 0]);
+            // Y-axis
             svg.append("g")
                 .call(d3.axisLeft(y));
-                
-            // Y axis label
             svg.append("text")
-                .attr("class", "y label")
-                .attr("text-anchor", "end")
-                .attr("y", -35)
-                .attr("dy", ".75em")
                 .attr("transform", "rotate(-90)")
-                .style("font-size", "11px")
-                .style("fill", "#4b5563")
-                .text("Throughput (ops/sec)");
-
-            // Color scale for Accuracy
-            const color = d3.scaleSequential()
-                .domain(d3.extent(data, d => d.accuracy))
-                .interpolator(d3.interpolateViridis);
-
-            // Size scale for ID (to show some variability)
-            const size = d3.scaleLinear()
-                .domain([0, 50]) // Max ID
-                .range([4, 12]);
-
-            // Tooltip Setup (Attach to body so it overlays all elements)
+                .attr("y", 0 - margin.left)
+                .attr("x", 0 - (height / 2))
+                .attr("dy", "1em")
+                .style("text-anchor", "middle")
+                .text("Latency (ms)");
+            
+            // Tooltip
             const tooltip = d3.select("body").append("div")
                 .attr("class", "tooltip")
-                .style("opacity", 0)
-                .style("position", "absolute");
+                .style("opacity", 0);
 
-
-            // Add dots
-            svg.append('g')
+            // Dots
+            svg.append("g")
                 .selectAll("dot")
                 .data(data)
                 .enter()
                 .append("circle")
-                .attr("cx", d => x(d.latency))
-                .attr("cy", d => y(parseFloat(d.throughput)))
-                .attr("r", d => size(d.id))
+                .attr("cx", d => x(d.throughput))
+                .attr("cy", d => y(d.latency))
+                .attr("r", 5)
                 .style("fill", d => color(d.accuracy))
                 .style("opacity", 0.8)
-                .attr("stroke", "white")
-                .on("mouseover", function(event, d) {
-                    d3.select(this).style("stroke", "black").style("opacity", 1);
-                    
+                .on("mouseover", (event, d) => {
                     tooltip.transition()
                         .duration(200)
-                        .style("opacity", 0.9);
-                    tooltip.html(`ID: ${d.id}<br>Latency: ${d.latency}ms<br>Throughput: ${d.throughput}<br>Accuracy: ${d.accuracy}`)
+                        .style("opacity", .9);
+                    tooltip.html(`Acc: <strong>${(d.accuracy * 100).toFixed(1)}%</strong><br>Lat: ${d.latency}ms<br>Thr: ${d.throughput} Ops`)
                         .style("left", (event.pageX + 10) + "px")
                         .style("top", (event.pageY - 28) + "px");
                 })
-                .on("mousemove", function(event) {
-                     tooltip.style("left", (event.pageX + 10) + "px")
-                            .style("top", (event.pageY - 28) + "px");
-                })
-                .on("mouseleave", function(d) {
-                    d3.select(this).style("stroke", "white").style("opacity", 0.8);
+                .on("mouseout", () => {
                     tooltip.transition()
                         .duration(500)
                         .style("opacity", 0);
                 });
-            
-            // Handle resizing (basic, single-render approach)
-            window.addEventListener('resize', () => {
-                if(isDataPanelVisible) renderD3Chart(data);
-            });
         }
-        
-        document.addEventListener('DOMContentLoaded', () => {
-             // Initial check for login. If no login, the initializeChatbotUI() runs after successful login.
-             // If the user already logged in (e.g., if this was a full page refresh and we skipped login), we'd call initialize here, but based on the code, we wait for validateLogin.
-        });
+
+
+// ---------------------------
+// 9. EVENT LISTENERS
+// ---------------------------
+        window.onload = function() {
+            if (document.getElementById("loginContainer").classList.contains("hidden")) {
+                initializeChatbotUI();
+            }
+        };
+
+        setupSpeechRecognition();
     </script>
 </body>
 </html>
